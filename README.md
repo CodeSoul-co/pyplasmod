@@ -2,8 +2,8 @@
 
 PyPlasmod 是本仓库对 **[PyPlasmod](https://github.com/plasmod-io/pyplasmod)** 的衍生发行：包名与导入路径已统一为 **`pyplasmod`**，面向 **[Plasmod](https://github.com/CodeSoul-co/Plasmod)** 多智能体原生数据库项目的 SDK 演进。
 
-**Plasmod 是什么（摘自上游设计）**  
-Plasmod 面向多智能体系统，将认知对象存储、事件驱动的物化与结构化证据检索整合在可运行的系统中（详见仓库内 [`README-Plasmod.md`](README-Plasmod.md) 的完整说明与 HTTP API 列表）。
+**Plasmod 是什么**  
+Plasmod 面向多智能体系统，将认知对象存储、事件驱动的物化与结构化证据检索整合在可运行的系统中。
 
 **当前 SDK 状态说明**
 
