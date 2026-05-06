@@ -10,45 +10,21 @@
 # or implied. See the License for the specific language governing permissions and limitations under
 # the License.
 
-"""Python SDK for Plasmod — HTTP Tier A + binary RPC (``docs/sdk/README.md``)."""
+"""Plasmod HTTP SDK (JSON Tier A + binary RPC helpers)."""
 
-from __future__ import annotations
-
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
-
-from pyplasmod.exceptions import (
-    ConnectError,
-    ParamError,
-    PlasmodException,
-    PlasmodUnavailableException,
-)
-from pyplasmod.http import (
-    PlasmodHttpClient,
-    PlasmodHttpError,
+from pyplasmod.http.binary import (
     decode_query_warm_batch_response,
     decode_query_warm_response,
     encode_ingest_batch,
     encode_query_warm,
     encode_query_warm_batch,
 )
-
-try:
-    __version__ = _pkg_version("pyplasmod")
-except PackageNotFoundError:
-    __version__ = "0.0.0"
-
-# Align with ``Plasmod/sdk/python/plasmod_sdk`` naming.
-PlasmodClient = PlasmodHttpClient
+from pyplasmod.http.client import PlasmodHttpClient
+from pyplasmod.http.errors import PlasmodHttpError
 
 __all__ = [
-    "ConnectError",
-    "ParamError",
-    "PlasmodClient",
-    "PlasmodException",
     "PlasmodHttpClient",
     "PlasmodHttpError",
-    "PlasmodUnavailableException",
-    "__version__",
     "decode_query_warm_batch_response",
     "decode_query_warm_response",
     "encode_ingest_batch",

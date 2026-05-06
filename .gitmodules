@@ -1,3 +1,0 @@
-[submodule "milvus-proto"]
-	path = pyplasmod/grpc_gen/milvus-proto
-	url = https://github.com/milvus-io/milvus-proto.git

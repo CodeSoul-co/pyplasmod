@@ -154,13 +154,6 @@ jobs:
              exit 0
           fi
 
-          if [ -n "$CHANGED_FILES" ] && echo "$CHANGED_FILES" | grep -q "^pyplasmod/grpc_gen/"; then
-            echo "::notice::Skipping restricted paths."
-            write_summary "⚠️" "Backport Skipped" "**PR:** #$PR_NUMBER\n\n**Reason:** This PR modifies \`pyplasmod/grpc_gen/\`. Please backport manually."
-            gh pr comment "$PR_NUMBER" --body $'⚠️ **Backport Skipped**\nHi @'"$PR_AUTHOR"$', this PR modifies `pyplasmod/grpc_gen/`. Please backport manually.\n\n'"$CC_LINE"''
-            exit 0
-          fi
-
           BACKPORT_SUCCESS="false"
           BACKPORT_COUNT=0
           SUMMARY_RESULTS=""
