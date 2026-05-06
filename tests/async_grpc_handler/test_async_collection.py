@@ -6,10 +6,10 @@ Coverage: Collection create/drop/load/release, schema caching, collection proper
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.client.cache import GlobalCache
-from pymilvus.exceptions import MilvusException
-from pymilvus.grpc_gen import common_pb2
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.cache import GlobalCache
+from pyplasmod.exceptions import PlasmodException
+from pyplasmod.grpc_gen import common_pb2
 
 
 class TestAsyncGrpcHandlerCollection:
@@ -30,9 +30,9 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.CreateCollection = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.create_collection_request.return_value = MagicMock()
             await handler.create_collection("test_coll", fields=[])
             mock_stub.CreateCollection.assert_called_once()
@@ -52,9 +52,9 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.DropCollection = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.drop_collection_request.return_value = MagicMock()
             await handler.drop_collection("test_coll")
             mock_stub.DropCollection.assert_called_once()
@@ -74,9 +74,9 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.TruncateCollection = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.truncate_collection_request.return_value = MagicMock()
             await handler.truncate_collection("test_coll", timeout=30)
             mock_stub.TruncateCollection.assert_called_once()
@@ -97,9 +97,9 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.LoadCollection = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_request.refresh = False
             mock_prepare.load_collection.return_value = mock_request
@@ -121,9 +121,9 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.ReleaseCollection = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.release_collection.return_value = MagicMock()
             await handler.release_collection("test_coll")
             mock_stub.ReleaseCollection.assert_called_once()
@@ -149,7 +149,7 @@ class TestAsyncGrpcHandlerCollection:
         handler._is_channel_ready = True
         handler.get_loading_progress = AsyncMock(return_value=50)
 
-        with pytest.raises(MilvusException) as exc_info:
+        with pytest.raises(PlasmodException) as exc_info:
             await handler.wait_for_loading_collection(collection_name="test_coll", timeout=0.001)
         assert "timeout" in str(exc_info.value).lower()
 
@@ -169,8 +169,8 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.GetLoadingProgress = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.get_loading_progress.return_value = MagicMock()
             result = await handler.get_loading_progress("test_coll")
@@ -192,8 +192,8 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.GetLoadingProgress = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.get_loading_progress.return_value = MagicMock()
             result = await handler.get_loading_progress("test_coll", is_refresh=True)
@@ -224,10 +224,10 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.DescribeCollection = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.is_successful", return_value=True), patch(
-            "pymilvus.client.async_grpc_handler.CollectionSchema"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.is_successful", return_value=True), patch(
+            "pyplasmod.client.async_grpc_handler.CollectionSchema"
         ) as mock_schema:
             mock_schema.return_value.dict.return_value = {"collection_name": "test_coll"}
             mock_prepare.describe_collection_request.return_value = MagicMock()
@@ -250,9 +250,9 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.DescribeCollection = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.is_successful", return_value=True):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.is_successful", return_value=True):
             mock_prepare.describe_collection_request.return_value = MagicMock()
             result = await handler.has_collection("test_coll")
             assert result is True
@@ -274,8 +274,8 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.DescribeCollection = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
         ):
             mock_prepare.describe_collection_request.return_value = MagicMock()
             result = await handler.has_collection("nonexistent")
@@ -298,8 +298,8 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.DescribeCollection = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
         ):
             mock_prepare.describe_collection_request.return_value = MagicMock()
             result = await handler.has_collection("nonexistent")
@@ -307,7 +307,7 @@ class TestAsyncGrpcHandlerCollection:
 
     @pytest.mark.asyncio
     async def test_has_collection_raises_on_other_error(self) -> None:
-        """Test has_collection raises MilvusException for other errors"""
+        """Test has_collection raises PlasmodException for other errors"""
         mock_channel = MagicMock()
         mock_channel._unary_unary_interceptors = []
         handler = AsyncGrpcHandler(channel=mock_channel)
@@ -322,11 +322,11 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.DescribeCollection = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.is_successful", return_value=False):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.is_successful", return_value=False):
             mock_prepare.describe_collection_request.return_value = MagicMock()
-            with pytest.raises(MilvusException):
+            with pytest.raises(PlasmodException):
                 await handler.has_collection("test_coll")
 
     @pytest.mark.asyncio
@@ -345,8 +345,8 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.ShowCollections = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.show_collections_request.return_value = MagicMock()
             result = await handler.list_collections()
@@ -368,9 +368,9 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.GetCollectionStatistics = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.get_collection_stats_request.return_value = MagicMock()
             result = await handler.get_collection_stats("test_coll")
             assert result is not None
@@ -391,8 +391,8 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.GetLoadState = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.get_load_state.return_value = MagicMock()
             result = await handler.get_load_state("test_coll")
@@ -414,8 +414,8 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.GetLoadingProgress = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.get_loading_progress.return_value = MagicMock()
             result = await handler.refresh_load("test_coll")
@@ -436,9 +436,9 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.RenameCollection = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.rename_collections_request.return_value = MagicMock()
             await handler.rename_collection("old_name", "new_name")
             mock_stub.RenameCollection.assert_called_once()
@@ -470,8 +470,8 @@ class TestAsyncGrpcHandlerCollection:
         mock_stub.GetReplicas = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.get_replicas.return_value = MagicMock()
             result = await handler.describe_replica("test_coll")
@@ -561,9 +561,9 @@ class TestAsyncGrpcHandlerCollectionProperties:
         mock_stub.AlterCollection = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.alter_collection_request.return_value = MagicMock()
             await handler.alter_collection_properties("test_coll", {"key": "value"})
             mock_stub.AlterCollection.assert_called_once()
@@ -583,9 +583,9 @@ class TestAsyncGrpcHandlerCollectionProperties:
         mock_stub.AlterCollection = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.alter_collection_request.return_value = MagicMock()
             await handler.drop_collection_properties("test_coll", ["key1", "key2"])
             mock_stub.AlterCollection.assert_called_once()
@@ -605,9 +605,9 @@ class TestAsyncGrpcHandlerCollectionProperties:
         mock_stub.AlterCollectionField = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.alter_collection_field_request.return_value = MagicMock()
             await handler.alter_collection_field("test_coll", "field1", {"mmap": True})
             mock_stub.AlterCollectionField.assert_called_once()
@@ -628,9 +628,9 @@ class TestAsyncGrpcHandlerCollectionProperties:
         handler._async_stub = mock_stub
 
         mock_field_schema = MagicMock()
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.add_collection_field_request.return_value = MagicMock()
             await handler.add_collection_field("test_coll", mock_field_schema)
             mock_stub.AddCollectionField.assert_called_once()
@@ -650,9 +650,9 @@ class TestAsyncGrpcHandlerCollectionProperties:
         mock_stub.DropCollectionFunction = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.drop_collection_function_request.return_value = MagicMock()
             await handler.drop_collection_function("test_coll", "func1")
             mock_stub.DropCollectionFunction.assert_called_once()
@@ -673,9 +673,9 @@ class TestAsyncGrpcHandlerCollectionProperties:
         handler._async_stub = mock_stub
 
         mock_function = MagicMock()
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.add_collection_function_request.return_value = MagicMock()
             await handler.add_collection_function("test_coll", mock_function)
             mock_stub.AddCollectionFunction.assert_called_once()
@@ -696,9 +696,9 @@ class TestAsyncGrpcHandlerCollectionProperties:
         handler._async_stub = mock_stub
 
         mock_function = MagicMock()
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.alter_collection_function_request.return_value = MagicMock()
             await handler.alter_collection_function("test_coll", "func1", mock_function)
             mock_stub.AlterCollectionFunction.assert_called_once()

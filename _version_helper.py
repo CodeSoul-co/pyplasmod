@@ -1,5 +1,5 @@
 """
-Custom version scheme for pymilvus using setuptools_scm public API only.
+Custom version scheme for pyplasmod using setuptools_scm public API only.
 
 Loaded via pyproject.toml:
     [tool.setuptools.dynamic]

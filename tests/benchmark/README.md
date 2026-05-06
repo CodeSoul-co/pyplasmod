@@ -1,6 +1,6 @@
-# pymilvus MilvusClient Benchmarking Suite
+# pyplasmod PlasmodClient Benchmarking Suite
 
-This benchmark suite measures client-side performance of pymilvus MilvusClient API operations (search, query, hybrid search) without requiring a running Milvus server.
+This benchmark suite measures client-side performance of pyplasmod PlasmodClient API operations (search, query, hybrid search) without requiring a running Plasmod server.
 
 ## Overview
 

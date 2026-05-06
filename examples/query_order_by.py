@@ -1,8 +1,8 @@
 import numpy as np
-from pymilvus import (
+from pyplasmod import (
     FieldSchema, CollectionSchema, DataType,
 )
-from pymilvus.milvus_client import MilvusClient
+from pyplasmod.plasmod_client import PlasmodClient
 import random
 
 names = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace"]
@@ -15,8 +15,8 @@ batch_num = 3
 num_entities, dim = 100, 8
 fmt = "\n=== {:30} ===\n"
 
-print(fmt.format("start connecting to Milvus"))
-client = MilvusClient(uri="http://localhost:19530")
+print(fmt.format("start connecting to Plasmod"))
+client = PlasmodClient(uri="http://localhost:19530")
 
 if clean_exist and client.has_collection(collection_name):
     client.drop_collection(collection_name)
@@ -62,13 +62,13 @@ if prepare_data:
             client.flush(collection_name)
         print(f"inserted batch:{batch_idx}")
 
-    from pymilvus.milvus_client.index import IndexParams
+    from pyplasmod.plasmod_client.index import IndexParams
     index_params = IndexParams()
     index_params.add_index("embedding", index_type="IVF_FLAT", metric_type="L2", nlist=128)
     client.create_index(collection_name, index_params)
 
 stats = client.get_collection_stats(collection_name)
-print(f"Number of entities in Milvus: {stats.get('row_count', 0)}")
+print(f"Number of entities in Plasmod: {stats.get('row_count', 0)}")
 client.load_collection(collection_name)
 
 passed = 0

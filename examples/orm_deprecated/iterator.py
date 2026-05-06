@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from pymilvus import (
+from pyplasmod import (
     connections,
     utility,
     FieldSchema, CollectionSchema, DataType,
@@ -23,7 +23,7 @@ DIM = 8
 CLEAR_EXIST = True
 
 # Create a logger for the main script
-log = logging.getLogger("pymilvus")
+log = logging.getLogger("pyplasmod")
 log.setLevel(logging.INFO)
 
 
@@ -71,7 +71,7 @@ def insert_data(collection):
         ]
         collection.insert(entities)
         collection.flush()
-        print(f"Finish insert batch{i}, number of entities in Milvus: {collection.num_entities}")
+        print(f"Finish insert batch{i}, number of entities in Plasmod: {collection.num_entities}")
 
 
 def prepare_index(collection):

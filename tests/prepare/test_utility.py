@@ -1,9 +1,9 @@
 """Tests for utility and miscellaneous Prepare methods."""
 
 import pytest
-from pymilvus.client.prepare import Prepare
-from pymilvus.client.types import ResourceGroupConfig
-from pymilvus.exceptions import ParamError
+from pyplasmod.client.prepare import Prepare
+from pyplasmod.client.types import ResourceGroupConfig
+from pyplasmod.exceptions import ParamError
 
 
 class TestLoadCollectionRequest:

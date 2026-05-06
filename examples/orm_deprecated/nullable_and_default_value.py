@@ -1,4 +1,4 @@
-# 1. connect to Milvus
+# 1. connect to Plasmod
 # 2. create collection
 # 3. insert data
 # 4. create index
@@ -7,7 +7,7 @@
 import time
 
 import numpy as np
-from pymilvus import (
+from pyplasmod import (
     connections,
     utility,
     FieldSchema, CollectionSchema, DataType,
@@ -19,12 +19,12 @@ search_latency_fmt = "search latency = {:.4f}s"
 dim = 8
 
 #################################################################################
-# 1. connect to Milvus
-print(fmt.format("start connecting to Milvus"))
+# 1. connect to Plasmod
+print(fmt.format("start connecting to Plasmod"))
 connections.connect("default", host="localhost", port="19530")
 
-has = utility.has_collection("hello_milvus")
-print(f"Does collection hello_milvus exist in Milvus: {has}")
+has = utility.has_collection("hello_plasmod")
+print(f"Does collection hello_plasmod exist in Plasmod: {has}")
 
 #################################################################################
 # 2. create collection
@@ -48,10 +48,10 @@ fields = [
     FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=dim)
 ]
 
-schema = CollectionSchema(fields, "hello_milvus is the demo to introduce the nullable and default value functions")
+schema = CollectionSchema(fields, "hello_plasmod is the demo to introduce the nullable and default value functions")
 
-print(fmt.format("Create collection `hello_milvus`"))
-hello_milvus = Collection("hello_milvus", schema, consistency_level="Strong")
+print(fmt.format("Create collection `hello_plasmod`"))
+hello_plasmod = Collection("hello_plasmod", schema, consistency_level="Strong")
 
 ################################################################################
 # 3. insert data
@@ -78,10 +78,10 @@ data_rows = [
     },
 ]
 
-hello_milvus.insert(data_rows)
+hello_plasmod.insert(data_rows)
 
-hello_milvus.flush()
-print(f"Number of entities in Milvus: {hello_milvus.num_entities}")  # check the num_entities
+hello_plasmod.flush()
+print(f"Number of entities in Plasmod: {hello_plasmod.num_entities}")  # check the num_entities
 
 ################################################################################
 # 4. create index
@@ -92,16 +92,16 @@ index = {
     "params": {"nlist": 128},
 }
 
-hello_milvus.create_index("embeddings", index)
+hello_plasmod.create_index("embeddings", index)
 
 ################################################################################
 # 5. query on entities
 print(fmt.format("Start loading"))
-hello_milvus.load()
+hello_plasmod.load()
 
 print(fmt.format("Start querying"))
 start_time = time.time()
-result = hello_milvus.query(expr='pk in ["19530","19531"]', output_fields=["nullable_fid", "default_value_fid","embeddings"])
+result = hello_plasmod.query(expr='pk in ["19530","19531"]', output_fields=["nullable_fid", "default_value_fid","embeddings"])
 end_time = time.time()
 
 print(f"query result:\n-{result[0]}")
@@ -109,6 +109,6 @@ print(search_latency_fmt.format(end_time - start_time))
 
 ###############################################################################
 # 6. drop collection
-# Finally, drop the hello_milvus collection
-print(fmt.format("Drop collection `hello_milvus`"))
-utility.drop_collection("hello_milvus")
+# Finally, drop the hello_plasmod collection
+print(fmt.format("Drop collection `hello_plasmod`"))
+utility.drop_collection("hello_plasmod")

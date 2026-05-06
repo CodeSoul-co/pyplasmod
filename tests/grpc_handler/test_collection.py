@@ -3,11 +3,11 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pymilvus import FieldSchema
-from pymilvus.client.cache import GlobalCache
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import DescribeCollectionException
-from pymilvus.grpc_gen import common_pb2
+from pyplasmod import FieldSchema
+from pyplasmod.client.cache import GlobalCache
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import DescribeCollectionException
+from pyplasmod.grpc_gen import common_pb2
 
 from .conftest import (
     COLLECTION_VALIDATION_CASES,

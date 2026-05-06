@@ -1,4 +1,4 @@
-# pymilvus Unit Test Guidelines
+# pyplasmod Unit Test Guidelines
 
 Rules for writing concise, maintainable unit tests. Follow these to keep test files short.
 
@@ -9,8 +9,8 @@ Rules for writing concise, maintainable unit tests. Follow these to keep test fi
 Available fixtures:
 - `mock_grpc_handler` / `mock_async_grpc_handler` -- fully wired GrpcHandler/AsyncGrpcHandler
 - `mock_grpc_stub` / `mock_async_stub` -- gRPC stubs with all methods pre-mocked
-- `mock_milvus_client` -- yields `(client, handler)` tuple with mocked connection
-- `mock_milvus_client_handler` -- standalone mock handler for MilvusClient
+- `mock_plasmod_client` -- yields `(client, handler)` tuple with mocked connection
+- `mock_plasmod_client_handler` -- standalone mock handler for PlasmodClient
 - `mock_grpc_channel` / `mock_async_channel` -- mock channels
 - `mock_field_data_int64`, `mock_field_data_array`, `mock_field_data_float_vector`, `mock_collection_schema` -- proto fixtures
 
@@ -25,15 +25,15 @@ Available helpers:
 # WRONG: inline setup (5+ lines per test)
 def test_something(self):
     handler = MagicMock()
-    handler.get_server_type.return_value = "milvus"
+    handler.get_server_type.return_value = "plasmod"
     handler._wait_for_channel_ready = MagicMock()
-    with patch("pymilvus.client.grpc_handler.GrpcHandler", return_value=handler):
-        client = MilvusClient()
+    with patch("pyplasmod.client.grpc_handler.GrpcHandler", return_value=handler):
+        client = PlasmodClient()
         ...
 
 # RIGHT: use conftest fixture (0 setup lines)
-def test_something(self, mock_milvus_client):
-    client, handler = mock_milvus_client
+def test_something(self, mock_plasmod_client):
+    client, handler = mock_plasmod_client
     ...
 ```
 
@@ -83,8 +83,8 @@ class TestDelegation:
         _SIMPLE_DELEGATION_CASES,
         ids=[c[0] for c in _SIMPLE_DELEGATION_CASES],
     )
-    def test_delegation(self, method, args, kwargs, handler_method, mock_milvus_client):
-        client, handler = mock_milvus_client
+    def test_delegation(self, method, args, kwargs, handler_method, mock_plasmod_client):
+        client, handler = mock_plasmod_client
         getattr(client, method)(*args, **kwargs)
         getattr(handler, handler_method).assert_called_once()
 ```

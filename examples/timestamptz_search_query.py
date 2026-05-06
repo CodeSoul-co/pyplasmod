@@ -1,12 +1,12 @@
 import time
-from pymilvus import MilvusClient, DataType, IndexType
+from pyplasmod import PlasmodClient, DataType, IndexType
 import datetime
 import pytz
 import random
 import sys
 
 # --- Configuration ---
-MILVUS_HOST = "http://localhost:19530"
+PLASMOD_HOST = "http://localhost:19530"
 VECTOR_DIM = 4
 
 # ==============================================================================
@@ -34,7 +34,7 @@ INVALID_TZ = "invalid_timezone_for_test"
 # HELPER FUNCTIONS
 # ------------------------------------------------------------------------------
 
-def setup_query_collection(client: MilvusClient, name: str, tz_property: str = "UTC"):
+def setup_query_collection(client: PlasmodClient, name: str, tz_property: str = "UTC"):
     """Creates a Collection for retrieval tests and inserts standardized UTC data."""
     schema = client.create_schema()
     schema.add_field("id", DataType.INT64, is_primary=True)
@@ -68,7 +68,7 @@ def setup_query_collection(client: MilvusClient, name: str, tz_property: str = "
 # ------------------------------------------------------------------------------
 # 🚀 TEST 1: Query/Search Output Timezone Conversion Verification
 # ------------------------------------------------------------------------------
-def run_retrieval_timezone_test(client: MilvusClient):
+def run_retrieval_timezone_test(client: PlasmodClient):
     """Verifies that the timezone parameter in query() and search() correctly converts the output time to different time zones."""
 
     print("\n\n" + "=" * 80)
@@ -134,11 +134,11 @@ def run_retrieval_timezone_test(client: MilvusClient):
 # ------------------------------------------------------------------------------
 # 🚀 TEST 2: Separate Database and Collection Property Management
 # ------------------------------------------------------------------------------
-def run_separate_db_property_tests(base_client: MilvusClient) -> MilvusClient | None:
+def run_separate_db_property_tests(base_client: PlasmodClient) -> PlasmodClient | None:
     """Verifies modification and error handling of database and collection properties in a non-'default' database context.
 
     Returns:
-        MilvusClient: The client connected to the separate database, used for cleanup.
+        PlasmodClient: The client connected to the separate database, used for cleanup.
     """
 
     print("\n\n" + "=" * 80)
@@ -152,7 +152,7 @@ def run_separate_db_property_tests(base_client: MilvusClient) -> MilvusClient | 
         print(f"⚠️ Existing database '{DB_NAME_SEPARATE_TEST}' found. Attempting pre-cleanup.")
         try:
             # Must drop collection inside the database first
-            temp_client = MilvusClient(uri=MILVUS_HOST, db_name=DB_NAME_SEPARATE_TEST)
+            temp_client = PlasmodClient(uri=PLASMOD_HOST, db_name=DB_NAME_SEPARATE_TEST)
             if temp_client.has_collection(COLLECTION_NAME_PROP):
                 temp_client.release_collection(COLLECTION_NAME_PROP)
                 temp_client.drop_collection(COLLECTION_NAME_PROP)
@@ -180,7 +180,7 @@ def run_separate_db_property_tests(base_client: MilvusClient) -> MilvusClient | 
         return None
 
     # 2. Get a client pointing to the new database and create a collection
-    db_client = MilvusClient(uri=MILVUS_HOST, db_name=DB_NAME_SEPARATE_TEST)
+    db_client = PlasmodClient(uri=PLASMOD_HOST, db_name=DB_NAME_SEPARATE_TEST)
     schema = db_client.create_schema()
     schema.add_field("id", DataType.INT64, is_primary=True)
     schema.add_field("tsz", DataType.TIMESTAMPTZ)
@@ -219,9 +219,9 @@ def run_separate_db_property_tests(base_client: MilvusClient) -> MilvusClient | 
 # ==============================================================================
 def main_timestamptz_retrieval_suite():
     try:
-        client = MilvusClient(uri=MILVUS_HOST)
+        client = PlasmodClient(uri=PLASMOD_HOST)
     except Exception as e:
-        print(f"Could not connect to Milvus service {MILVUS_HOST}. Please ensure the service is running. Error: {e}")
+        print(f"Could not connect to Plasmod service {PLASMOD_HOST}. Please ensure the service is running. Error: {e}")
         sys.exit(1)
 
     # Run all test scenarios

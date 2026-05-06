@@ -1,7 +1,7 @@
 import asyncio
 import time
 import numpy as np
-from pymilvus import AsyncMilvusClient, DataType
+from pyplasmod import AsyncPlasmodClient, DataType
 
 fmt = "\n=== {:30} ===\n"
 dim = 128
@@ -243,7 +243,7 @@ async def cleanup_resources(client):
         print(f"Resource group {rg2_name} dropped")
 
 async def main():
-    client = AsyncMilvusClient("http://localhost:19530")
+    client = AsyncPlasmodClient("http://localhost:19530")
     await create_resources(client)
     await test_functionality(client)
     time.sleep(10)

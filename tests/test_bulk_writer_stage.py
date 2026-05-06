@@ -3,23 +3,23 @@ from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, Mock, patch
 
-import pymilvus.bulk_writer as bw
+import pyplasmod.bulk_writer as bw
 import pytest
 import requests
-from pymilvus.bulk_writer.constants import BulkFileType, ConnectType
-from pymilvus.bulk_writer.volume_bulk_writer import VolumeBulkWriter
-from pymilvus.bulk_writer.volume_file_manager import VolumeFileManager
-from pymilvus.bulk_writer.volume_manager import VolumeManager
-from pymilvus.bulk_writer.volume_restful import (
+from pyplasmod.bulk_writer.constants import BulkFileType, ConnectType
+from pyplasmod.bulk_writer.volume_bulk_writer import VolumeBulkWriter
+from pyplasmod.bulk_writer.volume_file_manager import VolumeFileManager
+from pyplasmod.bulk_writer.volume_manager import VolumeManager
+from pyplasmod.bulk_writer.volume_restful import (
     apply_volume,
     create_volume,
     delete_volume,
     describe_volume,
     list_volumes,
 )
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import MilvusException
-from pymilvus.orm.schema import CollectionSchema, FieldSchema
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import PlasmodException
+from pyplasmod.orm.schema import CollectionSchema, FieldSchema
 
 # ── Module-level shared fixtures ──────────────────────────────────────────────
 
@@ -75,7 +75,7 @@ class TestVolumeRestful:
             "api_key": "test_api_key",
         }
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.get")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.get")
     def test_list_volumes_success(
         self, mock_get: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
@@ -92,16 +92,16 @@ class TestVolumeRestful:
         assert response.json()["data"]["volumes"] == ["volume1", "volume2"]
         mock_get.assert_called_once()
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.get")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.get")
     def test_list_volumes_failure(
         self, mock_get: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
         mock_response.json.return_value = {"code": 1001, "message": "Invalid API key", "data": {}}
         mock_get.return_value = mock_response
-        with pytest.raises(MilvusException, match="Invalid API key"):
+        with pytest.raises(PlasmodException, match="Invalid API key"):
             list_volumes(**api_params, project_id="test_project")
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.post")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.post")
     def test_create_volume_success(
         self, mock_post: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
@@ -121,7 +121,7 @@ class TestVolumeRestful:
         assert response.json()["data"]["volumeId"] == "volume123"
         mock_post.assert_called_once()
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.delete")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.delete")
     def test_delete_volume_success(
         self, mock_delete: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
@@ -130,7 +130,7 @@ class TestVolumeRestful:
         assert response.status_code == 200
         mock_delete.assert_called_once()
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.post")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.post")
     def test_create_external_volume_success(
         self, mock_post: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
@@ -156,7 +156,7 @@ class TestVolumeRestful:
         assert body["storageIntegrationId"] == "si-xxxx"
         assert body["path"] == "data/"
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.post")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.post")
     def test_create_managed_volume_no_extra_params(
         self, mock_post: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
@@ -180,7 +180,7 @@ class TestVolumeRestful:
         assert "storageIntegrationId" not in body
         assert "path" not in body
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.get")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.get")
     def test_describe_volume_success(
         self, mock_get: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
@@ -206,7 +206,7 @@ class TestVolumeRestful:
         assert data["status"] == "RUNNING"
         mock_get.assert_called_once()
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.get")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.get")
     def test_describe_volume_failure(
         self, mock_get: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
@@ -216,10 +216,10 @@ class TestVolumeRestful:
             "data": {},
         }
         mock_get.return_value = mock_response
-        with pytest.raises(MilvusException, match="The volume is not available"):
+        with pytest.raises(PlasmodException, match="The volume is not available"):
             describe_volume(**api_params, volume_name="nonexistent")
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.post")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.post")
     def test_apply_volume_success(
         self, mock_post: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
@@ -250,7 +250,7 @@ class TestVolumeRestful:
         assert data["endpoint"] == "s3.amazonaws.com"
         mock_post.assert_called_once()
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.get")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.get")
     def test_list_volumes_with_type_filter(
         self, mock_get: Mock, mock_response: Mock, api_params: Dict[str, str]
     ) -> None:
@@ -271,16 +271,16 @@ class TestVolumeRestful:
         call_kwargs = mock_get.call_args
         assert call_kwargs.kwargs["params"]["type"] == "EXTERNAL"
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.get")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.get")
     def test_http_error_handling(self, mock_get: Mock, api_params: Dict[str, str]) -> None:
         mock_get.return_value.status_code = 404
-        with pytest.raises(MilvusException, match="status code: 404"):
+        with pytest.raises(PlasmodException, match="status code: 404"):
             list_volumes(**api_params, project_id="test_project")
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.get")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.get")
     def test_network_error_handling(self, mock_get: Mock, api_params: Dict[str, str]) -> None:
         mock_get.side_effect = requests.exceptions.ConnectionError("Network error")
-        with pytest.raises(MilvusException, match="Network error"):
+        with pytest.raises(PlasmodException, match="Network error"):
             list_volumes(**api_params, project_id="test_project")
 
 
@@ -297,7 +297,7 @@ class TestVolumeManager:
             api_key="test_api_key",
         )
 
-    @patch("pymilvus.bulk_writer.volume_manager.create_volume")
+    @patch("pyplasmod.bulk_writer.volume_manager.create_volume")
     def test_create_volume(self, mock_create: Mock, volume_manager: VolumeManager) -> None:
         volume_manager.create_volume(
             project_id="test_project", region_id="us-west-2", volume_name="test_volume"
@@ -313,7 +313,7 @@ class TestVolumeManager:
             None,
         )
 
-    @patch("pymilvus.bulk_writer.volume_manager.delete_volume")
+    @patch("pyplasmod.bulk_writer.volume_manager.delete_volume")
     def test_delete_volume(self, mock_delete: Mock, volume_manager: VolumeManager) -> None:
         volume_manager.delete_volume(volume_name="test_volume")
         mock_delete.assert_called_once_with(
@@ -322,7 +322,7 @@ class TestVolumeManager:
             "test_volume",
         )
 
-    @patch("pymilvus.bulk_writer.volume_manager.list_volumes")
+    @patch("pyplasmod.bulk_writer.volume_manager.list_volumes")
     def test_list_volumes(self, mock_list: Mock, volume_manager: VolumeManager) -> None:
         mock_response = Mock()
         mock_response.json.return_value = {"data": {"volumes": ["volume1", "volume2"]}}
@@ -340,7 +340,7 @@ class TestVolumeManager:
             None,
         )
 
-    @patch("pymilvus.bulk_writer.volume_manager.describe_volume")
+    @patch("pyplasmod.bulk_writer.volume_manager.describe_volume")
     def test_describe_volume(self, mock_describe: Mock, volume_manager: VolumeManager) -> None:
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -364,7 +364,7 @@ class TestVolumeManager:
             "ext-volume",
         )
 
-    @patch("pymilvus.bulk_writer.volume_manager.list_volumes")
+    @patch("pyplasmod.bulk_writer.volume_manager.list_volumes")
     def test_list_volumes_with_type(self, mock_list: Mock, volume_manager: VolumeManager) -> None:
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -382,7 +382,7 @@ class TestVolumeManager:
             "EXTERNAL",
         )
 
-    @patch("pymilvus.bulk_writer.volume_manager.create_volume")
+    @patch("pyplasmod.bulk_writer.volume_manager.create_volume")
     def test_create_external_volume(self, mock_create: Mock, volume_manager: VolumeManager) -> None:
         volume_manager.create_volume(
             project_id="test_project",
@@ -425,8 +425,8 @@ class TestVolumeFileManager:
         assert volume_file_manager._convert_dir_path("data") == "data/"
         assert volume_file_manager._convert_dir_path("data/") == "data/"
 
-    @patch("pymilvus.bulk_writer.volume_file_manager.apply_volume")
-    @patch("pymilvus.bulk_writer.volume_file_manager.Minio")
+    @patch("pyplasmod.bulk_writer.volume_file_manager.apply_volume")
+    @patch("pyplasmod.bulk_writer.volume_file_manager.Minio")
     def test_refresh_volume_and_client(
         self,
         mock_minio: Mock,
@@ -457,7 +457,7 @@ class TestVolumeFileManager:
         with pytest.raises(ValueError, match="exceeds the maximum contentLength limit"):
             volume_file_manager._validate_size()
 
-    @patch("pymilvus.bulk_writer.volume_file_manager.FileUtils.process_local_path")
+    @patch("pyplasmod.bulk_writer.volume_file_manager.FileUtils.process_local_path")
     @patch.object(VolumeFileManager, "_refresh_volume_and_client")
     @patch.object(VolumeFileManager, "_validate_size")
     @patch.object(VolumeFileManager, "_put_object")
@@ -497,7 +497,7 @@ class TestVolumeFileManager:
         mock_refresh.assert_called_once_with("data/")
         mock_upload.assert_called_once()
 
-    @patch("pymilvus.bulk_writer.volume_file_manager.Minio")
+    @patch("pyplasmod.bulk_writer.volume_file_manager.Minio")
     def test_upload_with_retry_success(
         self,
         mock_minio: Mock,
@@ -513,7 +513,7 @@ class TestVolumeFileManager:
             file_path="test.txt",
         )
 
-    @patch("pymilvus.bulk_writer.volume_file_manager.Minio")
+    @patch("pyplasmod.bulk_writer.volume_file_manager.Minio")
     @patch.object(VolumeFileManager, "_refresh_volume_and_client")
     def test_upload_with_retry_failure(
         self,
@@ -542,7 +542,7 @@ class TestVolumeBulkWriter:
 
     @pytest.fixture
     def volume_bulk_writer(self, simple_schema: CollectionSchema) -> VolumeBulkWriter:
-        with patch("pymilvus.bulk_writer.volume_bulk_writer.VolumeFileManager"):
+        with patch("pyplasmod.bulk_writer.volume_bulk_writer.VolumeFileManager"):
             return VolumeBulkWriter(
                 schema=simple_schema,
                 remote_path="test/data",
@@ -586,7 +586,7 @@ class TestVolumeBulkWriter:
         assert result["volume_name"] == "test_volume"
         assert "path" in result
 
-    @patch("pymilvus.bulk_writer.volume_bulk_writer.Path")
+    @patch("pyplasmod.bulk_writer.volume_bulk_writer.Path")
     def test_local_rm(self, mock_path: Mock, volume_bulk_writer: VolumeBulkWriter) -> None:
         mock_file = mock_path.return_value
         mock_file.parent.iterdir.return_value = []
@@ -595,7 +595,7 @@ class TestVolumeBulkWriter:
 
     @patch.object(VolumeBulkWriter, "_upload_object")
     @patch.object(VolumeBulkWriter, "_local_rm")
-    @patch("pymilvus.bulk_writer.volume_bulk_writer.Path")
+    @patch("pyplasmod.bulk_writer.volume_bulk_writer.Path")
     def test_upload(
         self,
         mock_path_class: Mock,
@@ -621,7 +621,7 @@ class TestVolumeBulkWriter:
         )
 
     def test_context_manager(self, simple_schema: CollectionSchema) -> None:
-        with patch("pymilvus.bulk_writer.volume_bulk_writer.VolumeFileManager"), VolumeBulkWriter(
+        with patch("pyplasmod.bulk_writer.volume_bulk_writer.VolumeFileManager"), VolumeBulkWriter(
             schema=simple_schema,
             remote_path="test/data",
             cloud_endpoint="https://api.cloud.zilliz.com",
@@ -632,7 +632,7 @@ class TestVolumeBulkWriter:
             writer.append_row({"id": 1, "vector": [1.0] * 128, "text": "test"})
 
     @patch.object(VolumeBulkWriter, "_upload_object")
-    @patch("pymilvus.bulk_writer.volume_bulk_writer.Path")
+    @patch("pyplasmod.bulk_writer.volume_bulk_writer.Path")
     def test_upload_error_handling(
         self,
         mock_path_class: Mock,
@@ -643,7 +643,7 @@ class TestVolumeBulkWriter:
         mock_path = Mock()
         mock_path_class.return_value = mock_path
         mock_path.relative_to.return_value = Path("test.parquet")
-        with pytest.raises(MilvusException, match="Failed to upload file"):
+        with pytest.raises(PlasmodException, match="Failed to upload file"):
             volume_bulk_writer._upload(["test_file.parquet"])
 
 
@@ -682,8 +682,8 @@ class TestIntegration:
             },
         }
 
-    @patch("pymilvus.bulk_writer.volume_restful.requests.post")
-    @patch("pymilvus.bulk_writer.volume_restful.requests.get")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.post")
+    @patch("pyplasmod.bulk_writer.volume_restful.requests.get")
     def test_full_volume_workflow(
         self,
         mock_get: Mock,

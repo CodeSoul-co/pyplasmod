@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Simple partial update example for Milvus.
+Simple partial update example for Plasmod.
 
 This example demonstrates the difference between partial and full upsert operations:
 
@@ -19,7 +19,7 @@ Key takeaway: Always use partial_update=True when updating subset of fields!
 """
 
 import numpy as np
-from pymilvus import MilvusClient, DataType, CollectionSchema, FieldSchema
+from pyplasmod import PlasmodClient, DataType, CollectionSchema, FieldSchema
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
@@ -32,7 +32,7 @@ logger.debug("Setting up collection with explicit schema and data...")
 # Setup
 dim = 8
 collection_name = "simple_partial_update"
-client = MilvusClient("http://localhost:19530")
+client = PlasmodClient("http://localhost:19530")
 
 print("=== Simple Partial Update Demo ===\n")
 

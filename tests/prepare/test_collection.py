@@ -1,10 +1,10 @@
 """Tests for collection-related Prepare methods."""
 
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldSchema, Function, FunctionType
-from pymilvus.client.prepare import Prepare
-from pymilvus.exceptions import ParamError
-from pymilvus.orm.schema import StructFieldSchema
+from pyplasmod import CollectionSchema, DataType, FieldSchema, Function, FunctionType
+from pyplasmod.client.prepare import Prepare
+from pyplasmod.exceptions import ParamError
+from pyplasmod.orm.schema import StructFieldSchema
 
 
 class TestCreateCollectionRequest:

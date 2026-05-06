@@ -6,8 +6,8 @@ Coverage: Initialization, context manager, secure channel, close operations.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.exceptions import ParamError
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.exceptions import ParamError
 
 
 class TestAsyncGrpcHandlerInit:
@@ -34,8 +34,8 @@ class TestAsyncGrpcHandlerInit:
 
     def test_init_with_host_port(self) -> None:
         """Test AsyncGrpcHandler initialization with host and port"""
-        with patch("pymilvus.client.async_grpc_handler.grpc.aio.insecure_channel") as mock_ch:
-            with patch("pymilvus.client.async_grpc_handler.milvus_pb2_grpc.MilvusServiceStub"):
+        with patch("pyplasmod.client.async_grpc_handler.grpc.aio.insecure_channel") as mock_ch:
+            with patch("pyplasmod.client.async_grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub"):
                 mock_channel = MagicMock()
                 mock_channel._unary_unary_interceptors = []
                 mock_ch.return_value = mock_channel
@@ -53,7 +53,7 @@ class TestAsyncGrpcHandlerInit:
         """Test initialization with token creates authorization interceptor"""
         mock_channel = MagicMock()
         mock_channel._unary_unary_interceptors = []
-        with patch("pymilvus.client.async_grpc_handler.milvus_pb2_grpc.MilvusServiceStub"):
+        with patch("pyplasmod.client.async_grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub"):
             AsyncGrpcHandler(channel=mock_channel, token="test_token")
             assert len(mock_channel._unary_unary_interceptors) > 0
 
@@ -61,7 +61,7 @@ class TestAsyncGrpcHandlerInit:
         """Test initialization with user/password creates authorization interceptor"""
         mock_channel = MagicMock()
         mock_channel._unary_unary_interceptors = []
-        with patch("pymilvus.client.async_grpc_handler.milvus_pb2_grpc.MilvusServiceStub"):
+        with patch("pyplasmod.client.async_grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub"):
             AsyncGrpcHandler(channel=mock_channel, user="admin", password="pass")
             assert len(mock_channel._unary_unary_interceptors) > 0
 
@@ -96,9 +96,9 @@ class TestAsyncGrpcHandlerInit:
         mock_channel = MagicMock()
         mock_channel._unary_unary_interceptors = []
         handler = AsyncGrpcHandler(channel=mock_channel, address="localhost:19530")
-        with patch("pymilvus.client.async_grpc_handler.get_server_type", return_value="milvus"):
+        with patch("pyplasmod.client.async_grpc_handler.get_server_type", return_value="plasmod"):
             result = handler.get_server_type()
-            assert result == "milvus"
+            assert result == "plasmod"
 
     @pytest.mark.asyncio
     async def test_ensure_channel_ready(self) -> None:
@@ -116,9 +116,9 @@ class TestAsyncGrpcHandlerInit:
         mock_stub.Connect = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
-        ), patch("pymilvus.client.async_grpc_handler.milvus_pb2_grpc.MilvusServiceStub"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
+        ), patch("pyplasmod.client.async_grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub"):
             mock_prepare.register_request.return_value = MagicMock()
             await handler.ensure_channel_ready()
             assert handler._is_channel_ready is True
@@ -138,9 +138,9 @@ class TestAsyncGrpcHandlerInit:
         mock_stub.Connect = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
-        ), patch("pymilvus.client.async_grpc_handler.milvus_pb2_grpc.MilvusServiceStub"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
+        ), patch("pyplasmod.client.async_grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub"):
             mock_prepare.register_request.return_value = MagicMock()
             await handler.ensure_channel_ready()
             mock_prepare.register_request.assert_called_once()
@@ -159,10 +159,10 @@ class TestAsyncGrpcHandlerInit:
 
     def test_setup_secure_channel(self) -> None:
         """Test setting up secure channel"""
-        with patch("pymilvus.client.async_grpc_handler.grpc.aio.secure_channel") as mock_sec, patch(
-            "pymilvus.client.async_grpc_handler.grpc.ssl_channel_credentials"
+        with patch("pyplasmod.client.async_grpc_handler.grpc.aio.secure_channel") as mock_sec, patch(
+            "pyplasmod.client.async_grpc_handler.grpc.ssl_channel_credentials"
         ) as mock_creds, patch(
-            "pymilvus.client.async_grpc_handler.milvus_pb2_grpc.MilvusServiceStub"
+            "pyplasmod.client.async_grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub"
         ):
             mock_channel = MagicMock()
             mock_channel._unary_unary_interceptors = []

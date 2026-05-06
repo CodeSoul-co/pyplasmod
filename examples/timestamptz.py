@@ -1,14 +1,14 @@
 import time
-from pymilvus import MilvusClient, DataType, CollectionSchema, IndexType, FieldSchema, milvus_client
+from pyplasmod import PlasmodClient, DataType, CollectionSchema, IndexType, FieldSchema, plasmod_client
 import datetime
 import pytz
 
-milvus_host = "http://localhost:19530"
+plasmod_host = "http://localhost:19530"
 collection_name = "timestamptz_test123"
 
 
 def main():
-  client = MilvusClient(uri=milvus_host)
+  client = PlasmodClient(uri=plasmod_host)
 
   # create collection with TIMESTAMPTZ field
   if client.has_collection(collection_name):

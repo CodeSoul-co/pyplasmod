@@ -8,21 +8,21 @@ from minio import Minio
 from minio.error import S3Error
 from pathlib import Path
 
-from pymilvus import (
+from pyplasmod import (
     DataType,
-    MilvusClient,
+    PlasmodClient,
 )
 
-from pymilvus.bulk_writer import (
+from pyplasmod.bulk_writer import (
     bulk_import,
     get_import_progress,
 )
 
 # Local path to generate JSON files
-LOCAL_FILES_PATH = "/tmp/milvus_bulkinsert/"
+LOCAL_FILES_PATH = "/tmp/plasmod_bulkinsert/"
 Path(LOCAL_FILES_PATH).mkdir(exist_ok=True)
 
-# Milvus service address
+# Plasmod service address
 _HOST = '127.0.0.1'
 _PORT = '19530'
 
@@ -50,17 +50,17 @@ _DIM = 128
 # to generate increment ID
 id_start = 1
 
-client = MilvusClient(uri="http://localhost:19530")
+client = PlasmodClient(uri="http://localhost:19530")
 print(client.get_server_version())
 
 
 # Create a collection
 def create_collection():
-    schema = MilvusClient.create_schema(enable_dynamic_field=True)
+    schema = PlasmodClient.create_schema(enable_dynamic_field=True)
     schema.add_field(field_name=_ID_FIELD_NAME, datatype=DataType.INT64, is_primary=True, auto_id=False)
     schema.add_field(field_name=_VECTOR_FIELD_NAME, datatype=DataType.FLOAT_VECTOR, description="float vector", dim=_DIM)
     schema.add_field(field_name=_VARCHAR_FIELD_NAME, datatype=DataType.VARCHAR, max_length=256)
-    struct_schema = MilvusClient.create_struct_field_schema()
+    struct_schema = PlasmodClient.create_struct_field_schema()
     struct_schema.add_field("struct_str", DataType.VARCHAR, max_length=65535)
     struct_schema.add_field("struct_float_vec", DataType.FLOAT_VECTOR, dim=_DIM)
     schema.add_field(_STRUCT_NAME, datatype=DataType.ARRAY, element_type=DataType.STRUCT, struct_schema=struct_schema,
@@ -88,7 +88,7 @@ def create_collection():
 
 # Generate a json file with row-based data.
 # The json file must contain a root key "rows", its value is a list, each row must contain a value of each field.
-# No need to provide the auto-id field "id_field" since milvus will generate it.
+# No need to provide the auto-id field "id_field" since plasmod will generate it.
 # The row-based json file looks like:
 # {"rows": [
 # 	  {"str_field": "row-based_0", "float_vector_field": [0.190, 0.046, 0.143, 0.972, 0.592, 0.238, 0.266, 0.995]},
@@ -175,7 +175,7 @@ def upload(local_file_path: str,
 
 def call_bulkinsert(batch_files: List[List[str]]):
     url = f"http://{_HOST}:{_PORT}"
-    print(f"\n===================== Import files to milvus ====================")
+    print(f"\n===================== Import files to plasmod ====================")
     resp = bulk_import(
         url=url,
         collection_name=_COLLECTION_NAME,

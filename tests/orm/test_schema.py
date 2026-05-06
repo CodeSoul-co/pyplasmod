@@ -1,4 +1,4 @@
-"""Comprehensive tests for pymilvus/orm/schema.py.
+"""Comprehensive tests for pyplasmod/orm/schema.py.
 
 Merged and refactored from:
 - test_orm_schema.py
@@ -11,9 +11,9 @@ import copy
 import numpy as np
 import pandas as pd
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldSchema
-from pymilvus.client.types import HighlightType
-from pymilvus.exceptions import (
+from pyplasmod import CollectionSchema, DataType, FieldSchema
+from pyplasmod.client.types import HighlightType
+from pyplasmod.exceptions import (
     AutoIDException,
     CannotInferSchemaException,
     ClusteringKeyException,
@@ -27,7 +27,7 @@ from pymilvus.exceptions import (
     PrimaryKeyException,
     SchemaNotReadyException,
 )
-from pymilvus.orm.schema import (
+from pyplasmod.orm.schema import (
     Function,
     FunctionScore,
     FunctionType,

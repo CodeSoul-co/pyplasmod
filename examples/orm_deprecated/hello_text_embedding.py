@@ -1,6 +1,6 @@
-# hello_text_embedding.py demonstrates how to insert raw data only into Milvus and perform
+# hello_text_embedding.py demonstrates how to insert raw data only into Plasmod and perform
 # dense vector based ANN search using TextEmbedding.
-# 1. connect to Milvus
+# 1. connect to Plasmod
 # 2. create collection
 # 3. insert data
 # 4. create index
@@ -8,7 +8,7 @@
 # 6. drop collection
 import time
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     utility,
     FieldSchema, CollectionSchema, Function, DataType, FunctionType,
@@ -19,15 +19,15 @@ fmt = "\n=== {:30} ===\n"
 search_latency_fmt = "search latency = {:.4f}s"
 
 #################################################################################
-# 1. connect to Milvus
-# Add a new connection alias `default` for Milvus server in `localhost:19530`
-print(fmt.format("start connecting to Milvus"))
+# 1. connect to Plasmod
+# Add a new connection alias `default` for Plasmod server in `localhost:19530`
+print(fmt.format("start connecting to Plasmod"))
 connections.connect("default", host="localhost", port="19530")
 
 collection_name = "text_embedding"
 
 has = utility.has_collection(collection_name)
-print(f"Does collection {collection_name} exist in Milvus: {has}")
+print(f"Does collection {collection_name} exist in Plasmod: {has}")
 
 #################################################################################
 # 2. create collection
@@ -84,7 +84,7 @@ ids = insert_result.primary_keys
 ################################################################################
 # 4. create index
 # We are going to create an index for collection, here we simply
-# uses AUTOINDEX so Milvus can use the default parameters.
+# uses AUTOINDEX so Plasmod can use the default parameters.
 print(fmt.format("Start Creating index AUTOINDEX"))
 index = {
     "index_type": "AUTOINDEX",
@@ -95,7 +95,7 @@ hello_text_embedding.create_index("dense", index)
 
 ################################################################################
 # 5. search, query, and scalar filtering search
-# After data were inserted into Milvus and indexed, you can perform:
+# After data were inserted into Plasmod and indexed, you can perform:
 # - search texts relevance by TextEmbedding using dense vector ANN search
 
 # Before conducting a search or a query, you need to load the data into memory.

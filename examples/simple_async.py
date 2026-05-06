@@ -1,7 +1,7 @@
-from pymilvus import (
+from pyplasmod import (
     DataType,
-    MilvusClient,
-    AsyncMilvusClient,
+    PlasmodClient,
+    AsyncPlasmodClient,
     AnnSearchRequest,
     RRFRanker,
 )
@@ -13,46 +13,46 @@ import random
 fmt = "\n=== {:30} ===\n"
 num_entities, dim = 100, 8
 default_limit = 3
-collection_name = "hello_milvus"
+collection_name = "hello_plasmod"
 rng = np.random.default_rng(seed=19530)
 
-milvus_client = MilvusClient("example.db")
-async_milvus_client = AsyncMilvusClient("example.db")
+plasmod_client = PlasmodClient("example.db")
+async_plasmod_client = AsyncPlasmodClient("example.db")
 
 loop = asyncio.get_event_loop()
 
-schema = milvus_client.create_schema(auto_id=False, description="hello_milvus is the simplest demo to introduce the APIs")
+schema = plasmod_client.create_schema(auto_id=False, description="hello_plasmod is the simplest demo to introduce the APIs")
 schema.add_field("pk", DataType.VARCHAR, is_primary=True, max_length=100)
 schema.add_field("random", DataType.DOUBLE)
 schema.add_field("embeddings", DataType.FLOAT_VECTOR, dim=dim)
 schema.add_field("embeddings2", DataType.FLOAT_VECTOR, dim=dim)
 
-index_params = milvus_client.prepare_index_params()
+index_params = plasmod_client.prepare_index_params()
 index_params.add_index(field_name = "embeddings", index_type = "HNSW", metric_type="L2", nlist=128)
 index_params.add_index(field_name = "embeddings2",index_type = "HNSW", metric_type="L2", nlist=128)
 
 # Always use `await` when you want to guarantee the execution order of tasks.
 async def recreate_collection():
     print(fmt.format("Start dropping collection"))
-    await async_milvus_client.drop_collection(collection_name)
+    await async_plasmod_client.drop_collection(collection_name)
     print(fmt.format("Dropping collection done"))
     print(fmt.format("Start creating collection"))
-    await async_milvus_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
+    await async_plasmod_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
     print(fmt.format("Creating collection done"))
 
-has_collection = milvus_client.has_collection(collection_name, timeout=5)
+has_collection = plasmod_client.has_collection(collection_name, timeout=5)
 if has_collection:
     loop.run_until_complete(recreate_collection())
 else:
     print(fmt.format("Start creating collection"))
-    loop.run_until_complete(async_milvus_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong"))
+    loop.run_until_complete(async_plasmod_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong"))
     print(fmt.format("Creating collection done"))
 
 print(fmt.format("    all collections    "))
-print(milvus_client.list_collections())
+print(plasmod_client.list_collections())
 
 print(fmt.format(f"schema of collection {collection_name}"))
-print(milvus_client.describe_collection(collection_name))
+print(plasmod_client.describe_collection(collection_name))
 
 async def async_insert(collection_name):
     entities = [
@@ -68,7 +68,7 @@ async def async_insert(collection_name):
     start_time = time.time()
     tasks = []
     for row in rows:
-        task = async_milvus_client.insert(collection_name, [row])
+        task = async_plasmod_client.insert(collection_name, [row])
         tasks.append(task)
     await asyncio.gather(*tasks)
     end_time = time.time()
@@ -82,7 +82,7 @@ async def other_async_task(collection_name):
     # search
     random_vector = rng.random((1, dim))
     random_vector2 = rng.random((1, dim))
-    task = async_milvus_client.search(collection_name, random_vector, limit=default_limit, output_fields=["pk"], anns_field="embeddings")
+    task = async_plasmod_client.search(collection_name, random_vector, limit=default_limit, output_fields=["pk"], anns_field="embeddings")
     tasks.append(task)
     # hybrid search
     search_param = {
@@ -92,26 +92,26 @@ async def other_async_task(collection_name):
         "limit": default_limit,
         "expr": "random > 0.5"}
     req = AnnSearchRequest(**search_param)
-    task = async_milvus_client.hybrid_search(collection_name, [req], RRFRanker(), default_limit, output_fields=["pk"])
+    task = async_plasmod_client.hybrid_search(collection_name, [req], RRFRanker(), default_limit, output_fields=["pk"])
     tasks.append(task)
     # get
     random_pk = random.randint(0, num_entities - 1)
-    task = async_milvus_client.get(collection_name=collection_name, ids=[random_pk])
+    task = async_plasmod_client.get(collection_name=collection_name, ids=[random_pk])
     tasks.append(task)
     # query
-    task = async_milvus_client.query(collection_name=collection_name, filter="", limit=default_limit)
+    task = async_plasmod_client.query(collection_name=collection_name, filter="", limit=default_limit)
     tasks.append(task)
     # delete
-    task = async_milvus_client.delete(collection_name=collection_name, ids=[random_pk])
+    task = async_plasmod_client.delete(collection_name=collection_name, ids=[random_pk])
     tasks.append(task)
     # insert
-    task = async_milvus_client.insert(
+    task = async_plasmod_client.insert(
         collection_name=collection_name,
         data=[{"pk": str(random_pk), "random": random_vector[0][0], "embeddings": random_vector[0], "embeddings2": random_vector[0]}],
     )
     tasks.append(task)
     # upsert
-    task = async_milvus_client.upsert(
+    task = async_plasmod_client.upsert(
         collection_name=collection_name,
         data=[{"pk": str(random_pk), "random": random_vector2[0][0], "embeddings": random_vector2[0], "embeddings2": random_vector2[0]}],
     )

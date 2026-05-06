@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pymilvus.exceptions import MilvusException, ParamError
+from pyplasmod.exceptions import PlasmodException, ParamError
 
 from .conftest import make_response, make_status
 
@@ -33,7 +33,7 @@ class TestGrpcHandlerIndexOps:
             with patch.object(
                 handler, "wait_for_creating_index", return_value=(False, "index failed")
             ):
-                with pytest.raises(MilvusException):
+                with pytest.raises(PlasmodException):
                     handler.create_index("coll", "vec", {"index_type": "IVF_FLAT"})
 
     def test_drop_index(self, handler):

@@ -1,5 +1,5 @@
-from pymilvus.milvus_client.milvus_client import MilvusClient
-from pymilvus import DataType
+from pyplasmod.plasmod_client.plasmod_client import PlasmodClient
+from pyplasmod import DataType
 import numpy as np
 from typing import List
 
@@ -16,22 +16,22 @@ EMBEDDINGS = "embeddings"
 DIM = 8
 NUM_ENTITIES = 30000
 rng = np.random.default_rng(seed=19530)
-milvus_client = MilvusClient("http://localhost:19530")
+plasmod_client = PlasmodClient("http://localhost:19530")
 
-if milvus_client.has_collection(collection_name) and clean_exist:
-    milvus_client.drop_collection(collection_name)
+if plasmod_client.has_collection(collection_name) and clean_exist:
+    plasmod_client.drop_collection(collection_name)
     print(f"dropped existed collection {collection_name}")
 
-if not milvus_client.has_collection(collection_name):
+if not plasmod_client.has_collection(collection_name):
     # Create schema with JSON field and enable dynamic fields
-    schema = MilvusClient.create_schema(enable_dynamic_field=True)
+    schema = PlasmodClient.create_schema(enable_dynamic_field=True)
     schema.add_field(field_name=USER_ID, datatype=DataType.INT64, is_primary=True, auto_id=False)
     schema.add_field(field_name=PRICE, datatype=DataType.DOUBLE)
     schema.add_field(field_name=RATING, datatype=DataType.DOUBLE)
     schema.add_field(field_name=CATEGORY, datatype=DataType.VARCHAR, max_length=64)
     schema.add_field(field_name=METADATA, datatype=DataType.JSON)  # JSON field for nested data
     schema.add_field(field_name=EMBEDDINGS, datatype=DataType.FLOAT_VECTOR, dim=DIM)
-    milvus_client.create_collection(collection_name, dimension=DIM, schema=schema)
+    plasmod_client.create_collection(collection_name, dimension=DIM, schema=schema)
     print(f"created collection {collection_name} with JSON field and dynamic fields enabled")
 
 if prepare_new_data:
@@ -80,13 +80,13 @@ if prepare_new_data:
             entities.append(entity)
         
         # Insert batch and flush to create separate segments
-        milvus_client.insert(collection_name, entities)
-        milvus_client.flush(collection_name)
+        plasmod_client.insert(collection_name, entities)
+        plasmod_client.flush(collection_name)
         print(f"Inserted and flushed batch {batch_idx + 1}/{num_batches} ({len(entities)} entities)")
     
     print(f"Finish flush collection: {collection_name} with {num_batches} segments")
 
-    index_params = milvus_client.prepare_index_params()
+    index_params = plasmod_client.prepare_index_params()
 
     index_params.add_index(
         field_name=EMBEDDINGS,
@@ -94,8 +94,8 @@ if prepare_new_data:
         metric_type='L2',
         params={"nlist": 1024}
     )
-    milvus_client.create_index(collection_name, index_params)
-milvus_client.load_collection(collection_name)
+    plasmod_client.create_index(collection_name, index_params)
+plasmod_client.load_collection(collection_name)
 
 nq = 1
 limit = 20
@@ -114,7 +114,7 @@ def print_res(result: List[List[dict]], title: str):
 vector_to_search = rng.random((nq, DIM), np.float32)
 
 # Basic search with order_by_fields - sort by price ascending
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -127,7 +127,7 @@ res = milvus_client.search(
 print_res(res, "Search with order_by_fields price ASC")
 
 # Search with order_by_fields - sort by rating descending
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -140,7 +140,7 @@ res = milvus_client.search(
 print_res(res, "Search with order_by_fields rating DESC")
 
 # Search with multiple order_by_fields - sort by price asc, then rating desc
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -154,7 +154,7 @@ res = milvus_client.search(
 print_res(res, "Search with order_by_fields price ASC, rating DESC")
 
 # Search with order_by_fields on JSON field - sort by metadata["age"] ascending
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -167,7 +167,7 @@ res = milvus_client.search(
 print_res(res, "Search with order_by_fields on JSON field: metadata[\"age\"] ASC")
 
 # Search with order_by_fields on JSON field - sort by metadata["score"] descending
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -180,7 +180,7 @@ res = milvus_client.search(
 print_res(res, "Search with order_by_fields on JSON field: metadata[\"score\"] DESC")
 
 # Search with order_by_fields on JSON field - sort by metadata["popularity"] descending
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -193,7 +193,7 @@ res = milvus_client.search(
 print_res(res, "Search with order_by_fields on JSON field: metadata[\"popularity\"] DESC")
 
 # Search with multiple order_by_fields including JSON field - sort by metadata["age"] asc, then metadata["score"] desc
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -207,7 +207,7 @@ res = milvus_client.search(
 print_res(res, "Search with order_by_fields: metadata[\"age\"] ASC, metadata[\"score\"] DESC")
 
 # Search with order_by_fields on dynamic field - sort by dynamic_views descending
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -220,7 +220,7 @@ res = milvus_client.search(
 print_res(res, "Search with order_by_fields on dynamic field: dynamic_views DESC")
 
 # Mixed order_by_fields - regular field and JSON field
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -234,7 +234,7 @@ res = milvus_client.search(
 print_res(res, "Search with order_by_fields: price ASC, metadata[\"age\"] DESC")
 
 # Group By + Order By - group by category and sort by price ascending
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,
@@ -250,7 +250,7 @@ res = milvus_client.search(
 print_res(res, "Group By category + Order By price ASC")
 
 # Group By + Order By with JSON field - group by category and sort by metadata["age"] ascending
-res = milvus_client.search(
+res = plasmod_client.search(
     collection_name=collection_name,
     data=vector_to_search,
     limit=limit,

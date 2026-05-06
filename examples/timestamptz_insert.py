@@ -1,12 +1,12 @@
 import time
-from pymilvus import MilvusClient, DataType, IndexType
+from pyplasmod import PlasmodClient, DataType, IndexType
 import datetime
 import pytz
 import random
 import sys
 
 # --- Configuration ---
-MILVUS_HOST = "http://localhost:19530"
+PLASMOD_HOST = "http://localhost:19530"
 
 # --- Test Scenario 1: Add Field Default Value ---
 COLLECTION_NAME_DEFAULT = "default_value_test_col"
@@ -32,7 +32,7 @@ OBSERVED_ERROR_UTC_PART = "2024-01-04T14:26:27"  # Naive time mistakenly stored 
 
 
 # --- Core Setup Function ---
-def setup_base_collection(client: MilvusClient, name: str, tz_property: str = None):
+def setup_base_collection(client: PlasmodClient, name: str, tz_property: str = None):
     """Creates a generic base collection."""
     schema = client.create_schema()
     schema.add_field("id", DataType.INT64, is_primary=True)
@@ -60,7 +60,7 @@ def setup_base_collection(client: MilvusClient, name: str, tz_property: str = No
 # ==============================================================================
 # 🚀 TEST SCENARIO 1: add_collection_field Default Value Retroactive Fill
 # ==============================================================================
-def run_default_value_retrofill_test(client: MilvusClient):
+def run_default_value_retrofill_test(client: PlasmodClient):
     """Validates the default_value behavior of add_collection_field for TIMESTAMPTZ."""
 
     print("\n\n" + "=" * 80)
@@ -145,7 +145,7 @@ def run_default_value_retrofill_test(client: MilvusClient):
 # ==============================================================================
 # 🚀 TEST SCENARIO 2: Naive Time Insertion with Collection Timezone
 # ==============================================================================
-def run_naive_insertion_tz_test(client: MilvusClient):
+def run_naive_insertion_tz_test(client: PlasmodClient):
     """Verifies that naive time strings are correctly interpreted using the Collection's timezone setting."""
 
     print("\n\n" + "=" * 80)
@@ -211,10 +211,10 @@ def run_naive_insertion_tz_test(client: MilvusClient):
     # Verification Logic: Check if the actual result matches the expected 19:26:27Z
     if actual_ts_str and EXPECTED_CORRECT_UTC in actual_ts_str:
         print(
-            f"✅ Verification SUCCESS: Milvus correctly converted '{RAW_TIME_STR}' to UTC based on '{COLLECTION_TZ_STR}'.")
+            f"✅ Verification SUCCESS: Plasmod correctly converted '{RAW_TIME_STR}' to UTC based on '{COLLECTION_TZ_STR}'.")
         print(f" (Stored UTC: {EXPECTED_CORRECT_UTC})")
     elif actual_ts_str and OBSERVED_ERROR_UTC_PART in actual_ts_str:
-        print(f"❌ Verification FAILED (Issue Reproduced): Milvus mistakenly treated '{RAW_TIME_STR}' as UTC time.")
+        print(f"❌ Verification FAILED (Issue Reproduced): Plasmod mistakenly treated '{RAW_TIME_STR}' as UTC time.")
         print(f" (Mistaken UTC: {actual_ts_str})")
     else:
         print(f"⚠️ Verification FAILED: Actual result '{actual_ts_str}' does not match any expectation.")
@@ -225,9 +225,9 @@ def run_naive_insertion_tz_test(client: MilvusClient):
 # ==============================================================================
 def main_timestamptz_tests():
     try:
-        client = MilvusClient(uri=MILVUS_HOST)
+        client = PlasmodClient(uri=PLASMOD_HOST)
     except Exception as e:
-        print(f"Could not connect to Milvus service {MILVUS_HOST}. Please ensure the service is running. Error: {e}")
+        print(f"Could not connect to Plasmod service {PLASMOD_HOST}. Please ensure the service is running. Error: {e}")
         sys.exit(1)
 
     # Run all test scenarios

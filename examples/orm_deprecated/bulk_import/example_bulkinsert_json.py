@@ -6,7 +6,7 @@ import os
 from minio import Minio
 from minio.error import S3Error
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     FieldSchema, CollectionSchema, DataType,
     Collection,
@@ -15,7 +15,7 @@ from pymilvus import (
 )
 
 # This example shows how to:
-#   1. connect to Milvus server
+#   1. connect to Plasmod server
 #   2. create a collection
 #   3. create some json files for bulkinsert operation
 #   4. call do_bulk_insert()
@@ -23,7 +23,7 @@ from pymilvus import (
 #   6. search
 
 # To run this example
-# 1. start a standalone milvus(version >= v2.2.9) instance locally
+# 1. start a standalone plasmod(version >= v2.2.9) instance locally
 #    make sure the docker-compose.yml has exposed the minio console:
 #         minio:
 #           ......
@@ -35,9 +35,9 @@ from pymilvus import (
 # 2. pip3 install minio
 
 # Local path to generate JSON files
-LOCAL_FILES_PATH = "/tmp/milvus_bulkinsert"
+LOCAL_FILES_PATH = "/tmp/plasmod_bulkinsert"
 
-# Milvus service address
+# Plasmod service address
 _HOST = '127.0.0.1'
 _PORT = '19530'
 
@@ -61,7 +61,7 @@ _DIM = 128
 # to generate increment ID
 id_start = 1
 
-# Create a Milvus connection
+# Create a Plasmod connection
 def create_connection():
     retry = True
     while retry:
@@ -70,8 +70,8 @@ def create_connection():
             connections.connect(host=_HOST, port=_PORT)
             retry = False
         except Exception as e:
-            print("Cannot connect to Milvus. Error: " + str(e))
-            print(f"Cannot connect to Milvus. Trying to connect Again. Sleeping for: 1")
+            print("Cannot connect to Plasmod. Error: " + str(e))
+            print(f"Cannot connect to Plasmod. Trying to connect Again. Sleeping for: 1")
             time.sleep(1)
 
     print(f"\nList connections:")
@@ -100,14 +100,14 @@ def has_collection():
     return utility.has_collection(_COLLECTION_NAME)
 
 
-# Drop a collection in Milvus
+# Drop a collection in Plasmod
 def drop_collection():
     collection = Collection(_COLLECTION_NAME)
     collection.drop()
     print("\nDrop collection:", _COLLECTION_NAME)
 
 
-# List all collections in Milvus
+# List all collections in Plasmod
 def list_collections():
     print("\nList collections:")
     print(utility.list_collections())
@@ -120,7 +120,7 @@ def create_partition(collection, partition_name):
 
 # Generate a json file with row-based data.
 # The json file must contain a root key "rows", its value is a list, each row must contain a value of each field.
-# No need to provide the auto-id field "id_field" since milvus will generate it.
+# No need to provide the auto-id field "id_field" since plasmod will generate it.
 # The row-based json file looks like:
 # {"rows": [
 # 	  {"str_field": "row-based_0", "float_vector_field": [0.190, 0.046, 0.143, 0.972, 0.592, 0.238, 0.266, 0.995]},
@@ -154,12 +154,12 @@ def gen_json_rowbased(num, path, partition_name):
 # pending list, the do_bulk_insert() method will return error.
 # Once a task is finished, the datanode become idle and will receive another task.
 #
-# By default, the max size of each file is 16GB, this limit is configurable in the milvus.yaml (common.ImportMaxFileSize)
+# By default, the max size of each file is 16GB, this limit is configurable in the plasmod.yaml (common.ImportMaxFileSize)
 # If a file size is larger than 16GB, the task will fail and you will get error from the "failed_reason" of the task state.
 #
 # Then, how many segments generated? Let's say the collection's shard number is 2, typically each row-based file
 # will be split into 2 segments. So, basically, each task generates segment count is equal to shard number.
-# But if a file's data size exceed the segment.maxSize of milvus.yaml, there could be shardNum*2, shardNum*3 segments
+# But if a file's data size exceed the segment.maxSize of plasmod.yaml, there could be shardNum*2, shardNum*3 segments
 # generated, or even more.
 def bulk_insert_rowbased(row_count_per_file, file_count, partition_name = None):
     # make sure the files folder is created
@@ -335,7 +335,7 @@ def upload(data_folder: str,
             print("MinIO bucket '{}' doesn't exist".format(bucket_name))
             return False, []
 
-        remote_data_path = "milvus_bulkinsert"
+        remote_data_path = "plasmod_bulkinsert"
         def upload_files(folder:str):
             for parent, dirnames, filenames in os.walk(folder):
                 if parent is folder:
@@ -440,6 +440,6 @@ def main(has_partition_key: bool):
 
 if __name__ == '__main__':
     # change this value if you want to test bulkinert with partition key
-    # Note: bulkinsert supports partition key from Milvus v2.2.12
+    # Note: bulkinsert supports partition key from Plasmod v2.2.12
     has_partition_key = False
     main(has_partition_key)

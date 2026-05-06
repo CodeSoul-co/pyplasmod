@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from pymilvus.client.types import ResourceGroupConfig
+from pyplasmod.client.types import ResourceGroupConfig
 
 from .conftest import make_response, make_status
 

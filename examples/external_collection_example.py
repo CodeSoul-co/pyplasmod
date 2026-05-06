@@ -1,5 +1,5 @@
 """
-Milvus External Collection API Usage Examples
+Plasmod External Collection API Usage Examples
 
 This script demonstrates the full lifecycle of an external collection:
 1. Generate Parquet test data and upload to MinIO
@@ -11,8 +11,8 @@ This script demonstrates the full lifecycle of an external collection:
 7. Cleanup
 
 Requirements:
-- Milvus server running with external table support (standalone, local MinIO)
-- pymilvus, pyarrow, minio
+- Plasmod server running with external table support (standalone, local MinIO)
+- pyplasmod, pyarrow, minio
 - pip install pyarrow minio
 
 Usage:
@@ -30,14 +30,14 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from minio import Minio
 
-from pymilvus import AsyncMilvusClient, DataType, MilvusClient
+from pyplasmod import AsyncPlasmodClient, DataType, PlasmodClient
 
 # Configuration — adjust these to match your environment
-MILVUS_URI = "http://localhost:19530"
+PLASMOD_URI = "http://localhost:19530"
 MINIO_ENDPOINT = "localhost:9000"
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "minioadmin"
-MINIO_BUCKET = "a-bucket"  # same bucket Milvus uses
+MINIO_BUCKET = "a-bucket"  # same bucket Plasmod uses
 EXTERNAL_DATA_PREFIX = "external-demo"  # path prefix in MinIO
 
 COLLECTION_NAME = "product_embeddings"
@@ -78,7 +78,7 @@ def prepare_test_data():
         ids = list(range(start_id, start_id + rows_per_file))
         names = [f"product_{idx}" for idx in ids]
 
-        # Vectors stored as FixedSizeList<Float32> — Milvus auto-normalizes to FixedSizeBinary
+        # Vectors stored as FixedSizeList<Float32> — Plasmod auto-normalizes to FixedSizeBinary
         vectors = np.random.rand(rows_per_file, DIM).astype(np.float32)
 
         table = pa.table(
@@ -103,8 +103,8 @@ def prepare_test_data():
 
     print(f"  Uploaded {NUM_FILES} Parquet files ({total_uploaded} rows) to "
           f"{MINIO_BUCKET}/{EXTERNAL_DATA_PREFIX}/")
-    # external_source is a path relative to the Milvus-configured MinIO bucket root,
-    # NOT a full s3:// URI. Milvus already knows the bucket from its config.
+    # external_source is a path relative to the Plasmod-configured MinIO bucket root,
+    # NOT a full s3:// URI. Plasmod already knows the bucket from its config.
     return f"{EXTERNAL_DATA_PREFIX}/"
 
 
@@ -113,7 +113,7 @@ def prepare_test_data():
 # ============================================================
 
 
-def demo_create_external_collection(client: MilvusClient, external_source: str):
+def demo_create_external_collection(client: PlasmodClient, external_source: str):
     """Create an external collection with field mappings."""
     print("\n=== Creating External Collection ===")
 
@@ -157,7 +157,7 @@ def demo_create_external_collection(client: MilvusClient, external_source: str):
             print(f"  field '{f['name']}' -> '{ef}'")
 
 
-def demo_refresh_and_wait(client: MilvusClient):
+def demo_refresh_and_wait(client: PlasmodClient):
     """Trigger refresh and wait for completion."""
     print("\n=== Refreshing External Collection ===")
 
@@ -179,7 +179,7 @@ def demo_refresh_and_wait(client: MilvusClient):
         time.sleep(2)
 
 
-def demo_index_load_search(client: MilvusClient):
+def demo_index_load_search(client: PlasmodClient):
     """Create index, load, and search the external collection."""
     print("\n=== Index + Load + Search ===")
 
@@ -213,7 +213,7 @@ def demo_index_load_search(client: MilvusClient):
         )
 
 
-def demo_list_refresh_jobs(client: MilvusClient):
+def demo_list_refresh_jobs(client: PlasmodClient):
     """List all refresh jobs."""
     print("\n=== Listing Refresh Jobs ===")
 
@@ -228,7 +228,7 @@ def demo_list_refresh_jobs(client: MilvusClient):
         )
 
 
-def demo_cleanup(client: MilvusClient):
+def demo_cleanup(client: PlasmodClient):
     """Drop collection and clean MinIO data."""
     print("\n=== Cleanup ===")
     if client.has_collection(COLLECTION_NAME):
@@ -263,7 +263,7 @@ async def async_demo():
 
     external_source = prepare_test_data()
 
-    client = AsyncMilvusClient(uri=MILVUS_URI)
+    client = AsyncPlasmodClient(uri=PLASMOD_URI)
 
     schema = client.create_schema(
         external_source=external_source,
@@ -361,7 +361,7 @@ def main():
     print("=" * 50)
 
     external_source = prepare_test_data()
-    client = MilvusClient(uri=MILVUS_URI)
+    client = PlasmodClient(uri=PLASMOD_URI)
 
     try:
         demo_create_external_collection(client, external_source)

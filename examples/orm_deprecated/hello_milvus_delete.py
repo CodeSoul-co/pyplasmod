@@ -1,19 +1,19 @@
 import time
 import numpy as np
-from pymilvus import (
-    MilvusClient,
+from pyplasmod import (
+    PlasmodClient,
     exceptions
 )
 
 fmt = "\n=== {:30} ===\n"
 dim = 8
-collection_name = "hello_milvus"
-milvus_client = MilvusClient("http://localhost:19530")
-milvus_client.drop_collection(collection_name)
-milvus_client.create_collection(collection_name, dim, consistency_level="Strong", metric_type="L2")
+collection_name = "hello_plasmod"
+plasmod_client = PlasmodClient("http://localhost:19530")
+plasmod_client.drop_collection(collection_name)
+plasmod_client.create_collection(collection_name, dim, consistency_level="Strong", metric_type="L2")
 
-print("collections:", milvus_client.list_collections())
-print(f"{collection_name} :", milvus_client.describe_collection(collection_name))
+print("collections:", plasmod_client.list_collections())
+print(f"{collection_name} :", plasmod_client.describe_collection(collection_name))
 rng = np.random.default_rng(seed=19530)
 
 rows = [
@@ -26,14 +26,14 @@ rows = [
 ]
 
 print(fmt.format("Start inserting entities"))
-pks = milvus_client.insert(collection_name, rows, progress_bar=True)
-pks2 = milvus_client.insert(collection_name, {"id": 7, "vector": rng.random((1, dim))[0], "g": 1})
+pks = plasmod_client.insert(collection_name, rows, progress_bar=True)
+pks2 = plasmod_client.insert(collection_name, {"id": 7, "vector": rng.random((1, dim))[0], "g": 1})
 pks.extend(pks2)
 
 
 def fetch_data_by_pk(pk):
     print(f"get primary key {pk} from {collection_name}")
-    pk_data = milvus_client.get(collection_name, pk)
+    pk_data = plasmod_client.get(collection_name, pk)
 
     if pk_data:
         print(f"data of primary key {pk} is", pk_data[0])
@@ -43,7 +43,7 @@ def fetch_data_by_pk(pk):
 fetch_data_by_pk(pks[2])
 
 print(f"start to delete primary key {pks[2]} in collection {collection_name}")
-milvus_client.delete(collection_name, pks = pks[2])
+plasmod_client.delete(collection_name, pks = pks[2])
 
 fetch_data_by_pk(pks[2])
 
@@ -51,24 +51,24 @@ fetch_data_by_pk(pks[2])
 fetch_data_by_pk(pks[4])
 filter = "e == 5 or f == 6"
 print(f"start to delete by expr {filter} in collection {collection_name}")
-milvus_client.delete(collection_name, filter=filter)
+plasmod_client.delete(collection_name, filter=filter)
 
 fetch_data_by_pk(pks[4])
 
 print(f"start to delete by expr '{filter}' or by primary 4 in collection {collection_name}, expect get exception")
 try:
-    milvus_client.delete(collection_name, pks = 4, filter=filter)
+    plasmod_client.delete(collection_name, pks = 4, filter=filter)
 except Exception as e:
     assert isinstance(e, exceptions.ParamError)
     print("catch exception", e)
 
 print(f"start to delete without specify any expr '{filter}' or any primary key in collection {collection_name}, expect get exception")
 try:
-    milvus_client.delete(collection_name)
+    plasmod_client.delete(collection_name)
 except Exception as e:
     print("catch exception", e)
 
-result = milvus_client.query(collection_name, "", output_fields = ["count(*)"])
+result = plasmod_client.query(collection_name, "", output_fields = ["count(*)"])
 print(f"final entities in {collection_name} is {result[0]['count(*)']}")
 
-milvus_client.drop_collection(collection_name)
+plasmod_client.drop_collection(collection_name)

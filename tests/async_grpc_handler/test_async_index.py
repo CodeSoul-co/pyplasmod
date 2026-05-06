@@ -6,9 +6,9 @@ Coverage: Index create, drop, describe, wait_for_creating, alias operations.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.client.types import Status
-from pymilvus.exceptions import AmbiguousIndexName, MilvusException, ParamError
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.types import Status
+from pyplasmod.exceptions import AmbiguousIndexName, PlasmodException, ParamError
 
 
 class TestAsyncGrpcHandlerIndex:
@@ -37,9 +37,9 @@ class TestAsyncGrpcHandlerIndex:
         mock_create_response.status = mock_status
         mock_stub.CreateIndex = AsyncMock(return_value=mock_create_response)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_index_request = MagicMock()
             mock_prepare.create_index_request.return_value = mock_index_request
 
@@ -80,9 +80,9 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.DropIndex = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.drop_index_request.return_value = mock_request
 
@@ -137,7 +137,7 @@ class TestAsyncGrpcHandlerIndex:
         # IndexState.InProgress is 2
         handler.get_index_state = AsyncMock(return_value=(2, ""))
 
-        with pytest.raises(MilvusException) as exc_info:
+        with pytest.raises(PlasmodException) as exc_info:
             await handler.wait_for_creating_index("test_coll", "test_index", timeout=1)
         assert "timeout" in str(exc_info.value).lower()
 
@@ -160,8 +160,8 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.DescribeIndex = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.describe_index_request.return_value = MagicMock()
             state, reason = await handler.get_index_state("test_coll", "test_index")
@@ -192,9 +192,9 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.DescribeIndex = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.describe_index_request.return_value = MagicMock()
             result = await handler.describe_index("test_coll", "test_index")
             assert result is not None
@@ -215,8 +215,8 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.DescribeIndex = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
         ):
             mock_prepare.describe_index_request.return_value = MagicMock()
             result = await handler.describe_index("test_coll", "test_index")
@@ -245,8 +245,8 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.DescribeIndex = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.describe_index_request.return_value = MagicMock()
             state, _reason = await handler.get_index_state(
@@ -277,8 +277,8 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.DescribeIndex = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.describe_index_request.return_value = MagicMock()
             with pytest.raises(AmbiguousIndexName):
@@ -303,9 +303,9 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.DescribeIndex = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.is_successful", return_value=True):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.is_successful", return_value=True):
             mock_prepare.describe_index_request.return_value = MagicMock()
             result = await handler.list_indexes("test_coll")
             assert result == [mock_index]
@@ -327,9 +327,9 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.DescribeIndex = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.is_successful", return_value=False):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.is_successful", return_value=False):
             mock_prepare.describe_index_request.return_value = MagicMock()
             result = await handler.list_indexes("test_coll")
             assert result == []
@@ -349,9 +349,9 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.AlterIndex = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.alter_index_request.return_value = MagicMock()
             await handler.alter_index_properties("test_coll", "test_index", {"mmap": True})
             mock_stub.AlterIndex.assert_called_once()
@@ -371,9 +371,9 @@ class TestAsyncGrpcHandlerIndex:
         mock_stub.AlterIndex = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.alter_index_request.return_value = MagicMock()
             await handler.drop_index_properties("test_coll", "test_index", ["key1"])
             mock_stub.AlterIndex.assert_called_once()
@@ -411,9 +411,9 @@ class TestAsyncGrpcHandlerAlias:
         mock_stub.CreateAlias = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.create_alias_request.return_value = mock_request
 
@@ -438,9 +438,9 @@ class TestAsyncGrpcHandlerAlias:
         mock_stub.DropAlias = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.drop_alias_request.return_value = mock_request
 
@@ -463,9 +463,9 @@ class TestAsyncGrpcHandlerAlias:
         mock_stub.AlterAlias = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.alter_alias_request.return_value = MagicMock()
             await handler.alter_alias("test_coll", "test_alias")
             mock_stub.AlterAlias.assert_called_once()
@@ -486,9 +486,9 @@ class TestAsyncGrpcHandlerAlias:
         mock_stub.ListAliases = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.list_aliases_request.return_value = MagicMock()
             result = await handler.list_aliases("test_coll")
             assert result == ["alias1", "alias2"]
@@ -511,8 +511,8 @@ class TestAsyncGrpcHandlerAlias:
         mock_stub.DescribeAlias = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.describe_alias_request.return_value = MagicMock()
             result = await handler.describe_alias("test_alias")

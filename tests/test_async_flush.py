@@ -1,8 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.exceptions import MilvusException, ParamError
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.exceptions import PlasmodException, ParamError
 
 
 @pytest.fixture
@@ -63,9 +63,9 @@ class TestAsyncFlush:
 
         handler.get_flush_state = AsyncMock(side_effect=mock_get_flush_state)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.flush_param.return_value = MagicMock()
 
             result = await handler.flush(["test_collection"], timeout=10)
@@ -101,9 +101,9 @@ class TestAsyncFlush:
 
         handler.get_flush_state = AsyncMock(side_effect=mock_get_flush_state)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.flush_param.return_value = MagicMock()
 
             await handler.flush(["collection1", "collection2"], timeout=10)
@@ -134,14 +134,14 @@ class TestAsyncFlush:
             current_time += 0.6
             return current_time
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"), patch(
-            "pymilvus.client.async_grpc_handler.time.time", side_effect=mock_time
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"), patch(
+            "pyplasmod.client.async_grpc_handler.time.time", side_effect=mock_time
         ):
             mock_prepare.flush_param.return_value = MagicMock()
 
-            with pytest.raises(MilvusException) as exc_info:
+            with pytest.raises(PlasmodException) as exc_info:
                 await handler.flush(["test_collection"], timeout=0.5)
 
             assert "timeout" in str(exc_info.value).lower()
@@ -175,8 +175,8 @@ class TestAsyncFlush:
 
         handler._async_stub.GetFlushState = AsyncMock(return_value=mock_response)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.get_flush_state_request.return_value = MagicMock()
 

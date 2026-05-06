@@ -9,12 +9,12 @@
 # is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied. See the License for the specific language governing permissions and limitations under the License.
 
-"""Comprehensive tests for pymilvus/client/types.py"""
+"""Comprehensive tests for pyplasmod/client/types.py"""
 
 from unittest.mock import MagicMock
 
 import pytest
-from pymilvus.client.types import (
+from pyplasmod.client.types import (
     ALWAYS_KEEP_ZERO_KEYS,
     AnalyzeResult,
     AnalyzeToken,
@@ -56,9 +56,9 @@ from pymilvus.client.types import (
     get_cost_from_status,
     get_extra_info,
 )
-from pymilvus.exceptions import AutoIDException, InvalidConsistencyLevel
-from pymilvus.grpc_gen import common_pb2
-from pymilvus.grpc_gen import milvus_pb2 as milvus_types
+from pyplasmod.exceptions import AutoIDException, InvalidConsistencyLevel
+from pyplasmod.grpc_gen import common_pb2
+from pyplasmod.grpc_gen import plasmod_pb2 as plasmod_types
 
 
 # Helpers
@@ -76,8 +76,8 @@ def _make_mock_entity(**kwargs):
 
 def _make_user_result(username, role_names):
     """Build a mock UserResult protobuf object."""
-    role_mocks = [MagicMock(__class__=milvus_types.RoleEntity, name=n) for n in role_names]
-    result = MagicMock(__class__=milvus_types.UserResult)
+    role_mocks = [MagicMock(__class__=plasmod_types.RoleEntity, name=n) for n in role_names]
+    result = MagicMock(__class__=plasmod_types.UserResult)
     result.user.name = username
     result.roles = role_mocks
     return result
@@ -85,8 +85,8 @@ def _make_user_result(username, role_names):
 
 def _make_role_result(role_name, user_names):
     """Build a mock RoleResult protobuf object."""
-    user_mocks = [MagicMock(__class__=milvus_types.UserEntity, name=n) for n in user_names]
-    result = MagicMock(__class__=milvus_types.RoleResult)
+    user_mocks = [MagicMock(__class__=plasmod_types.UserEntity, name=n) for n in user_names]
+    result = MagicMock(__class__=plasmod_types.RoleResult)
     result.role.name = role_name
     result.users = user_mocks
     return result
@@ -95,7 +95,7 @@ def _make_role_result(role_name, user_names):
 def _make_grant_entity(**kwargs):
     """Build a mock GrantEntity protobuf object."""
     entity = _make_mock_entity(**kwargs)
-    entity.__class__ = milvus_types.GrantEntity
+    entity.__class__ = plasmod_types.GrantEntity
     return entity
 
 
@@ -933,7 +933,7 @@ class TestGrantInfo:
 # TestPrivilegeGroupItem / TestPrivilegeGroupInfo
 class TestPrivilegeGroupItem:
     def _privs(self, *names):
-        privs = [MagicMock(spec=milvus_types.PrivilegeEntity) for _ in names]
+        privs = [MagicMock(spec=plasmod_types.PrivilegeEntity) for _ in names]
         for p, n in zip(privs, names):
             p.name = n
         return privs
@@ -949,9 +949,9 @@ class TestPrivilegeGroupItem:
 
 class TestPrivilegeGroupInfo:
     def _make_pg_result(self, group_name, priv_names=()):
-        result = MagicMock(spec=milvus_types.PrivilegeGroupInfo)
+        result = MagicMock(spec=plasmod_types.PrivilegeGroupInfo)
         result.group_name = group_name
-        privs = [MagicMock(spec=milvus_types.PrivilegeEntity) for _ in priv_names]
+        privs = [MagicMock(spec=plasmod_types.PrivilegeEntity) for _ in priv_names]
         for p, n in zip(privs, priv_names):
             p.name = n
         result.privileges = privs
@@ -970,7 +970,7 @@ class TestPrivilegeGroupInfo:
 # TestUserItem / TestUserInfo / TestRoleItem / TestRoleInfo
 class TestUserItem:
     def _roles(self, *names):
-        roles = [MagicMock(spec=milvus_types.RoleEntity) for _ in names]
+        roles = [MagicMock(spec=plasmod_types.RoleEntity) for _ in names]
         for r, n in zip(roles, names):
             r.name = n
         return roles
@@ -995,7 +995,7 @@ class TestUserInfo:
 
 class TestRoleItem:
     def _users(self, *names):
-        users = [MagicMock(spec=milvus_types.UserEntity) for _ in names]
+        users = [MagicMock(spec=plasmod_types.UserEntity) for _ in names]
         for u, n in zip(users, names):
             u.name = n
         return users

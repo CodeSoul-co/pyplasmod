@@ -1,6 +1,6 @@
-from pymilvus import utility, connections, Collection
-from pymilvus.client.constants import DEFAULT_RESOURCE_GROUP
-from pymilvus.client.types import ResourceGroupConfig
+from pyplasmod import utility, connections, Collection
+from pyplasmod.client.constants import DEFAULT_RESOURCE_GROUP
+from pyplasmod.client.types import ResourceGroupConfig
 from typing import List
 from example import create_connection, create_collection, insert, create_index
 

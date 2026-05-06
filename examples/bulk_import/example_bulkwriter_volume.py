@@ -16,18 +16,18 @@ import time
 import numpy as np
 
 from examples.bulk_import.data_gengerator import *
-from pymilvus.bulk_writer.volume_bulk_writer import VolumeBulkWriter
-from pymilvus.orm import utility
+from pyplasmod.bulk_writer.volume_bulk_writer import VolumeBulkWriter
+from pyplasmod.orm import utility
 
 logging.basicConfig(level=logging.INFO)
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     FieldSchema, CollectionSchema, DataType,
     Collection,
 )
 
-from pymilvus.bulk_writer import (
+from pyplasmod.bulk_writer import (
     BulkFileType,
     list_import_jobs,
     bulk_import,
@@ -74,14 +74,14 @@ def build_all_type_schema():
         FieldSchema(name="double", dtype=DataType.DOUBLE),
         FieldSchema(name="varchar", dtype=DataType.VARCHAR, max_length=512),
         FieldSchema(name="json", dtype=DataType.JSON),
-        # from 2.4.0, milvus supports multiple vector fields in one collection
+        # from 2.4.0, plasmod supports multiple vector fields in one collection
         # FieldSchema(name="float_vector", dtype=DataType.FLOAT_VECTOR, dim=DIM),
         FieldSchema(name="binary_vector", dtype=DataType.BINARY_VECTOR, dim=DIM),
         FieldSchema(name="float16_vector", dtype=DataType.FLOAT16_VECTOR, dim=DIM),
         FieldSchema(name="bfloat16_vector", dtype=DataType.BFLOAT16_VECTOR, dim=DIM),
     ]
 
-    # milvus doesn't support parsing array/sparse_vector from numpy file
+    # plasmod doesn't support parsing array/sparse_vector from numpy file
     fields.append(
         FieldSchema(name="array_str", dtype=DataType.ARRAY, max_capacity=100, element_type=DataType.VARCHAR,
                     max_length=128))

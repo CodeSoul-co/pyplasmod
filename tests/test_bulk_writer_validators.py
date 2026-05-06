@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
-from pymilvus.bulk_writer.validators import (
+from pyplasmod.bulk_writer.validators import (
     binary_vector_validator,
     float16_vector_validator,
     float_vector_validator,
     int8_vector_validator,
     sparse_vector_validator,
 )
-from pymilvus.exceptions import MilvusException
+from pyplasmod.exceptions import PlasmodException
 
 # ---------------------------------------------------------------------------
 # Parametrized cross-validator tests: invalid_type, invalid_shape, invalid_length
@@ -24,8 +24,8 @@ from pymilvus.exceptions import MilvusException
     ],
 )
 def test_invalid_type(validator_func, bad_value, dim, kwargs):
-    """Validators should raise MilvusException for non-array/non-list input."""
-    with pytest.raises(MilvusException, match=r"only accept numpy\.ndarray"):
+    """Validators should raise PlasmodException for non-array/non-list input."""
+    with pytest.raises(PlasmodException, match=r"only accept numpy\.ndarray"):
         validator_func(bad_value, dim, **kwargs)
 
 
@@ -44,8 +44,8 @@ def test_invalid_type(validator_func, bad_value, dim, kwargs):
     ],
 )
 def test_invalid_numpy_shape(validator_func, arr, dim, kwargs):
-    """Validators should raise MilvusException for 2D numpy arrays."""
-    with pytest.raises(MilvusException, match="shape must"):
+    """Validators should raise PlasmodException for 2D numpy arrays."""
+    with pytest.raises(PlasmodException, match="shape must"):
         validator_func(arr, dim, **kwargs)
 
 
@@ -59,8 +59,8 @@ def test_invalid_numpy_shape(validator_func, arr, dim, kwargs):
     ],
 )
 def test_invalid_numpy_length(validator_func, arr, dim, kwargs):
-    """Validators should raise MilvusException for numpy arrays with wrong length."""
-    with pytest.raises(MilvusException, match="length must be equal"):
+    """Validators should raise PlasmodException for numpy arrays with wrong length."""
+    with pytest.raises(PlasmodException, match="length must be equal"):
         validator_func(arr, dim, **kwargs)
 
 
@@ -78,13 +78,13 @@ class TestFloatVectorValidator:
     def test_invalid_list_length(self):
         """Test list with wrong dimension"""
         with pytest.raises(
-            MilvusException, match="array's length must be equal to vector dimension"
+            PlasmodException, match="array's length must be equal to vector dimension"
         ):
             float_vector_validator([1.0, 2.0], 3)
 
     def test_invalid_list_type(self):
         """Test list with non-float elements"""
-        with pytest.raises(MilvusException, match="array's element must be float value"):
+        with pytest.raises(PlasmodException, match="array's element must be float value"):
             float_vector_validator([1.0, 2, 3.0], 3)
 
     def test_valid_numpy_float32(self):
@@ -102,7 +102,7 @@ class TestFloatVectorValidator:
     def test_invalid_numpy_dtype(self):
         """Test numpy array with invalid dtype"""
         arr = np.array([1, 2, 3], dtype=np.int32)
-        with pytest.raises(MilvusException, match='dtype must be "float32" or "float64"'):
+        with pytest.raises(PlasmodException, match='dtype must be "float32" or "float64"'):
             float_vector_validator(arr, 3)
 
 
@@ -121,7 +121,7 @@ class TestBinaryVectorValidator:
     def test_invalid_list_length(self):
         """Test list with wrong dimension"""
         with pytest.raises(
-            MilvusException, match="length of the list must be equal to vector dimension"
+            PlasmodException, match="length of the list must be equal to vector dimension"
         ):
             binary_vector_validator([1, 0, 1], 8)
 
@@ -135,7 +135,7 @@ class TestBinaryVectorValidator:
         """Test bytes with wrong length"""
         data = b"\x00"
         with pytest.raises(
-            MilvusException, match="length of the bytes must be equal to 8x of vector dimension"
+            PlasmodException, match="length of the bytes must be equal to 8x of vector dimension"
         ):
             binary_vector_validator(data, 16)
 
@@ -148,12 +148,12 @@ class TestBinaryVectorValidator:
     def test_invalid_numpy_dtype(self):
         """Test numpy array with invalid dtype"""
         arr = np.array([0, 1, 2], dtype=np.int32)
-        with pytest.raises(MilvusException, match='dtype must be "uint8"'):
+        with pytest.raises(PlasmodException, match='dtype must be "uint8"'):
             binary_vector_validator(arr, 24)
 
     def test_invalid_type(self):
         """Test with invalid input type"""
-        with pytest.raises(MilvusException, match=r"only accept numpy\.ndarray, list, bytes"):
+        with pytest.raises(PlasmodException, match=r"only accept numpy\.ndarray, list, bytes"):
             binary_vector_validator("invalid", 8)
 
 
@@ -180,13 +180,13 @@ class TestFloat16VectorValidator:
     def test_invalid_list_length(self):
         """Test list with wrong dimension"""
         with pytest.raises(
-            MilvusException, match="array's length must be equal to vector dimension"
+            PlasmodException, match="array's length must be equal to vector dimension"
         ):
             float16_vector_validator([1.0, 2.0], 3, is_bfloat=False)
 
     def test_invalid_list_type(self):
         """Test list with non-float elements"""
-        with pytest.raises(MilvusException, match="array's element must be float value"):
+        with pytest.raises(PlasmodException, match="array's element must be float value"):
             float16_vector_validator([1.0, 2, 3.0], 3, is_bfloat=False)
 
     def test_valid_numpy_float16(self):
@@ -207,13 +207,13 @@ class TestFloat16VectorValidator:
     def test_invalid_numpy_dtype_float16(self):
         """Test numpy array with wrong dtype for float16"""
         arr = np.array([1.0, 2.0, 3.0], dtype=np.float32)
-        with pytest.raises(MilvusException, match='dtype must be "float16"'):
+        with pytest.raises(PlasmodException, match='dtype must be "float16"'):
             float16_vector_validator(arr, 3, is_bfloat=False)
 
     def test_invalid_numpy_dtype_bfloat16(self):
         """Test numpy array with wrong dtype for bfloat16"""
         arr = np.array([1.0, 2.0, 3.0], dtype=np.float32)
-        with pytest.raises(MilvusException, match='dtype must be "bfloat16"'):
+        with pytest.raises(PlasmodException, match='dtype must be "bfloat16"'):
             float16_vector_validator(arr, 3, is_bfloat=True)
 
 
@@ -231,13 +231,13 @@ class TestInt8VectorValidator:
     def test_invalid_list_length(self):
         """Test list with wrong dimension"""
         with pytest.raises(
-            MilvusException, match="array's length must be equal to vector dimension"
+            PlasmodException, match="array's length must be equal to vector dimension"
         ):
             int8_vector_validator([1, 2], 3)
 
     def test_invalid_list_type(self):
         """Test list with non-int elements"""
-        with pytest.raises(MilvusException, match="array's element must be int value"):
+        with pytest.raises(PlasmodException, match="array's element must be int value"):
             int8_vector_validator([1, 2.0, 3], 3)
 
     def test_valid_numpy_int8(self):
@@ -249,7 +249,7 @@ class TestInt8VectorValidator:
     def test_invalid_numpy_dtype(self):
         """Test numpy array with invalid dtype"""
         arr = np.array([1, 2, 3], dtype=np.int32)
-        with pytest.raises(MilvusException, match='dtype must be "int8"'):
+        with pytest.raises(PlasmodException, match='dtype must be "int8"'):
             int8_vector_validator(arr, 3)
 
 
@@ -273,58 +273,58 @@ class TestSparseVectorValidator:
 
     def test_invalid_type(self):
         """Test with non-dict input"""
-        with pytest.raises(MilvusException, match="only accept dict"):
+        with pytest.raises(PlasmodException, match="only accept dict"):
             sparse_vector_validator([1, 2, 3])
 
     def test_invalid_index_type(self):
         """Test dict with non-integer index"""
         data = {"a": 0.5, 2: 0.3}
-        with pytest.raises(MilvusException, match="index must be integer"):
+        with pytest.raises(PlasmodException, match="index must be integer"):
             sparse_vector_validator(data)
 
     def test_invalid_value_type(self):
         """Test dict with non-float value"""
         data = {1: 0.5, 2: 3}
-        with pytest.raises(MilvusException, match="value must be float"):
+        with pytest.raises(PlasmodException, match="value must be float"):
             sparse_vector_validator(data)
 
     def test_empty_dict(self):
         """Test empty dict"""
-        with pytest.raises(MilvusException, match="empty sparse vector is not allowed"):
+        with pytest.raises(PlasmodException, match="empty sparse vector is not allowed"):
             sparse_vector_validator({})
 
     def test_invalid_indices_type(self):
         """Test with non-list indices"""
         data = {"indices": "invalid", "values": [0.1, 0.2]}
-        with pytest.raises(MilvusException, match="indices of sparse vector must be a list"):
+        with pytest.raises(PlasmodException, match="indices of sparse vector must be a list"):
             sparse_vector_validator(data)
 
     def test_invalid_values_type(self):
         """Test with non-list values"""
         data = {"indices": [1, 2], "values": "invalid"}
-        with pytest.raises(MilvusException, match="values of sparse vector must be a list"):
+        with pytest.raises(PlasmodException, match="values of sparse vector must be a list"):
             sparse_vector_validator(data)
 
     def test_mismatched_indices_values_length(self):
         """Test with mismatched indices and values length"""
         data = {"indices": [1, 2, 3], "values": [0.1, 0.2]}
-        with pytest.raises(MilvusException, match="length of indices and values"):
+        with pytest.raises(PlasmodException, match="length of indices and values"):
             sparse_vector_validator(data)
 
     def test_empty_indices_values(self):
         """Test with empty indices and values"""
         data = {"indices": [], "values": []}
-        with pytest.raises(MilvusException, match="empty sparse vector is not allowed"):
+        with pytest.raises(PlasmodException, match="empty sparse vector is not allowed"):
             sparse_vector_validator(data)
 
     def test_invalid_index_in_indices_format(self):
         """Test with invalid index type in indices/values format"""
         data = {"indices": ["a", 2], "values": [0.1, 0.2]}
-        with pytest.raises(MilvusException, match="index must be integer"):
+        with pytest.raises(PlasmodException, match="index must be integer"):
             sparse_vector_validator(data)
 
     def test_invalid_value_in_indices_format(self):
         """Test with invalid value type in indices/values format"""
         data = {"indices": [1, 2], "values": [0.1, "invalid"]}
-        with pytest.raises(MilvusException, match="value must be float"):
+        with pytest.raises(PlasmodException, match="value must be float"):
             sparse_vector_validator(data)

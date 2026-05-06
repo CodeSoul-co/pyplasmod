@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
-from pymilvus import (
+from pyplasmod import (
     Collection,
     CollectionSchema,
     DataType,
@@ -13,7 +13,7 @@ from pymilvus import (
     TopHits,
     connections,
 )
-from pymilvus.exceptions import (
+from pyplasmod.exceptions import (
     AutoIDException,
     DataTypeNotMatchException,
     DataTypeNotSupportException,

@@ -1,9 +1,9 @@
 import numpy as np
-from pymilvus import MilvusClient, DataType
+from pyplasmod import PlasmodClient, DataType
 
 dimension = 128
 collection_name = "books"
-client = MilvusClient("http://localhost:19530")
+client = PlasmodClient("http://localhost:19530")
 client.drop_collection(collection_name)
 
 schema = client.create_schema(auto_id=True)

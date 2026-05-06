@@ -10,15 +10,15 @@
 # or implied. See the License for the specific language governing permissions and limitations under
 # the License.
 
-"""Tests for pymilvus/orm/utility.py timestamp functions."""
+"""Tests for pyplasmod/orm/utility.py timestamp functions."""
 
 import time
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from pymilvus.client.constants import LOGICAL_BITS
-from pymilvus.exceptions import MilvusException
-from pymilvus.orm.utility import (
+from pyplasmod.client.constants import LOGICAL_BITS
+from pyplasmod.exceptions import PlasmodException
+from pyplasmod.orm.utility import (
     hybridts_to_datetime,
     hybridts_to_unixtime,
     mkts_from_datetime,
@@ -110,7 +110,7 @@ class TestMktsFromHybridts:
     )
     def test_mkts_from_hybridts_invalid_types(self, kwargs, error_match):
         """Test that invalid parameter types raise exceptions."""
-        with pytest.raises(MilvusException, match=error_match):
+        with pytest.raises(PlasmodException, match=error_match):
             mkts_from_hybridts(**kwargs)
 
 
@@ -190,7 +190,7 @@ class TestMktsFromUnixtime:
     )
     def test_mkts_from_unixtime_invalid_types(self, kwargs, error_match):
         """Test that invalid parameter types raise exceptions."""
-        with pytest.raises(MilvusException, match=error_match):
+        with pytest.raises(PlasmodException, match=error_match):
             mkts_from_unixtime(**kwargs)
 
 
@@ -251,7 +251,7 @@ class TestMktsFromDatetime:
     def test_mkts_from_datetime_invalid_type(self, d_time):
         """Test that non-datetime input raises exception."""
         with pytest.raises(
-            MilvusException, match=r"parameter d_time should be type of datetime\.datetime"
+            PlasmodException, match=r"parameter d_time should be type of datetime\.datetime"
         ):
             mkts_from_datetime(d_time)
 
@@ -310,7 +310,7 @@ class TestHybridtsToDatetime:
         """Test that invalid timezone type raises exception."""
         ts = mkts_from_unixtime(1609459200.0)
         with pytest.raises(
-            MilvusException, match=r"parameter tz should be type of datetime\.timezone"
+            PlasmodException, match=r"parameter tz should be type of datetime\.timezone"
         ):
             hybridts_to_datetime(ts, tz=invalid_tz)
 

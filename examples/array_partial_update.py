@@ -1,6 +1,6 @@
 """Demo: ARRAY_APPEND / ARRAY_REMOVE partial-update operators.
 
-Run a local standalone Milvus (v2.7+ with FieldPartialUpdateOp support),
+Run a local standalone Plasmod (v2.7+ with FieldPartialUpdateOp support),
 then:
 
     python examples/array_partial_update.py
@@ -15,7 +15,7 @@ Exercises:
 
 import numpy as np
 
-from pymilvus import DataType, FieldOp, MilvusClient
+from pyplasmod import DataType, FieldOp, PlasmodClient
 
 URI = "http://localhost:19530"
 COLLECTION = "array_partial_update_demo"
@@ -26,7 +26,7 @@ fmt = "\n=== {:40} ===\n"
 
 
 def main() -> None:
-    client = MilvusClient(URI)
+    client = PlasmodClient(URI)
 
     if client.has_collection(COLLECTION):
         client.drop_collection(COLLECTION)

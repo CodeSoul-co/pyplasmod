@@ -1,7 +1,7 @@
 import unittest
 
-from pymilvus.client import ts_utils
-from pymilvus.client.cache import CollectionTsCache, GlobalCache
+from pyplasmod.client import ts_utils
+from pyplasmod.client.cache import CollectionTsCache, GlobalCache
 
 
 class TestCollectionTsCache(unittest.TestCase):

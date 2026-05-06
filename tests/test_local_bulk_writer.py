@@ -5,10 +5,10 @@ from pathlib import Path
 from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
-from pymilvus.bulk_writer.constants import MB, BulkFileType
-from pymilvus.bulk_writer.local_bulk_writer import LocalBulkWriter
-from pymilvus.client.types import DataType
-from pymilvus.orm.schema import CollectionSchema, FieldSchema
+from pyplasmod.bulk_writer.constants import MB, BulkFileType
+from pyplasmod.bulk_writer.local_bulk_writer import LocalBulkWriter
+from pyplasmod.client.types import DataType
+from pyplasmod.orm.schema import CollectionSchema, FieldSchema
 
 
 class TestLocalBulkWriter:
@@ -96,7 +96,7 @@ class TestLocalBulkWriter:
         del w
         assert not uuid_dir.exists()
 
-    @patch("pymilvus.bulk_writer.local_bulk_writer.Thread")
+    @patch("pyplasmod.bulk_writer.local_bulk_writer.Thread")
     def test_append_row_triggers_flush(self, mock_thread, simple_schema, temp_dir):
         mock_thread_instance = MagicMock()
         mock_thread.return_value = mock_thread_instance
@@ -111,7 +111,7 @@ class TestLocalBulkWriter:
         mock_thread.assert_called()
         mock_thread_instance.start.assert_called()
 
-    @patch("pymilvus.bulk_writer.local_bulk_writer.Thread")
+    @patch("pyplasmod.bulk_writer.local_bulk_writer.Thread")
     def test_commit_sync(self, mock_thread, writer):
         mock_thread_instance = MagicMock()
         mock_thread.return_value = mock_thread_instance
@@ -122,7 +122,7 @@ class TestLocalBulkWriter:
         mock_thread_instance.join.assert_called()
 
     @patch("time.sleep")
-    @patch("pymilvus.bulk_writer.local_bulk_writer.Thread")
+    @patch("pyplasmod.bulk_writer.local_bulk_writer.Thread")
     def test_commit_async(self, mock_thread, mock_sleep, writer):
         mock_thread_instance = MagicMock()
         mock_thread.return_value = mock_thread_instance

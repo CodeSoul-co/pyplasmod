@@ -7,20 +7,20 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import orjson
 import pytest
-from pymilvus.client import entity_helper
-from pymilvus.client.search_result import (
+from pyplasmod.client import entity_helper
+from pyplasmod.client.search_result import (
     Hit,
     Hits,
     HybridHits,
-    MilvusException,
+    PlasmodException,
     SearchResult,
     apply_valid_data,
     extract_array_row_data,
     extract_struct_field_value,
     get_field_data,
 )
-from pymilvus.client.types import DataType, HybridExtraList
-from pymilvus.grpc_gen import common_pb2, schema_pb2
+from pyplasmod.client.types import DataType, HybridExtraList
+from pyplasmod.grpc_gen import common_pb2, schema_pb2
 
 LOGGER = logging.getLogger(__name__)
 
@@ -1097,7 +1097,7 @@ class TestCoverageEdgeCases:
         # target 620-621
 
         fd = schema_pb2.FieldData(type=999)
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             get_field_data(fd)
 
     def test_hybrid_hits_unsupported_type(self):
@@ -1105,7 +1105,7 @@ class TestCoverageEdgeCases:
 
         fd = schema_pb2.FieldData(type=999, field_name="f", field_id=1)
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             HybridHits(0, 1, [1], [0.1], [fd], [], [], "id")
 
     def test_materialize_struct_else(self):
@@ -1119,7 +1119,7 @@ class TestCoverageEdgeCases:
         fd = schema_pb2.FieldData(type=DataType._ARRAY_OF_STRUCT, field_name="aos", field_id=1)
         # Mock get_field_data to return object without fields
 
-        with patch("pymilvus.client.search_result.get_field_data") as mock_get:
+        with patch("pyplasmod.client.search_result.get_field_data") as mock_get:
             mock_get.return_value = MagicMock(spec=[])  # No fields attr
 
             hh = HybridHits(0, 1, [1], [0.1], [fd], [], [], "id")

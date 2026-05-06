@@ -1,4 +1,4 @@
-from pymilvus import (
+from pyplasmod import (
     connections,
     FieldSchema, CollectionSchema, DataType,
     Collection,
@@ -7,7 +7,7 @@ from pymilvus import (
 )
 
 # This example shows how to:
-#   1.  connect to Milvus server
+#   1.  connect to Plasmod server
 #   2.  create a role
 #   3.  add user to the role
 #   4.  assign the role to the user
@@ -23,9 +23,9 @@ from pymilvus import (
 
 _HOST = 'localhost'
 _USER = 'root'
-_PASSWORD = 'Milvus'
+_PASSWORD = 'Plasmod'
 
-# Create a Milvus connection
+# Create a Plasmod connection
 def create_connection():
     print(f"\nCreate connection...")
     connections.connect(host=_HOST, user=_USER, password=_PASSWORD)
@@ -57,7 +57,7 @@ def list_grants(role):
     return role.list_grants()
 
 def main():
-    # Connect to Milvus server
+    # Connect to Plasmod server
     create_connection()
 
     # create role
@@ -68,7 +68,7 @@ def main():
     utility.list_roles(True)
 
     # create user
-    utility.create_user(user="user1", password="Milvus")
+    utility.create_user(user="user1", password="Plasmod")
 
     # add user
     role.add_user("user1")

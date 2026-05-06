@@ -5,11 +5,11 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-from pymilvus.client import entity_helper
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import DataNotMatchException
-from pymilvus.grpc_gen import schema_pb2
-from pymilvus.grpc_gen import schema_pb2 as schema_types
+from pyplasmod.client import entity_helper
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import DataNotMatchException
+from pyplasmod.grpc_gen import schema_pb2
+from pyplasmod.grpc_gen import schema_pb2 as schema_types
 from scipy.sparse import csr_matrix
 
 
@@ -362,7 +362,7 @@ class TestMockedSparseMatrix:
 
         # Patch the name in entity_helper namespace to be sure
         with patch(
-            "pymilvus.client.entity_helper.SciPyHelper.is_scipy_sparse",
+            "pyplasmod.client.entity_helper.SciPyHelper.is_scipy_sparse",
             side_effect=is_sparse_side_effect,
         ):
             assert entity_helper.entity_is_sparse_matrix(mock_sparse) is True
@@ -393,7 +393,7 @@ class TestMockedSparseMatrix:
             return isinstance(arg, MagicMock)
 
         with patch(
-            "pymilvus.client.entity_helper.SciPyHelper.is_scipy_sparse",
+            "pyplasmod.client.entity_helper.SciPyHelper.is_scipy_sparse",
             side_effect=is_sparse_side_effect,
         ):
             entity_helper.pack_field_value_to_field_data(
@@ -426,7 +426,7 @@ class TestMockedSparseMatrix:
             return isinstance(arg, MagicMock)
 
         with patch(
-            "pymilvus.client.entity_helper.SciPyHelper.is_scipy_sparse",
+            "pyplasmod.client.entity_helper.SciPyHelper.is_scipy_sparse",
             side_effect=is_sparse_side_effect,
         ):
             # Directly test the function that handles batch of sparse matrices

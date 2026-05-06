@@ -1,12 +1,12 @@
 import asyncio
 
-from pymilvus import AsyncMilvusClient
+from pyplasmod import AsyncPlasmodClient
 
 URI = "http://localhost:19530"
 
 async def example_sync_optimize():
     """Example: Wait for optimization to complete"""
-    client = AsyncMilvusClient(uri=URI)
+    client = AsyncPlasmodClient(uri=URI)
     await client.create_collection("my_collection", dimension=128)
 
     result = await client.optimize("my_collection", target_size="1GB", wait=True)
@@ -17,7 +17,7 @@ async def example_sync_optimize():
 
 async def example_async_optimize_with_progress():
     """Example: Track optimization progress asynchronously"""
-    client = AsyncMilvusClient(uri=URI)
+    client = AsyncPlasmodClient(uri=URI)
 
     task = await client.optimize("my_collection", target_size="1GB", wait=False)
 
@@ -31,7 +31,7 @@ async def example_async_optimize_with_progress():
 
 async def example_cancel_optimize():
     """Example: Cancel an ongoing optimization"""
-    client = AsyncMilvusClient(uri=URI)
+    client = AsyncPlasmodClient(uri=URI)
 
     task = await client.optimize("my_collection", target_size="512MB", wait=False)
 

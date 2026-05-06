@@ -1,9 +1,9 @@
 import struct
 from typing import List, Optional
 
-from pymilvus.grpc_gen import common_pb2, milvus_pb2, schema_pb2
-from pymilvus.orm.schema import CollectionSchema, FieldSchema
-from pymilvus.orm.types import DataType
+from pyplasmod.grpc_gen import common_pb2, plasmod_pb2, schema_pb2
+from pyplasmod.orm.schema import CollectionSchema, FieldSchema
+from pyplasmod.orm.types import DataType
 
 
 def create_search_results_from_schema(
@@ -11,8 +11,8 @@ def create_search_results_from_schema(
     num_queries: int,
     top_k: int,
     output_fields: Optional[List[str]] = None,
-) -> milvus_pb2.SearchResults:
-    response = milvus_pb2.SearchResults()
+) -> plasmod_pb2.SearchResults:
+    response = plasmod_pb2.SearchResults()
     response.status.error_code = common_pb2.ErrorCode.Success
 
     results = response.results

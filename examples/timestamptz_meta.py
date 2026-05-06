@@ -1,14 +1,14 @@
 import time
-from pymilvus import MilvusClient, DataType, IndexType, FieldSchema
+from pyplasmod import PlasmodClient, DataType, IndexType, FieldSchema
 import datetime
 import pytz
 import sys
 
 # --- Configuration ---
-MILVUS_HOST = "http://localhost:19530"
+PLASMOD_HOST = "http://localhost:19530"
 
 # --- Test 1: Database Properties ---
-DB_NAME_TEST = "milvus_db_property_test"
+DB_NAME_TEST = "plasmod_db_property_test"
 VALID_TZ_INITIAL = "Asia/Shanghai"
 VALID_TZ_NEW = "Europe/London"
 INVALID_TZ = "Invalid/Timezone"
@@ -22,7 +22,7 @@ VECTOR_DIM = 4
 # ==============================================================================
 # 🚀 TEST SCENARIO 1: Database Property Management
 # ==============================================================================
-def run_database_property_tests(client: MilvusClient):
+def run_database_property_tests(client: PlasmodClient):
     """Executes tests for creating, altering, and dropping database properties, focusing on timezone."""
 
     print("\n\n" + "=" * 80)
@@ -80,7 +80,7 @@ def run_database_property_tests(client: MilvusClient):
 # ==============================================================================
 # 🚀 TEST SCENARIO 2: Collection Property Management
 # ==============================================================================
-def run_collection_property_tests(client: MilvusClient):
+def run_collection_property_tests(client: PlasmodClient):
     """Executes tests for collection creation idempotency and collection/default DB property alteration."""
 
     print("\n\n" + "=" * 80)
@@ -171,9 +171,9 @@ def run_collection_property_tests(client: MilvusClient):
 # ==============================================================================
 def main_property_management_tests():
     try:
-        client = MilvusClient(uri=MILVUS_HOST)
+        client = PlasmodClient(uri=PLASMOD_HOST)
     except Exception as e:
-        print(f"Could not connect to Milvus service {MILVUS_HOST}. Please ensure the service is running. Error: {e}")
+        print(f"Could not connect to Plasmod service {PLASMOD_HOST}. Please ensure the service is running. Error: {e}")
         sys.exit(1)
 
     # Execute all test scenarios

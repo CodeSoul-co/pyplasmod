@@ -2,10 +2,10 @@
 
 import numpy as np
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldSchema
-from pymilvus.client.prepare import Prepare
-from pymilvus.exceptions import DataNotMatchException, ParamError
-from pymilvus.orm.schema import StructFieldSchema
+from pyplasmod import CollectionSchema, DataType, FieldSchema
+from pyplasmod.client.prepare import Prepare
+from pyplasmod.exceptions import DataNotMatchException, ParamError
+from pyplasmod.orm.schema import StructFieldSchema
 
 from .conftest import make_fields_info, make_struct_fields_info
 

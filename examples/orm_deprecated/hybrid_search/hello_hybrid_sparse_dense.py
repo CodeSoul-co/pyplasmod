@@ -1,20 +1,20 @@
-# A demo showing hybrid semantic search with dense and sparse vectors using Milvus.
+# A demo showing hybrid semantic search with dense and sparse vectors using Plasmod.
 #
 # You can optionally choose to use the BGE-M3 model to embed the text as dense
 # and sparse vectors, or simply use random generated vectors as an example.
 #
 # You can also use the BGE CrossEncoder model to rerank the search results.
 #
-# Note that the sparse vector search feature is only available in Milvus 2.4.0 or
-# higher version. Make sure you follow https://milvus.io/docs/install_standalone-docker.md
-# to set up the latest version of Milvus in your local environment.
+# Note that the sparse vector search feature is only available in Plasmod 2.4.0 or
+# higher version. Make sure you follow https://plasmod.io/docs/install_standalone-docker.md
+# to set up the latest version of Plasmod in your local environment.
 
-# To connect to Milvus server, you need the python client library called pymilvus.
-# To use BGE-M3 model, you need to install the optional `model` module in pymilvus.
+# To connect to Plasmod server, you need the python client library called pyplasmod.
+# To use BGE-M3 model, you need to install the optional `model` module in pyplasmod.
 # You can get them by simply running the following commands:
 #
-# pip install pymilvus
-# pip install pymilvus[model]
+# pip install pyplasmod
+# pip install pyplasmod[model]
 
 # If true, use BGE-M3 model to generate dense and sparse vectors.
 # If false, use random numbers to compose dense and sparse vectors.
@@ -24,14 +24,14 @@ use_reranker = True
 
 # The overall steps are as follows:
 # 1. embed the text as dense and sparse vectors
-# 2. setup a Milvus collection to store the dense and sparse vectors
-# 3. insert the data to Milvus
+# 2. setup a Plasmod collection to store the dense and sparse vectors
+# 3. insert the data to Plasmod
 # 4. search and inspect the result!
 import random
 import string
 import numpy as np
 
-from pymilvus import (
+from pyplasmod import (
     utility,
     FieldSchema, CollectionSchema, DataType,
     Collection, AnnSearchRequest, RRFRanker, connections,
@@ -59,16 +59,16 @@ ef = random_embedding
 
 if use_bge_m3:
     # BGE-M3 model can embed texts as dense and sparse vectors.
-    # It is included in the optional `model` module in pymilvus, to install it,
-    # simply run "pip install pymilvus[model]".
-    from pymilvus.model.hybrid import BGEM3EmbeddingFunction
+    # It is included in the optional `model` module in pyplasmod, to install it,
+    # simply run "pip install pyplasmod[model]".
+    from pyplasmod.model.hybrid import BGEM3EmbeddingFunction
     ef = BGEM3EmbeddingFunction(use_fp16=False, device="cpu")
     dense_dim = ef.dim["dense"]
 
 docs_embeddings = ef(docs)
 query_embeddings = ef([query])
 
-# 2. setup Milvus collection and index
+# 2. setup Plasmod collection and index
 connections.connect("default", host="localhost", port="19530")
 
 # Specify the data schema for the new Collection.
@@ -78,7 +78,7 @@ fields = [
                 is_primary=True, auto_id=True, max_length=100),
     # Store the original text to retrieve based on semantically distance
     FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=512),
-    # Milvus now supports both sparse and dense vectors, we can store each in
+    # Plasmod now supports both sparse and dense vectors, we can store each in
     # a separate field to conduct hybrid search on both vectors.
     FieldSchema(name="sparse_vector", dtype=DataType.SPARSE_FLOAT_VECTOR),
     FieldSchema(name="dense_vector", dtype=DataType.FLOAT_VECTOR,
@@ -117,14 +117,14 @@ dense_req = AnnSearchRequest(query_embeddings["dense"],
 res = col.hybrid_search([sparse_req, dense_req], rerank=RRFRanker(),
                         limit=k, output_fields=['text'])
 
-# Currently Milvus only support 1 query in the same hybrid search request, so
-# we inspect res[0] directly. In future release Milvus will accept batch
+# Currently Plasmod only support 1 query in the same hybrid search request, so
+# we inspect res[0] directly. In future release Plasmod will accept batch
 # hybrid search queries in the same call.
 res = res[0]
 
 if use_reranker:
     result_texts = [hit.fields["text"] for hit in res]
-    from pymilvus.model.reranker import BGERerankFunction
+    from pyplasmod.model.reranker import BGERerankFunction
     bge_rf = BGERerankFunction(device='cpu')
     # rerank the results using BGE CrossEncoder model
     results = bge_rf(query, result_texts, top_k=2)

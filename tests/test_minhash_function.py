@@ -11,9 +11,9 @@
 # the License.
 
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldSchema
-from pymilvus.client.types import FunctionType
-from pymilvus.orm.schema import Function
+from pyplasmod import CollectionSchema, DataType, FieldSchema
+from pyplasmod.client.types import FunctionType
+from pyplasmod.orm.schema import Function
 
 # ── Helpers / factories ───────────────────────────────────────────────────────
 

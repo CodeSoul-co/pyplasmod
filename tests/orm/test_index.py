@@ -1,12 +1,12 @@
-"""Tests for pymilvus/orm/index.py — Index class."""
+"""Tests for pyplasmod/orm/index.py — Index class."""
 
 from unittest.mock import MagicMock
 
 import pytest
-from pymilvus.exceptions import CollectionNotExistException
-from pymilvus.orm.collection import Collection
-from pymilvus.orm.index import Index
-from pymilvus.settings import Config
+from pyplasmod.exceptions import CollectionNotExistException
+from pyplasmod.orm.collection import Collection
+from pyplasmod.orm.index import Index
+from pyplasmod.settings import Config
 
 
 def _make_mock_collection(name="test_collection"):

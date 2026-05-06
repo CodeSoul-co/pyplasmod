@@ -1,7 +1,7 @@
-from pymilvus import MilvusClient, DataType, Function, FunctionType
+from pyplasmod import PlasmodClient, DataType, Function, FunctionType
 
-# 1. Setup Milvus Client
-client = MilvusClient("http://localhost:19530")
+# 1. Setup Plasmod Client
+client = PlasmodClient("http://localhost:19530")
 COLLECTION_NAME = "multilingual_test_A"
 if client.has_collection(collection_name=COLLECTION_NAME):
     client.drop_collection(collection_name=COLLECTION_NAME)
@@ -38,7 +38,7 @@ mutil_analyzer_params = {
     "analyzers": analyzers,
 }
 
-schema = MilvusClient.create_schema(
+schema = PlasmodClient.create_schema(
     auto_id=True,
     enable_dynamic_field=False,
 )

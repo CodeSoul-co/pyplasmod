@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import grpc
 import pytest
-from pymilvus.client.asynch import (
+from pyplasmod.client.asynch import (
     CreateFlatIndexFuture,
     CreateIndexFuture,
     Future,
@@ -10,8 +10,8 @@ from pymilvus.client.asynch import (
     SearchFuture,
     _parameter_is_empty,
 )
-from pymilvus.client.types import Status
-from pymilvus.exceptions import MilvusException
+from pyplasmod.client.types import Status
+from pyplasmod.exceptions import PlasmodException
 
 
 class SimpleFuture(Future):
@@ -97,7 +97,7 @@ class TestFutureCallback:
         f = SimpleFuture(mock_future)
         f._results = None
         f._done_cb_list = [cb]
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             f._callback()
 
     def test_callback_called_only_once(self, mock_future):
@@ -138,10 +138,10 @@ class TestFutureResult:
         result = f.result()
         assert result == "mock_response"
 
-    def test_result_raises_milvus_exception_on_future_error(self, mock_future):
+    def test_result_raises_plasmod_exception_on_future_error(self, mock_future):
         mock_future.result.side_effect = Exception("grpc error")
         f = SimpleFuture(mock_future)
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             f.result()
 
     def test_result_returns_cached_results(self, mock_future):
@@ -271,7 +271,7 @@ class TestCreateFlatIndexFuture:
             pass
 
         f = CreateFlatIndexFuture(res=None, done_callback=cb)
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             f.result()
 
     def test_cancel(self):
@@ -303,8 +303,8 @@ class TestSearchFutureOnResponse:
         mock_response.status.reason = ""
         mock_response.results = MagicMock()
 
-        with patch("pymilvus.client.asynch.check_status") as mock_check, patch(
-            "pymilvus.client.asynch.SearchResult"
+        with patch("pyplasmod.client.asynch.check_status") as mock_check, patch(
+            "pyplasmod.client.asynch.SearchResult"
         ) as mock_sr:
             mock_sr.return_value = "search_result"
             f = SearchFuture(mock_future)
@@ -312,10 +312,10 @@ class TestSearchFutureOnResponse:
             mock_check.assert_called_once_with(mock_response.status)
             assert result == "search_result"
 
-    def test_on_response_none_raises_milvus_exception(self, mock_future):
+    def test_on_response_none_raises_plasmod_exception(self, mock_future):
         f = SearchFuture(mock_future)
         with pytest.raises(
-            MilvusException, match="Received None response from server during search"
+            PlasmodException, match="Received None response from server during search"
         ):
             f.on_response(None)
 
@@ -339,7 +339,7 @@ class TestSearchFutureOnResponse:
         mock_future.details.return_value = "Deadline Exceeded"
 
         f = SearchFuture(mock_future)
-        with pytest.raises(MilvusException, match="gRPC call timed out"):
+        with pytest.raises(PlasmodException, match="gRPC call timed out"):
             f.result()
 
     def test_result_none_response_other_code_includes_code_name(self, mock_future):
@@ -350,11 +350,11 @@ class TestSearchFutureOnResponse:
         mock_future.details.return_value = "connection reset"
 
         f = SearchFuture(mock_future)
-        with pytest.raises(MilvusException, match="UNAVAILABLE"):
+        with pytest.raises(PlasmodException, match="UNAVAILABLE"):
             f.result()
 
     def test_done_none_response_deadline_exceeded_stores_timeout_exception(self, mock_future):
-        """done() with None gRPC response and DEADLINE_EXCEEDED stores a timeout MilvusException."""
+        """done() with None gRPC response and DEADLINE_EXCEEDED stores a timeout PlasmodException."""
         mock_future.result.return_value = None
         mock_future.code.return_value = grpc.StatusCode.DEADLINE_EXCEEDED
         mock_future.details.return_value = "Deadline Exceeded"
@@ -363,7 +363,7 @@ class TestSearchFutureOnResponse:
         f.done()
 
         assert f._exception is not None
-        assert isinstance(f._exception, MilvusException)
+        assert isinstance(f._exception, PlasmodException)
         assert "timed out" in str(f._exception)
 
 
@@ -372,8 +372,8 @@ class TestMutationFutureOnResponse:
         mock_response = MagicMock()
         mock_response.status.code = 0
 
-        with patch("pymilvus.client.asynch.check_status") as mock_check, patch(
-            "pymilvus.client.asynch.MutationResult"
+        with patch("pyplasmod.client.asynch.check_status") as mock_check, patch(
+            "pyplasmod.client.asynch.MutationResult"
         ) as mock_mr:
             mock_mr.return_value = "mutation_result"
             f = MutationFuture(mock_future)
@@ -388,7 +388,7 @@ class TestCreateIndexFutureOnResponse:
         mock_response.code = 0
         mock_response.reason = "ok"
 
-        with patch("pymilvus.client.asynch.check_status") as mock_check:
+        with patch("pyplasmod.client.asynch.check_status") as mock_check:
             f = CreateIndexFuture(mock_future)
             result = f.on_response(mock_response)
             mock_check.assert_called_once_with(mock_response)

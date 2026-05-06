@@ -1,18 +1,18 @@
 import time
 import numpy as np
-from pymilvus import (
-    MilvusClient,
+from pyplasmod import (
+    PlasmodClient,
 )
 
 fmt = "\n=== {:30} ===\n"
 dim = 8
-collection_name = "hello_milvus"
-milvus_client = MilvusClient("http://localhost:19530")
+collection_name = "hello_plasmod"
+plasmod_client = PlasmodClient("http://localhost:19530")
 
-has_collection = milvus_client.has_collection(collection_name, timeout=5)
+has_collection = plasmod_client.has_collection(collection_name, timeout=5)
 if has_collection:
-    milvus_client.drop_collection(collection_name)
-milvus_client.create_collection(collection_name, dim, consistency_level="Strong", metric_type="L2")
+    plasmod_client.drop_collection(collection_name)
+plasmod_client.create_collection(collection_name, dim, consistency_level="Strong", metric_type="L2")
 
 rng = np.random.default_rng(seed=19530)
 rows = [
@@ -25,18 +25,18 @@ rows = [
 ]
 
 print(fmt.format("Start inserting entities"))
-insert_result = milvus_client.insert(collection_name, rows)
+insert_result = plasmod_client.insert(collection_name, rows)
 print(fmt.format("Inserting entities done"))
 print(insert_result)
 
-upsert_ret = milvus_client.upsert(collection_name, {"id": 2 , "vector": rng.random((1, dim))[0], "g": 100})
+upsert_ret = plasmod_client.upsert(collection_name, {"id": 2 , "vector": rng.random((1, dim))[0], "g": 100})
 print(upsert_ret)
 
 print(fmt.format("Start flush"))
-milvus_client.flush(collection_name)
+plasmod_client.flush(collection_name)
 print(fmt.format("flush done"))
 
-result = milvus_client.query(collection_name, "", output_fields = ["count(*)"])
+result = plasmod_client.query(collection_name, "", output_fields = ["count(*)"])
 print(f"final entities in {collection_name} is {result[0]['count(*)']}")
 
 rows = [
@@ -49,26 +49,26 @@ rows = [
 ]
 
 print(fmt.format("Start inserting entities"))
-insert_result = milvus_client.insert(collection_name, rows)
+insert_result = plasmod_client.insert(collection_name, rows)
 print(fmt.format("Inserting entities done"))
 print(insert_result)
 
 print(fmt.format("Start flush"))
-milvus_client.flush(collection_name)
+plasmod_client.flush(collection_name)
 print(fmt.format("flush done"))
 
-result = milvus_client.query(collection_name, "", output_fields = ["count(*)"])
+result = plasmod_client.query(collection_name, "", output_fields = ["count(*)"])
 print(f"final entities in {collection_name} is {result[0]['count(*)']}")
 
 print(fmt.format("Start compact"))
-job_id = milvus_client.compact(collection_name)
+job_id = plasmod_client.compact(collection_name)
 print(f"job_id:{job_id}")
 
 cnt = 0
-state = milvus_client.get_compaction_state(job_id)
+state = plasmod_client.get_compaction_state(job_id)
 while (state != "Completed" and cnt < 10):
     time.sleep(1.0)
-    state = milvus_client.get_compaction_state(job_id) 
+    state = plasmod_client.get_compaction_state(job_id) 
     print(f"compaction state: {state}")
     cnt += 1
 
@@ -77,7 +77,7 @@ if state == "Completed":
 else:
     print(fmt.format("compact timeout"))
 
-result = milvus_client.query(collection_name, "", output_fields = ["count(*)"])
+result = plasmod_client.query(collection_name, "", output_fields = ["count(*)"])
 print(f"final entities in {collection_name} is {result[0]['count(*)']}")
 
-milvus_client.drop_collection(collection_name)
+plasmod_client.drop_collection(collection_name)

@@ -1,136 +1,80 @@
-# Milvus Python SDK
+# PyPlasmod — Python SDK for [Plasmod](https://github.com/CodeSoul-co/Plasmod)
 
-[![version](https://img.shields.io/pypi/v/pymilvus.svg?color=blue)](https://pypi.org/project/pymilvus/)
-[![Supported Python Versions](https://img.shields.io/pypi/pyversions/pymilvus?logo=python&logoColor=blue)](https://pypi.org/project/pymilvus/)
-[![Downloads](https://static.pepy.tech/badge/pymilvus)](https://pepy.tech/project/pymilvus)
-[![Downloads](https://static.pepy.tech/badge/pymilvus/month)](https://pepy.tech/project/pymilvus)
-[![Downloads](https://static.pepy.tech/badge/pymilvus/week)](https://pepy.tech/project/pymilvus)
+PyPlasmod 是本仓库对 **[PyPlasmod](https://github.com/plasmod-io/pyplasmod)** 的衍生发行：包名与导入路径已统一为 **`pyplasmod`**，面向 **[Plasmod](https://github.com/CodeSoul-co/Plasmod)** 多智能体原生数据库项目的 SDK 演进。
 
-[![license](https://img.shields.io/hexpm/l/plug.svg?color=green)](https://github.com/milvus-io/pymilvus/blob/master/LICENSE)
-![Static Badge](https://img.shields.io/badge/slack-%23py--milvus-blue?style=social&logo=slack&link=https%3A%2F%2Fmilvusio.slack.com%2Farchives%2FC024XTWMT4L)
+**Plasmod 是什么（摘自上游设计）**  
+Plasmod 面向多智能体系统，将认知对象存储、事件驱动的物化与结构化证据检索整合在可运行的系统中（详见仓库内 [`README-Plasmod.md`](README-Plasmod.md) 的完整说明与 HTTP API 列表）。
 
-Python SDK for [Milvus](https://github.com/milvus-io/milvus). To contribute code to this project, please read our [contribution guidelines](https://github.com/milvus-io/milvus/blob/master/CONTRIBUTING.md) first. If you have some ideas or encounter a problem, you can find us in the Slack channel [#py-milvus](https://milvusio.slack.com/archives/C024XTWMT4L).
+**当前 SDK 状态说明**
 
+- 代码主体仍沿用 **Plasmod gRPC / plasmod-proto** 生成的客户端栈（`pyplasmod/grpc_gen/plasmod_pb2*.py`），可与 **Plasmod 2.x** 等同协议的服务端通信。
+- 向 **Plasmod 原生 HTTP API**（如 `README-Plasmod.md` 中的 `/v1/ingest/events`、`/v1/query` 等）迁移的工作可在后续迭代中逐步替换本层实现；本次变更重点是 **命名空间与品牌** 与默认文档对齐。
 
-## Compatibility
-The following collection shows Milvus versions and recommended PyMilvus versions:
+## 安装
 
-|Milvus version| Recommended PyMilvus version |
-|:-----:|:-----:|
-| 1.0.\* | 1.0.1 |
-| 1.1.\* | 1.1.2 |
-| 2.0.\* | 2.0.2 |
-| 2.1.\* | 2.1.3 |
-| 2.2.\* | 2.2.15 |
-| 2.3.\* | 2.3.7 |
-| 2.4.\* | 2.4.X |
-| 2.5.\* | 2.5.X |
-| 2.6.\* | 2.6.X |
+需要 **Python 3.8+**。
 
-
-## Installation
-
-You can install PyMilvus via `pip` or `pip3` for Python 3.8+:
-
-```shell
-$ pip3 install pymilvus
-$ pip3 install pymilvus[model] # for milvus-model
-$ pip3 install pymilvus[bulk_writer] # for bulk_writer
+```bash
+pip install pyplasmod
+pip install "pyplasmod[model]"       # 可选：安装 PyPI ``plasmod-model``（导入仍为 ``pyplasmod.model.*``，待上游提供 pyplasmod 命名空间后可对齐）
+pip install "pyplasmod[bulk_writer]"
+pip install "pyplasmod[plasmod_lite]"  # 可选：本地 plasmod-lite（非 Windows）
 ```
 
-You can install a specific version of PyMilvus by:
+从源码安装：
 
-```shell
-$ pip3 install pymilvus==2.4.10
+```bash
+git clone <你的 pyplasmod 仓库 URL>
+cd pyplasmod
+pip install -e ".[dev]"
 ```
 
-You can upgrade PyMilvus to the latest version by:
+## 环境变量（连接默认值）
 
-```shell
-$ pip3 install --upgrade pymilvus
+优先使用 **`PLASMOD_*`**，并兼容旧的 **`MILVUS_*`**（便于从 pyplasmod 迁移）：
+
+| 变量 | 含义 |
+|------|------|
+| `PLASMOD_URI` / `PLASMOD_URI` | 默认连接 URI |
+| `PLASMOD_CONN_ALIAS` / `MILVUS_CONN_ALIAS` | 默认连接别名 |
+| `PLASMOD_CONN_TIMEOUT` / `MILVUS_CONN_TIMEOUT` | 连接超时（秒） |
+
+## 快速示例
+
+```python
+from pyplasmod import PlasmodClient
+
+client = PlasmodClient(uri="http://127.0.0.1:19530")
+# 其余 Collection / 向量检索 API 与 pyplasmod 时代用法一致，仅导入改为 pyplasmod
 ```
 
-## FAQ
-Q1. How to get submodules?
+异步客户端：`from pyplasmod import AsyncPlasmodClient`。
 
-A1. The following command will get the protos matching to the generated files, for protos of certain version, see
-[milvus-proto](https://github.com/milvus-io/milvus-proto#usage) for details.
-```shell
-$ git submodule update --init
-```
+异常类型：`PlasmodException`、`PlasmodUnavailableException`。
 
-Q2. How to generate python files from milvus-proto?
+## 开发与测试
 
-A2.
-```shell
-$ make gen_proto
-```
-
-Q3. How to use the local PyMilvus repository for Milvus server?
-
-A3.
-```shell
-$ make install
-```
-
-Q4. How to check and auto-fix the coding styles?
-
-A4.
-```shell
+```bash
+make install    # pip install -e .
 make lint
 make format
+make unittest
 ```
 
-Q5. How to set up pre-commit hooks to automatically check and fix the coding styles?
+生成 proto（需初始化 submodule）：
 
-Once installed, the hooks will automatically run `make format` and `make lint` before each commit. If the checks fail, the commit will be aborted, and you'll need to fix the issues before committing again.
-
-A5. Pre-commit hooks help ensure code quality by automatically running linting and formatting checks before each commit.
-```shell
-# Install pre-commit (if not already installed)
-$ pip install pre-commit
-
-# Install the git hook scripts
-$ pre-commit install
+```bash
+git submodule update --init
+make gen_proto
 ```
 
-Q7. How to run unittests?
+Proto 来源仍为 [plasmod-io/plasmod-proto](https://github.com/plasmod-io/plasmod-proto)；生成脚本位于 `pyplasmod/grpc_gen/python_gen.sh`。
 
-A7
-```shell
-$ pip install ".[dev]"
-$ make unittest
-```
+## 文档与路线图
 
-Q8. `zsh: no matches found: pymilvus[model]`, how do I solve this?
+- **Plasmod 服务端与架构**：<https://github.com/CodeSoul-co/Plasmod>  
+- **本仓库详细产品说明**：[`README-Plasmod.md`](README-Plasmod.md)  
 
-A8
-```shell
-$ pip install "pymilvus[model]"
-```
+## 许可证
 
-## Documentation
-
-Documentation is available online: https://milvus.io/api-reference/pymilvus/v2.4.x/About.md
-
-## Developing package releases
-
-The commits on the development branch of each version will be packaged and uploaded to [Test PyPI](https://test.pypi.org/).
-
-The package name generated by the development branch is x.y.z.rc<dist>, where <dist> is the number of commits that differ from the most recent release.
-
-- For example, after the release of **2.3.4**, two commits were submitted on the 2.3 branch.
-The version number of the latest commit of 2.3 branch is **2.3.5.rc2**.
-
-- For example, after the release of **2.3.4**, 10 commits were submitted on the master branch.
-The version number of the latest commit of master branch is **2.4.0.rc10**.
-
-
-To install the package on Test PyPi, you need to append `--extra-index-url` after pip, for example:
-```shell
-$ python3 -m pip install --extra-index-url https://test.pypi.org/simple/ pymilvus==2.1.0.dev66
-```
-
-
-## License
-[Apache License 2.0](LICENSE)
+沿用上游 pyplasmod 的开源许可证（见仓库根目录 `LICENSE`）。

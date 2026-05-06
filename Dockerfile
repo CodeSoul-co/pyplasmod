@@ -1,5 +1,7 @@
-From python:3.6-slim
+FROM python:3.11-slim
 
-RUN pip install pymilvus==2.0.0
+WORKDIR /src
+COPY . .
+RUN pip install --no-cache-dir -e .
 
 ENTRYPOINT ["python"]

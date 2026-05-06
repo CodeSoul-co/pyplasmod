@@ -9,7 +9,7 @@ from typing import Optional
 
 import grpc
 import pytest
-from pymilvus.decorators import _CONNECTIVITY_INT_TO_ENUM, _get_rpc_error_info, _try_get_channel
+from pyplasmod.decorators import _CONNECTIVITY_INT_TO_ENUM, _get_rpc_error_info, _try_get_channel
 
 
 class MockRpcError(grpc.RpcError):

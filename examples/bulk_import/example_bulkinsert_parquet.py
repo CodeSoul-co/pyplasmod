@@ -13,21 +13,21 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from pymilvus import (
-    MilvusClient, DataType,
+from pyplasmod import (
+    PlasmodClient, DataType,
 )
 
-from pymilvus.bulk_writer import (
+from pyplasmod.bulk_writer import (
     bulk_import,
     get_import_progress,
 )
 
 
 # Local path to generate files
-LOCAL_FILES_PATH = "/tmp/milvus_bulkinsert/"
+LOCAL_FILES_PATH = "/tmp/plasmod_bulkinsert/"
 Path(LOCAL_FILES_PATH).mkdir(exist_ok=True)
 
-# Milvus service address
+# Plasmod service address
 _HOST = '127.0.0.1'
 _PORT = '19530'
 
@@ -58,13 +58,13 @@ REMOTE_DATA_PATH = "bulkinsert_data"
 _BIN_DIM = 64
 _FLOAT_DIM = 4
 
-client = MilvusClient(uri="http://localhost:19530")
+client = PlasmodClient(uri="http://localhost:19530")
 print(client.get_server_version())
 
 
 # Create a collection
 def create_collection():
-    schema = MilvusClient.create_schema(enable_dynamic_field=True)
+    schema = PlasmodClient.create_schema(enable_dynamic_field=True)
     schema.add_field(field_name=_ID_FIELD_NAME, datatype=DataType.INT64, is_primary=True, auto_id=False)
     schema.add_field(field_name=_BIN_VECTOR_FIELD_NAME, datatype=DataType.BINARY_VECTOR, dim=_BIN_DIM)
     schema.add_field(field_name=_FLOAT_VECTOR_FIELD_NAME, datatype=DataType.FLOAT_VECTOR, dim=_FLOAT_DIM)
@@ -75,7 +75,7 @@ def create_collection():
     schema.add_field(field_name=_ARRAY_FIELD_NAME, datatype=DataType.ARRAY, element_type=DataType.INT64, max_capacity=100, nullable=True)
     schema.add_field(field_name=_GEOMETRY_FIELD_NAME, datatype=DataType.GEOMETRY, nullable=True)
 
-    struct_schema = MilvusClient.create_struct_field_schema()
+    struct_schema = PlasmodClient.create_struct_field_schema()
     struct_schema.add_field("struct_str", DataType.VARCHAR, max_length=65535)
     struct_schema.add_field("struct_float_vec", DataType.FLOAT_VECTOR, dim=_FLOAT_DIM)
     schema.add_field(_STRUCT_NAME, datatype=DataType.ARRAY, element_type=DataType.STRUCT, struct_schema=struct_schema,
@@ -271,7 +271,7 @@ def upload(local_file_path: str,
 
 def call_bulkinsert(batch_files: List[List[str]]):
     url = f"http://{_HOST}:{_PORT}"
-    print(f"\n===================== Import files to milvus ====================")
+    print(f"\n===================== Import files to plasmod ====================")
     resp = bulk_import(
         url=url,
         collection_name=_COLLECTION_NAME,

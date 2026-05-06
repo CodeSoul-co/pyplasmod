@@ -1,6 +1,6 @@
-# hello_text_embedding.py demonstrates how to insert raw data only into Milvus and perform
+# hello_text_embedding.py demonstrates how to insert raw data only into Plasmod and perform
 # dense vector based ANN search using TextEmbedding.
-# 1. connect to Milvus
+# 1. connect to Plasmod
 # 2. create collection
 # 3. insert data
 # 4. create index
@@ -8,8 +8,8 @@
 # 6. drop collection
 import time
 
-from pymilvus import (
-    MilvusClient,
+from pyplasmod import (
+    PlasmodClient,
     utility,
     FieldSchema, CollectionSchema, Function, DataType, FunctionType,
     Collection,
@@ -17,13 +17,13 @@ from pymilvus import (
 
 collection_name = "text_embedding"
 
-milvus_client = MilvusClient("http://localhost:19530")
+plasmod_client = PlasmodClient("http://localhost:19530")
 
-has_collection = milvus_client.has_collection(collection_name, timeout=5)
+has_collection = plasmod_client.has_collection(collection_name, timeout=5)
 if has_collection:
-    milvus_client.drop_collection(collection_name)
+    plasmod_client.drop_collection(collection_name)
 
-schema = milvus_client.create_schema()
+schema = plasmod_client.create_schema()
 schema.add_field("id", DataType.INT64, is_primary=True, auto_id=False)
 schema.add_field("document", DataType.VARCHAR, max_length=9000)
 schema.add_field("dense", DataType.FLOAT_VECTOR, dim=1536)
@@ -41,7 +41,7 @@ text_embedding_function = Function(
 
 schema.add_function(text_embedding_function)
 
-index_params = milvus_client.prepare_index_params()
+index_params = plasmod_client.prepare_index_params()
 index_params.add_index(
     field_name="dense",
     index_name="dense_index",
@@ -49,7 +49,7 @@ index_params.add_index(
     metric_type="IP",
 )
 
-ret = milvus_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
+ret = plasmod_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
 
 rows = [
         {"id": 1, "document": "Artificial intelligence was founded as an academic discipline in 1956."},
@@ -57,7 +57,7 @@ rows = [
         {"id": 3, "document": "Born in Maida Vale, London, Turing was raised in southern England."},
 ]
 
-insert_result = milvus_client.insert(collection_name, rows, progress_bar=True)
+insert_result = plasmod_client.insert(collection_name, rows, progress_bar=True)
 
 
 # -----------------------------------------------------------------------------
@@ -68,7 +68,7 @@ queries = ["When was artificial intelligence founded",
            "Where was Alan Turing born?"]
 
 start_time = time.time()
-result = milvus_client.search(collection_name, data=queries, anns_field="dense", search_params=search_params, limit=3, output_fields=["document"], consistency_level="Strong")           
+result = plasmod_client.search(collection_name, data=queries, anns_field="dense", search_params=search_params, limit=3, output_fields=["document"], consistency_level="Strong")           
 end_time = time.time()
 
 for hits, text in zip(result, queries):
@@ -77,4 +77,4 @@ for hits, text in zip(result, queries):
         print(f"\thit: {hit}, document field: {hit.get('document')}")
 
 # Finally, drop the collection
-milvus_client.drop_collection(collection_name)
+plasmod_client.drop_collection(collection_name)

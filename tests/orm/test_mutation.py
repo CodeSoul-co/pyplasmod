@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from pymilvus.orm.mutation import MutationResult
+from pyplasmod.orm.mutation import MutationResult
 
 
 class TestMutationResultWithNone:

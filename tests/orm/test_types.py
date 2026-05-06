@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-from pymilvus.client.types import DataType
-from pymilvus.orm.types import (
+from pyplasmod.client.types import DataType
+from pyplasmod.orm.types import (
     infer_dtype_by_scalar_data,
     infer_dtype_bydata,
     is_float_datatype,

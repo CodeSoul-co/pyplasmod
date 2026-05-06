@@ -1,5 +1,5 @@
 import numpy as np
-from pymilvus import (
+from pyplasmod import (
     connections,
     utility,
     FieldSchema, CollectionSchema, DataType,
@@ -18,7 +18,7 @@ num_entities, dim = 122, 8
 fmt = "\n=== {:30} ===\n"
 SHOW_STATS_DETAILS = False
 
-print(fmt.format("start connecting to Milvus"))
+print(fmt.format("start connecting to Plasmod"))
 connections.connect("default", host="localhost", port="19530")
 
 if clean_exist and utility.has_collection(collection_name):
@@ -113,7 +113,7 @@ if prepare_data:
         "params": {"nlist": 128},
     }
     collection.create_index("c5", index)
-print(f"Number of entities in Milvus: {collection.num_entities}")  # check the num_entities
+print(f"Number of entities in Plasmod: {collection.num_entities}")  # check the num_entities
 collection.load()
 
 

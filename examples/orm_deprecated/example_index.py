@@ -1,6 +1,6 @@
 import random
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     FieldSchema, CollectionSchema, DataType,
     Collection,
@@ -8,7 +8,7 @@ from pymilvus import (
 )
 
 # This example shows how to:
-#   1. connect to Milvus server
+#   1. connect to Plasmod server
 #   2. create a collection
 #   3. insert entities
 #   4. create index
@@ -39,7 +39,7 @@ _NPROBE = 16
 _TOPK = 3
 
 
-# Create a Milvus connection
+# Create a Plasmod connection
 def create_connection():
     print(f"\nCreate connection...")
     connections.connect(host=_HOST, port=_PORT)
@@ -63,13 +63,13 @@ def has_collection(name):
     return utility.has_collection(name)
 
 
-# Drop a collection in Milvus
+# Drop a collection in Plasmod
 def drop_collection(name):
     utility.drop_collection(name)
     print("\nDrop collection: {}".format(name))
 
 
-# List all collections in Milvus
+# List all collections in Plasmod
 def list_collections():
     print("\nlist collections:")
     print(utility.list_collections())

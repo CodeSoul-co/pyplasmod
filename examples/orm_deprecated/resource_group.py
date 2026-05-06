@@ -1,5 +1,5 @@
-from pymilvus import utility, connections
-from pymilvus.client.constants import DEFAULT_RESOURCE_GROUP
+from pyplasmod import utility, connections
+from pyplasmod.client.constants import DEFAULT_RESOURCE_GROUP
 from example import *
 
 _HOST = '127.0.0.1'
@@ -14,7 +14,7 @@ _VECTOR_FIELD_NAME = 'float_vector_field'
 # Vector parameters
 _DIM = 128
 
-# Create a Milvus connection
+# Create a Plasmod connection
 
 def create_connection(user, passwd):
     print(f"\nCreate connection...")

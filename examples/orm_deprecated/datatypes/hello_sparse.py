@@ -1,6 +1,6 @@
-# hello_sprase.py demonstrates the basic operations of PyMilvus, a Python SDK of Milvus,
+# hello_sprase.py demonstrates the basic operations of PyPlasmod, a Python SDK of Plasmod,
 # while operating on sparse float vectors.
-# 1. connect to Milvus
+# 1. connect to Plasmod
 # 2. create collection
 # 3. insert data
 # 4. create index
@@ -11,7 +11,7 @@ import time
 
 import numpy as np
 import random
-from pymilvus import (
+from pyplasmod import (
     connections,
     utility,
     FieldSchema, CollectionSchema, DataType,
@@ -28,12 +28,12 @@ def log(msg):
     print(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + " " + msg)
 
 # -----------------------------------------------------------------------------
-# connect to Milvus
-log(fmt.format("start connecting to Milvus"))
+# connect to Plasmod
+log(fmt.format("start connecting to Plasmod"))
 connections.connect("default", host="localhost", port="19530")
 
 has = utility.has_collection("hello_sparse")
-log(f"Does collection hello_sparse exist in Milvus: {has}")
+log(f"Does collection hello_sparse exist in Plasmod: {has}")
 
 # -----------------------------------------------------------------------------
 # create collection with a sparse float vector column

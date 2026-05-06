@@ -6,7 +6,7 @@ Coverage: Database create, drop, list, describe, alter operations.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
 
 
 class TestAsyncGrpcHandlerDatabase:
@@ -29,9 +29,9 @@ class TestAsyncGrpcHandlerDatabase:
         mock_stub.CreateDatabase = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.create_database_req.return_value = mock_request
 
@@ -56,9 +56,9 @@ class TestAsyncGrpcHandlerDatabase:
         mock_stub.DropDatabase = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.drop_database_req.return_value = mock_request
 
@@ -84,8 +84,8 @@ class TestAsyncGrpcHandlerDatabase:
         mock_stub.ListDatabases = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_request = MagicMock()
             mock_prepare.list_database_req.return_value = mock_request
@@ -113,8 +113,8 @@ class TestAsyncGrpcHandlerDatabase:
         mock_stub.DescribeDatabase = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.describe_database_req.return_value = MagicMock()
             result = await handler.describe_database("test_db")
@@ -135,8 +135,8 @@ class TestAsyncGrpcHandlerDatabase:
         mock_stub.AlterDatabase = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.alter_database_req.return_value = MagicMock()
             await handler.alter_database("test_db", properties={"key": "value"})
@@ -157,8 +157,8 @@ class TestAsyncGrpcHandlerDatabase:
         mock_stub.AlterDatabase = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.drop_database_properties_req.return_value = MagicMock()
             await handler.drop_database_properties("test_db", ["key1", "key2"])

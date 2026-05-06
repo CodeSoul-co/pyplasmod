@@ -9,8 +9,8 @@
 # is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied. See the License for the specific language governing permissions and limitations under the License.
 
-from pymilvus import Collection, connections, FieldSchema, CollectionSchema, DataType, utility
-from pymilvus.client.types import LoadState
+from pyplasmod import Collection, connections, FieldSchema, CollectionSchema, DataType, utility
+from pyplasmod.client.types import LoadState
 
 import random
 import numpy as np
@@ -18,7 +18,7 @@ import pandas
 
 import string
 
-from pymilvus.orm import db
+from pyplasmod.orm import db
 
 default_dim = 128
 default_nb = 3000

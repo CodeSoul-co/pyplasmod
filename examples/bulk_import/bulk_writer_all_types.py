@@ -5,19 +5,19 @@ import numpy as np
 from pathlib import Path
 from typing import List
 
-from pymilvus import (
-    MilvusClient,
+from pyplasmod import (
+    PlasmodClient,
     CollectionSchema, DataType,
 )
 
-from pymilvus.bulk_writer import (
+from pyplasmod.bulk_writer import (
     RemoteBulkWriter, LocalBulkWriter,
     BulkFileType,
     bulk_import,
     get_import_progress,
 )
 
-LOCAL_FILES_PATH = "/tmp/milvus_bulkinsert/"
+LOCAL_FILES_PATH = "/tmp/plasmod_bulkinsert/"
 Path(LOCAL_FILES_PATH).mkdir(exist_ok=True)
 
 # minio
@@ -25,7 +25,7 @@ MINIO_ADDRESS = "0.0.0.0:9000"
 MINIO_SECRET_KEY = "minioadmin"
 MINIO_ACCESS_KEY = "minioadmin"
 
-# milvus
+# plasmod
 HOST = '127.0.0.1'
 PORT = '19530'
 
@@ -33,7 +33,7 @@ COLLECTION_NAME = "for_bulkwriter"
 DIM = 16  # must >= 8
 ROW_COUNT = 10
 
-client = MilvusClient(uri="http://localhost:19530", user="root", password="Milvus")
+client = PlasmodClient(uri="http://localhost:19530", user="root", password="Plasmod")
 print(client.get_server_version())
 
 
@@ -61,7 +61,7 @@ def gen_sparse_vector(i, indices_values: bool):
 
 
 def build_schema():
-    schema = MilvusClient.create_schema(enable_dynamic_field=False)
+    schema = PlasmodClient.create_schema(enable_dynamic_field=False)
     schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
     schema.add_field(field_name="bool", datatype=DataType.BOOL)
     schema.add_field(field_name="int8", datatype=DataType.INT8)
@@ -89,7 +89,7 @@ def build_schema():
     schema.add_field(field_name="sparse_vector", datatype=DataType.SPARSE_FLOAT_VECTOR)
     schema.add_field(field_name="binary_vector", datatype=DataType.BINARY_VECTOR, dim=DIM)
 
-    struct_schema = MilvusClient.create_struct_field_schema()
+    struct_schema = PlasmodClient.create_struct_field_schema()
     struct_schema.add_field("struct_bool", DataType.BOOL)
     struct_schema.add_field("struct_int8", DataType.INT8)
     struct_schema.add_field("struct_int16", DataType.INT16)
@@ -236,7 +236,7 @@ def remote_writer(schema: CollectionSchema, file_type: BulkFileType):
 def call_bulk_import(batch_files: List[List[str]]):
     url = f"http://{HOST}:{PORT}"
 
-    print(f"\n===================== import files to milvus ====================")
+    print(f"\n===================== import files to plasmod ====================")
     resp = bulk_import(
         url=url,
         collection_name=COLLECTION_NAME,

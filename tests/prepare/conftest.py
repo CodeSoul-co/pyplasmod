@@ -4,8 +4,8 @@ from typing import Optional
 
 import numpy as np
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldSchema, Function, FunctionType
-from pymilvus.orm.schema import FunctionScore, LexicalHighlighter, StructFieldSchema
+from pyplasmod import CollectionSchema, DataType, FieldSchema, Function, FunctionType
+from pyplasmod.orm.schema import FunctionScore, LexicalHighlighter, StructFieldSchema
 
 # ============================================================
 # Common Fixtures

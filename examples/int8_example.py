@@ -2,9 +2,9 @@ import random
 
 import numpy as np
 
-from pymilvus import (
+from pyplasmod import (
     DataType,
-    MilvusClient,
+    PlasmodClient,
 )
 
 default_int8_index_param = {"M": 8, "efConstruction": 200}
@@ -22,13 +22,13 @@ def gen_int8_vectors(num: int, dim: int):
 
 
 def int8_vector_search():
-    c = MilvusClient()
+    c = PlasmodClient()
 
     dim = 128
     nb = 3000
-    collection_name = "hello_milvus_int8"
+    collection_name = "hello_plasmod_int8"
 
-    schema = MilvusClient.create_schema()
+    schema = PlasmodClient.create_schema()
     schema.add_field("int64", DataType.INT64, is_primary=True, auto_id=True)
     schema.add_field("int8_vector", DataType.INT8_VECTOR, dim=dim)
 
@@ -41,7 +41,7 @@ def int8_vector_search():
     c.insert(collection_name, rows)
     c.flush(collection_name)
 
-    index_params = MilvusClient.prepare_index_params(
+    index_params = PlasmodClient.prepare_index_params(
         field_name="int8_vector",
         index_type="HNSW",
         index_name="int8_index",

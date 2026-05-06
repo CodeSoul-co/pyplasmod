@@ -1,4 +1,4 @@
-from pymilvus.bulk_writer.volume_manager import VolumeManager
+from pyplasmod.bulk_writer.volume_manager import VolumeManager
 
 PROJECT_ID = "_id_for_project_"
 REGION_ID = "_id_for_region_"

@@ -8,7 +8,7 @@ from minio import Minio
 from minio.error import S3Error
 from pathlib import Path
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     FieldSchema, CollectionSchema, DataType,
     Collection,
@@ -17,7 +17,7 @@ from pymilvus import (
 )
 
 # This example shows how to:
-#   1. connect to Milvus server
+#   1. connect to Plasmod server
 #   2. create a collection
 #   3. create some numpy files for bulkinsert operation
 #   4. call do_bulk_insert()
@@ -25,7 +25,7 @@ from pymilvus import (
 #   6. search
 
 # To run this example
-# 1. start a standalone milvus(version >= v2.2.9) instance locally
+# 1. start a standalone plasmod(version >= v2.2.9) instance locally
 #    make sure the docker-compose.yml has exposed the minio console:
 #         minio:
 #           ......
@@ -37,10 +37,10 @@ from pymilvus import (
 # 2. pip3 install minio
 
 # Local path to generate Numpy files
-LOCAL_FILES_PATH = "/tmp/milvus_bulkinsert/"
+LOCAL_FILES_PATH = "/tmp/plasmod_bulkinsert/"
 Path(LOCAL_FILES_PATH).mkdir(exist_ok=True)
 
-# Milvus service address
+# Plasmod service address
 _HOST = '127.0.0.1'
 _PORT = '19530'
 
@@ -64,7 +64,7 @@ _DIM = 128
 # to generate increment ID
 id_start = 1
 
-# Create a Milvus connection
+# Create a Plasmod connection
 def create_connection():
     retry = True
     while retry:
@@ -73,8 +73,8 @@ def create_connection():
             connections.connect(host=_HOST, port=_PORT)
             retry = False
         except Exception as e:
-            print("Cannot connect to Milvus. Error: " + str(e))
-            print(f"Cannot connect to Milvus. Trying to connect Again. Sleeping for: 1")
+            print("Cannot connect to Plasmod. Error: " + str(e))
+            print(f"Cannot connect to Plasmod. Trying to connect Again. Sleeping for: 1")
             time.sleep(1)
 
     print(f"\nList connections:")
@@ -103,14 +103,14 @@ def has_collection():
     return utility.has_collection(_COLLECTION_NAME)
 
 
-# Drop a collection in Milvus
+# Drop a collection in Plasmod
 def drop_collection():
     collection = Collection(_COLLECTION_NAME)
     collection.drop()
     print("\nDrop collection:", _COLLECTION_NAME)
 
 
-# List all collections in Milvus
+# List all collections in Plasmod
 def list_collections():
     print("\nList collections:")
     print(utility.list_collections())
@@ -339,7 +339,7 @@ def upload(data_folder: str,
             print("MinIO bucket '{}' doesn't exist".format(bucket_name))
             return False, []
 
-        remote_data_path = "milvus_bulkinsert"
+        remote_data_path = "plasmod_bulkinsert"
         def upload_files(folder:str):
             for parent, dirnames, filenames in os.walk(folder):
                 if parent is folder:
@@ -433,6 +433,6 @@ def main(has_partition_key: bool):
 
 if __name__ == '__main__':
     # change this value if you want to test bulkinert with partition key
-    # Note: bulkinsert supports partition key from Milvus v2.2.12
+    # Note: bulkinsert supports partition key from Plasmod v2.2.12
     has_partition_key = False
     main(has_partition_key)

@@ -1,6 +1,6 @@
 import numpy as np
-from pymilvus import (
-    MilvusClient,
+from pyplasmod import (
+    PlasmodClient,
     DataType,
 )
 
@@ -8,24 +8,24 @@ fmt = "\n=== {:30} ===\n"
 search_latency_fmt = "search latency = {:.4f}s"
 num_entities, dim = 3000, 8
 
-collection_name = "hello_milvus"
-milvus_client = MilvusClient("http://localhost:19530")
+collection_name = "hello_plasmod"
+plasmod_client = PlasmodClient("http://localhost:19530")
 
-has_collection = milvus_client.has_collection(collection_name, timeout=5)
+has_collection = plasmod_client.has_collection(collection_name, timeout=5)
 if has_collection:
-    milvus_client.drop_collection(collection_name)
+    plasmod_client.drop_collection(collection_name)
 
-schema = milvus_client.create_schema(auto_id=False, description="hello_milvus is the simplest demo to introduce the APIs")
+schema = plasmod_client.create_schema(auto_id=False, description="hello_plasmod is the simplest demo to introduce the APIs")
 schema.add_field("pk", DataType.VARCHAR, is_primary=True, max_length=100)
 schema.add_field("random", DataType.DOUBLE)
 schema.add_field("embeddings", DataType.FLOAT_VECTOR, dim=dim)
 
-index_params = milvus_client.prepare_index_params()
+index_params = plasmod_client.prepare_index_params()
 index_params.add_index(field_name = "embeddings", index_type = "IVF_FLAT", metric_type="L2", nlist=128)
 
-print(fmt.format("Create collection `hello_milvus`"))
+print(fmt.format("Create collection `hello_plasmod`"))
 
-milvus_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
+plasmod_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
 
 
 print(fmt.format("Start inserting entities"))
@@ -39,11 +39,11 @@ entities = [
 
 rows = [ {"pk": entities[0][i], "random": entities[1][i], "embeddings": entities[2][i]} for i in range (num_entities)]
 
-insert_result = milvus_client.insert(collection_name, rows)
+insert_result = plasmod_client.insert(collection_name, rows)
 
 
 print(fmt.format("Start loading"))
-milvus_client.load_collection(collection_name)
+plasmod_client.load_collection(collection_name)
 
 field_name = "embeddings"
 
@@ -69,14 +69,14 @@ vectors_to_search = rng.random((nq, dim))
 
 for filter, filter_params in filters.items():
     print(f"search with filter: {filter}")
-    result = milvus_client.search(collection_name=collection_name, data=vectors_to_search, filter=filter, limit=3,
+    result = plasmod_client.search(collection_name=collection_name, data=vectors_to_search, filter=filter, limit=3,
                                   output_fields=["random"], search_params=search_param, filter_params=filter_params)
 
     for hits in result:
         for hit in hits:
             print(f"hit: {hit}")
 
-    query_results = milvus_client.query(collection_name, filter=filter, output_fields=["random"],
+    query_results = plasmod_client.query(collection_name, filter=filter, output_fields=["random"],
                                         filter_params=filter_params, limit=3)
     for ret in query_results:
         print("query result: ", ret)
@@ -87,18 +87,18 @@ filter = "pk in {list}"
 filter_params = {"list": [ids[0], ids[1]]}
 print(f"Start deleting with filter `{filter}`")
 
-result = milvus_client.query(collection_name, filter=filter, output_fields=["random"],
+result = plasmod_client.query(collection_name, filter=filter, output_fields=["random"],
                              filter_params=filter_params, limit=3)
 print(f"query before delete by filter=`{filter}` -> result: \n-{result[0]}\n-{result[1]}\n")
 
-milvus_client.delete(collection_name=collection_name, filter=filter, filter_params=filter_params)
+plasmod_client.delete(collection_name=collection_name, filter=filter, filter_params=filter_params)
 
-result = milvus_client.query(collection_name, filter=filter, output_fields=["random"],
+result = plasmod_client.query(collection_name, filter=filter, output_fields=["random"],
                              filter_params=filter_params, limit=3)
 print(f"query after delete by filter=`{filter}` -> result: {result}\n")
 
 print(fmt.format("Release collection"))
-milvus_client.release_collection(collection_name)
+plasmod_client.release_collection(collection_name)
 
 print(fmt.format("Drop collection"))
-milvus_client.drop_collection(collection_name)
+plasmod_client.drop_collection(collection_name)

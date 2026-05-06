@@ -8,14 +8,14 @@ from examples.bulk_import.data_gengerator import *
 
 logging.basicConfig(level=logging.INFO)
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     FieldSchema, CollectionSchema, DataType,
     Collection,
     utility,
 )
 
-from pymilvus.bulk_writer import (
+from pyplasmod.bulk_writer import (
     RemoteBulkWriter,
     BulkFileType,
     bulk_import,
@@ -27,7 +27,7 @@ MINIO_ADDRESS = "0.0.0.0:9000"
 MINIO_SECRET_KEY = "minioadmin"
 MINIO_ACCESS_KEY = "minioadmin"
 
-# milvus
+# plasmod
 HOST = '127.0.0.1'
 PORT = '19530'
 
@@ -251,7 +251,7 @@ def gen_data_files(schema: CollectionSchema, file_type: BulkFileType, rows: list
 
 def call_bulkinsert(batch_files: List[List[str]]):
     url = f"http://{HOST}:{PORT}"
-    print(f"\n===================== Import files to milvus ====================")
+    print(f"\n===================== Import files to plasmod ====================")
     resp = bulk_import(
         url=url,
         collection_name=ALL_TYPES_COLLECTION_NAME,

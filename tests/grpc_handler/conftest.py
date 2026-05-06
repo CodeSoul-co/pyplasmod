@@ -3,10 +3,10 @@
 from unittest.mock import MagicMock
 
 import pytest
-from pymilvus.client.grpc_handler import GrpcHandler
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import ParamError
-from pymilvus.grpc_gen import common_pb2
+from pyplasmod.client.grpc_handler import GrpcHandler
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import ParamError
+from pyplasmod.grpc_gen import common_pb2
 
 # ============================================================
 # Test Data Tables

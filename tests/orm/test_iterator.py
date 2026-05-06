@@ -5,8 +5,8 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from pymilvus.exceptions import MilvusException, ParamError
-from pymilvus.orm.constants import (
+from pyplasmod.exceptions import PlasmodException, ParamError
+from pyplasmod.orm.constants import (
     CALC_DIST_BM25,
     CALC_DIST_COSINE,
     CALC_DIST_HAMMING,
@@ -32,7 +32,7 @@ from pymilvus.orm.constants import (
     RANGE_FILTER,
     REDUCE_STOP_FOR_BEST,
 )
-from pymilvus.orm.iterator import (
+from pyplasmod.orm.iterator import (
     NO_CACHE_ID,
     IteratorCache,
     QueryIterator,
@@ -46,12 +46,12 @@ from pymilvus.orm.iterator import (
     iterator_cache,
     metrics_positive_related,
 )
-from pymilvus.orm.types import DataType
+from pyplasmod.orm.types import DataType
 
 
 class TestFallBackToLatestSessionTs:
-    @patch("pymilvus.orm.iterator.datetime")
-    @patch("pymilvus.orm.iterator.mkts_from_datetime")
+    @patch("pyplasmod.orm.iterator.datetime")
+    @patch("pyplasmod.orm.iterator.mkts_from_datetime")
     def test_returns_timestamp_from_now(self, mock_mkts, mock_datetime):
         mock_now = Mock()
         mock_datetime.datetime.now.return_value = mock_now
@@ -79,7 +79,7 @@ class TestAssertInfo:
     )
     def test_raises_on_false(self, message):
         escaped = re.escape(message) if message else ".*"
-        with pytest.raises(MilvusException, match=escaped):
+        with pytest.raises(PlasmodException, match=escaped):
             assert_info(False, message)
 
 
@@ -95,7 +95,7 @@ class TestIoOperation:
     )
     def test_wraps_os_errors(self, exc_type):
         mock_func = Mock(side_effect=exc_type("fail"))
-        with pytest.raises(MilvusException, match="wrapped"):
+        with pytest.raises(PlasmodException, match="wrapped"):
             io_operation(mock_func, "wrapped")
 
 
@@ -169,7 +169,7 @@ class TestMetricsPositiveRelated:
         assert metrics_positive_related(metric) is expected
 
     def test_unknown_metric_raises(self):
-        with pytest.raises(MilvusException, match="unsupported metrics type"):
+        with pytest.raises(PlasmodException, match="unsupported metrics type"):
             metrics_positive_related("UNKNOWN")
 
 
@@ -433,7 +433,7 @@ class TestQueryIteratorInit:
     def test_session_ts_fallback(self):
         """When server returns ts <= 0, fallback to client-side ts."""
         conn = _make_mock_conn(session_ts=0)
-        with patch("pymilvus.orm.iterator.fall_back_to_latest_session_ts", return_value=9999):
+        with patch("pyplasmod.orm.iterator.fall_back_to_latest_session_ts", return_value=9999):
             qi = QueryIterator(
                 connection=conn,
                 collection_name="test",
@@ -445,11 +445,11 @@ class TestQueryIteratorInit:
         assert qi._session_ts == 9999
 
     def test_none_query_result_raises(self):
-        """When query returns None during ts setup, raise MilvusException."""
+        """When query returns None during ts setup, raise PlasmodException."""
         conn = Mock()
         conn.describe_collection.return_value = {COLLECTION_ID: 999}
         conn.query.return_value = None
-        with pytest.raises(MilvusException, match="failed to connect"):
+        with pytest.raises(PlasmodException, match="failed to connect"):
             QueryIterator(
                 connection=conn,
                 collection_name="test",
@@ -801,7 +801,7 @@ class TestSearchIteratorInit:
 
     def test_ef_too_small_raises(self):
         conn = _make_search_conn()
-        with pytest.raises(MilvusException, match="hnsw"):
+        with pytest.raises(PlasmodException, match="hnsw"):
             SearchIterator(
                 connection=conn,
                 collection_name="test",
@@ -847,7 +847,7 @@ class TestSearchIteratorInit:
     def test_range_search_l2_invalid_params_raises(self):
         """L2 metric: radius must be > range_filter."""
         conn = _make_search_conn()
-        with pytest.raises(MilvusException, match="radius must be"):
+        with pytest.raises(PlasmodException, match="radius must be"):
             SearchIterator(
                 connection=conn,
                 collection_name="test",
@@ -861,7 +861,7 @@ class TestSearchIteratorInit:
     def test_range_search_ip_invalid_params_raises(self):
         """IP metric: radius must be < range_filter."""
         conn = _make_search_conn()
-        with pytest.raises(MilvusException, match="radius must be"):
+        with pytest.raises(PlasmodException, match="radius must be"):
             SearchIterator(
                 connection=conn,
                 collection_name="test",
@@ -1652,7 +1652,7 @@ class TestQueryIteratorMissingPk:
             ],
         }
         conn = _make_mock_conn(session_ts=100)
-        with pytest.raises((MilvusException, AttributeError)):
+        with pytest.raises((PlasmodException, AttributeError)):
             QueryIterator(
                 connection=conn,
                 collection_name="test",
@@ -1698,7 +1698,7 @@ class TestSearchIteratorSessionTsFallback:
         conn = _make_search_conn(hits=[hit0, hit1], session_ts=0)
 
         with patch(
-            "pymilvus.orm.iterator.fall_back_to_latest_session_ts",
+            "pyplasmod.orm.iterator.fall_back_to_latest_session_ts",
             return_value=7777,
         ):
             si = SearchIterator(
@@ -1801,7 +1801,7 @@ class TestSearchIteratorUpdateFilteredIds:
         mock_hits.__iter__ = Mock(return_value=iter([hit_same]))
         page = SearchPage(mock_hits)
 
-        with pytest.raises(MilvusException, match="filtered ids length"):
+        with pytest.raises(PlasmodException, match="filtered ids length"):
             si._SearchIterator__update_filtered_ids(page)
         si.close()
 
@@ -2275,7 +2275,7 @@ class TestQueryIteratorExtraIsNone:
         conn.query.return_value = mock_res
 
         with patch(
-            "pymilvus.orm.iterator.fall_back_to_latest_session_ts",
+            "pyplasmod.orm.iterator.fall_back_to_latest_session_ts",
             return_value=8888,
         ):
             qi = QueryIterator(

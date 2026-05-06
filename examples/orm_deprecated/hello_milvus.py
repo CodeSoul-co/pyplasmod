@@ -1,5 +1,5 @@
-# hello_milvus.py demonstrates the basic operations of PyMilvus, a Python SDK of Milvus.
-# 1. connect to Milvus
+# hello_plasmod.py demonstrates the basic operations of PyPlasmod, a Python SDK of Plasmod.
+# 1. connect to Plasmod
 # 2. create collection
 # 3. insert data
 # 4. create index
@@ -9,7 +9,7 @@
 import time
 
 import numpy as np
-from pymilvus import (
+from pyplasmod import (
     connections,
     utility,
     FieldSchema, CollectionSchema, DataType,
@@ -21,18 +21,18 @@ search_latency_fmt = "search latency = {:.4f}s"
 num_entities, dim = 3000, 8
 
 #################################################################################
-# 1. connect to Milvus
-# Add a new connection alias `default` for Milvus server in `localhost:19530`
-# Actually the "default" alias is built-in to PyMilvus.
-# If the address of Milvus is the same as `localhost:19530`, you can omit all
+# 1. connect to Plasmod
+# Add a new connection alias `default` for Plasmod server in `localhost:19530`
+# Actually the "default" alias is built-in to PyPlasmod.
+# If the address of Plasmod is the same as `localhost:19530`, you can omit all
 # parameters and call the method as: `connections.connect()`.
 #
 # Note: the `using` parameter of the following methods is default to "default".
-print(fmt.format("start connecting to Milvus"))
+print(fmt.format("start connecting to Plasmod"))
 connections.connect("default", host="localhost", port="19530")
 
-has = utility.has_collection("hello_milvus")
-print(f"Does collection hello_milvus exist in Milvus: {has}")
+has = utility.has_collection("hello_plasmod")
+print(f"Does collection hello_plasmod exist in Plasmod: {has}")
 
 #################################################################################
 # 2. create collection
@@ -53,18 +53,18 @@ fields = [
     FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=dim)
 ]
 
-schema = CollectionSchema(fields, "hello_milvus is the simplest demo to introduce the APIs")
+schema = CollectionSchema(fields, "hello_plasmod is the simplest demo to introduce the APIs")
 
-print(fmt.format("Create collection `hello_milvus`"))
-hello_milvus = Collection("hello_milvus", schema, consistency_level="Strong")
+print(fmt.format("Create collection `hello_plasmod`"))
+hello_plasmod = Collection("hello_plasmod", schema, consistency_level="Strong")
 
 ################################################################################
 # 3. insert data
-# We are going to insert 3000 rows of data into `hello_milvus`
+# We are going to insert 3000 rows of data into `hello_plasmod`
 # Data to be inserted must be organized in fields.
 #
 # The insert() method returns:
-# - either automatically generated primary keys by Milvus if auto_id=True in the schema;
+# - either automatically generated primary keys by Plasmod if auto_id=True in the schema;
 # - or the existing primary key field from the entities if auto_id=False in the schema.
 
 print(fmt.format("Start inserting entities"))
@@ -76,21 +76,21 @@ entities = [
     rng.random((num_entities, dim), np.float32),    # field embeddings, supports numpy.ndarray and list
 ]
 
-insert_result = hello_milvus.insert(entities)
+insert_result = hello_plasmod.insert(entities)
 
 row = {
     "pk": "19530",
     "random": 0.5,
     "embeddings": rng.random((1, dim), np.float32)[0]
 }
-hello_milvus.insert(row)
+hello_plasmod.insert(row)
 
-hello_milvus.flush()
-print(f"Number of entities in Milvus: {hello_milvus.num_entities}")  # check the num_entities
+hello_plasmod.flush()
+print(f"Number of entities in Plasmod: {hello_plasmod.num_entities}")  # check the num_entities
 
 ################################################################################
 # 4. create index
-# We are going to create an IVF_FLAT index for hello_milvus collection.
+# We are going to create an IVF_FLAT index for hello_plasmod collection.
 # create_index() can only be applied to `FloatVector` and `BinaryVector` fields.
 print(fmt.format("Start Creating index IVF_FLAT"))
 index = {
@@ -99,19 +99,19 @@ index = {
     "params": {"nlist": 128},
 }
 
-hello_milvus.create_index("embeddings", index)
+hello_plasmod.create_index("embeddings", index)
 
 ################################################################################
 # 5. search, query, and hybrid search
-# After data were inserted into Milvus and indexed, you can perform:
+# After data were inserted into Plasmod and indexed, you can perform:
 # - search based on vector similarity
 # - query based on scalar filtering(boolean, int, etc.)
 # - hybrid search based on vector similarity and scalar filtering.
 #
 
-# Before conducting a search or a query, you need to load the data in `hello_milvus` into memory.
+# Before conducting a search or a query, you need to load the data in `hello_plasmod` into memory.
 print(fmt.format("Start loading"))
-hello_milvus.load()
+hello_plasmod.load()
 
 # -----------------------------------------------------------------------------
 # search based on vector similarity
@@ -123,7 +123,7 @@ search_params = {
 }
 
 start_time = time.time()
-result = hello_milvus.search(vectors_to_search, "embeddings", search_params, limit=3, output_fields=["random"])
+result = hello_plasmod.search(vectors_to_search, "embeddings", search_params, limit=3, output_fields=["random"])
 end_time = time.time()
 
 for hits in result:
@@ -136,7 +136,7 @@ print(search_latency_fmt.format(end_time - start_time))
 print(fmt.format("Start querying with `random > 0.5`"))
 
 start_time = time.time()
-result = hello_milvus.query(expr="random > 0.5", output_fields=["random", "embeddings"])
+result = hello_plasmod.query(expr="random > 0.5", output_fields=["random", "embeddings"])
 end_time = time.time()
 
 print(f"query result:\n-{result[0]}")
@@ -144,8 +144,8 @@ print(search_latency_fmt.format(end_time - start_time))
 
 # -----------------------------------------------------------------------------
 # pagination
-r1 = hello_milvus.query(expr="random > 0.5", limit=4, output_fields=["random"])
-r2 = hello_milvus.query(expr="random > 0.5", offset=1, limit=3, output_fields=["random"])
+r1 = hello_plasmod.query(expr="random > 0.5", limit=4, output_fields=["random"])
+r2 = hello_plasmod.query(expr="random > 0.5", offset=1, limit=3, output_fields=["random"])
 print(f"query pagination(limit=4):\n\t{r1}")
 print(f"query pagination(offset=1, limit=3):\n\t{r2}")
 
@@ -155,7 +155,7 @@ print(f"query pagination(offset=1, limit=3):\n\t{r2}")
 print(fmt.format("Start hybrid searching with `random > 0.5`"))
 
 start_time = time.time()
-result = hello_milvus.search(vectors_to_search, "embeddings", search_params, limit=3, expr="random > 0.5", output_fields=["random"])
+result = hello_plasmod.search(vectors_to_search, "embeddings", search_params, limit=3, expr="random > 0.5", output_fields=["random"])
 end_time = time.time()
 
 for hits in result:
@@ -171,17 +171,17 @@ ids = insert_result.primary_keys
 expr = f'pk in ["{ids[0]}" , "{ids[1]}"]'
 print(fmt.format(f"Start deleting with expr `{expr}`"))
 
-result = hello_milvus.query(expr=expr, output_fields=["random", "embeddings"])
+result = hello_plasmod.query(expr=expr, output_fields=["random", "embeddings"])
 print(f"query before delete by expr=`{expr}` -> result: \n-{result[0]}\n-{result[1]}\n")
 
-hello_milvus.delete(expr)
+hello_plasmod.delete(expr)
 
-result = hello_milvus.query(expr=expr, output_fields=["random", "embeddings"])
+result = hello_plasmod.query(expr=expr, output_fields=["random", "embeddings"])
 print(f"query after delete by expr=`{expr}` -> result: {result}\n")
 
 
 ###############################################################################
 # 7. drop collection
-# Finally, drop the hello_milvus collection
-print(fmt.format("Drop collection `hello_milvus`"))
-utility.drop_collection("hello_milvus")
+# Finally, drop the hello_plasmod collection
+print(fmt.format("Drop collection `hello_plasmod`"))
+utility.drop_collection("hello_plasmod")

@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldSchema, MilvusClient, StructFieldSchema
-from pymilvus.grpc_gen import common_pb2, milvus_pb2, schema_pb2
+from pyplasmod import CollectionSchema, DataType, FieldSchema, PlasmodClient, StructFieldSchema
+from pyplasmod.grpc_gen import common_pb2, plasmod_pb2, schema_pb2
 
 from . import mock_responses
 
@@ -20,7 +20,7 @@ def setup_hybrid_search_mock(client, mock_fn):
 
 
 def get_default_test_schema() -> CollectionSchema:
-    schema = MilvusClient.create_schema()
+    schema = PlasmodClient.create_schema()
     schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
     schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=128)
     schema.add_field(field_name="name", datatype=DataType.VARCHAR, max_length=100)
@@ -62,11 +62,11 @@ def get_default_test_schema() -> CollectionSchema:
 
 
 @pytest.fixture
-def mocked_milvus_client():
+def mocked_plasmod_client():
     with patch("grpc.insecure_channel") as mock_channel_func, patch(
         "grpc.secure_channel"
     ) as mock_secure_channel_func, patch("grpc.channel_ready_future") as mock_ready_future, patch(
-        "pymilvus.grpc_gen.milvus_pb2_grpc.MilvusServiceStub"
+        "pyplasmod.grpc_gen.plasmod_pb2_grpc.PlasmodServiceStub"
     ) as mock_stub_class:
 
         mock_channel = MagicMock()
@@ -77,7 +77,7 @@ def mocked_milvus_client():
         mock_future.result = MagicMock(return_value=None)
         mock_ready_future.return_value = mock_future
 
-        mock_connect_response = milvus_pb2.ConnectResponse()
+        mock_connect_response = plasmod_pb2.ConnectResponse()
         mock_connect_response.status.error_code = common_pb2.ErrorCode.Success
         mock_connect_response.status.code = 0
         mock_connect_response.identifier = 12345
@@ -90,6 +90,6 @@ def mocked_milvus_client():
 
         mock_stub_class.return_value = mock_stub
 
-        client = MilvusClient()
+        client = PlasmodClient()
 
         yield client

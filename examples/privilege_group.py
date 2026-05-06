@@ -1,8 +1,8 @@
-from pymilvus import MilvusClient
+from pyplasmod import PlasmodClient
 
 
 uri = "http://localhost:19530"
-c = MilvusClient(uri=uri)
+c = PlasmodClient(uri=uri)
 
 c.create_privilege_group(group_name="query_group")
 c.add_privileges_to_group(group_name="query_group", privileges=["Query", "Search"])

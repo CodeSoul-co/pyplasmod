@@ -1,6 +1,6 @@
-# hello_bm25.py demonstrates how to insert raw data only into Milvus and perform
+# hello_bm25.py demonstrates how to insert raw data only into Plasmod and perform
 # sparse vector based ANN search using BM25 algorithm.
-# 1. connect to Milvus
+# 1. connect to Plasmod
 # 2. create collection
 # 3. insert data
 # 4. create index
@@ -9,7 +9,7 @@
 # 7. drop collection
 import time
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     utility,
     FieldSchema, CollectionSchema, Function, DataType, FunctionType,
@@ -20,13 +20,13 @@ fmt = "\n=== {:30} ===\n"
 search_latency_fmt = "search latency = {:.4f}s"
 
 #################################################################################
-# 1. connect to Milvus
-# Add a new connection alias `default` for Milvus server in `localhost:19530`
-print(fmt.format("start connecting to Milvus"))
+# 1. connect to Plasmod
+# Add a new connection alias `default` for Plasmod server in `localhost:19530`
+print(fmt.format("start connecting to Plasmod"))
 connections.connect("default", host="localhost", port="19530")
 
 has = utility.has_collection("hello_bm25")
-print(f"Does collection hello_bm25 exist in Milvus: {has}")
+print(f"Does collection hello_bm25 exist in Plasmod: {has}")
 
 #################################################################################
 # 2. create collection
@@ -73,7 +73,7 @@ hello_bm25 = Collection("hello_bm25", schema, consistency_level="Strong")
 # Data to be inserted must be organized in fields.
 #
 # The insert() method returns:
-# - either automatically generated primary keys by Milvus if auto_id=True in the schema;
+# - either automatically generated primary keys by Plasmod if auto_id=True in the schema;
 # - or the existing primary key field from the entities if auto_id=False in the schema.
 
 print(fmt.format("Start inserting entities"))
@@ -90,12 +90,12 @@ ids = insert_result.primary_keys
 time.sleep(3)
 
 hello_bm25.flush()
-print(f"Number of entities in Milvus: {hello_bm25.num_entities}")  # check the num_entities
+print(f"Number of entities in Plasmod: {hello_bm25.num_entities}")  # check the num_entities
 
 ################################################################################
 # 4. create index
 # We are going to create an index for hello_bm25 collection, here we simply
-# uses AUTOINDEX so Milvus can use the default parameters.
+# uses AUTOINDEX so Plasmod can use the default parameters.
 print(fmt.format("Start Creating index AUTOINDEX"))
 index = {
     "index_type": "AUTOINDEX",
@@ -106,7 +106,7 @@ hello_bm25.create_index("sparse", index)
 
 ################################################################################
 # 5. search, query, and scalar filtering search
-# After data were inserted into Milvus and indexed, you can perform:
+# After data were inserted into Plasmod and indexed, you can perform:
 # - search texts relevance by BM25 using sparse vector ANN search
 # - query based on scalar filtering(boolean, int, etc.)
 # - scalar filtering search.

@@ -1,4 +1,4 @@
-from pymilvus.milvus_client import IndexParams
+from pyplasmod.plasmod_client import IndexParams
 
 
 

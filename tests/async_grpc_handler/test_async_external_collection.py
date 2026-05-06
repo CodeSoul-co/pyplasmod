@@ -3,8 +3,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.client.types import RefreshExternalCollectionJobInfo
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.types import RefreshExternalCollectionJobInfo
 
 
 def _make_async_handler():
@@ -50,8 +50,8 @@ class TestAsyncGrpcHandlerExternalCollection:
         mock_resp.job_id = 42
         mock_stub.RefreshExternalCollection = AsyncMock(return_value=mock_resp)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.refresh_external_collection_request.return_value = MagicMock()
 
@@ -74,8 +74,8 @@ class TestAsyncGrpcHandlerExternalCollection:
         mock_resp.job_id = 43
         mock_stub.RefreshExternalCollection = AsyncMock(return_value=mock_resp)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.refresh_external_collection_request.return_value = MagicMock()
 
@@ -98,8 +98,8 @@ class TestAsyncGrpcHandlerExternalCollection:
         mock_resp.job_info = _make_job_info_pb(job_id=42, state=2, progress=100)
         mock_stub.GetRefreshExternalCollectionProgress = AsyncMock(return_value=mock_resp)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.get_refresh_external_collection_progress_request.return_value = MagicMock()
 
@@ -124,8 +124,8 @@ class TestAsyncGrpcHandlerExternalCollection:
         ]
         mock_stub.ListRefreshExternalCollectionJobs = AsyncMock(return_value=mock_resp)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.list_refresh_external_collection_jobs_request.return_value = MagicMock()
 

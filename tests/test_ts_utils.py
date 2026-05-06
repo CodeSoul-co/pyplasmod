@@ -1,5 +1,5 @@
-from pymilvus.client import ts_utils
-from pymilvus.client.cache import GlobalCache
+from pyplasmod.client import ts_utils
+from pyplasmod.client.cache import GlobalCache
 
 
 class TestTsUtils:

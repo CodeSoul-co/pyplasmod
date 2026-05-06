@@ -3,9 +3,9 @@
 from unittest import mock
 
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldSchema, connections
+from pyplasmod import CollectionSchema, DataType, FieldSchema, connections
 
-GRPC_PREFIX = "pymilvus.client.grpc_handler.GrpcHandler"
+GRPC_PREFIX = "pyplasmod.client.grpc_handler.GrpcHandler"
 
 
 @pytest.fixture

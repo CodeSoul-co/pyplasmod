@@ -1,6 +1,6 @@
 import asyncio
 
-from pymilvus import AsyncMilvusClient, DataType
+from pyplasmod import AsyncPlasmodClient, DataType
 
 # Super user credentials for admin operations
 super_user = ""
@@ -28,7 +28,7 @@ db_ro_privileges = [
 ]
 
 
-async def create_resources(client: AsyncMilvusClient):
+async def create_resources(client: AsyncPlasmodClient):
     print(fmt.format("Creating Resources"))
 
     print("Creating database...")
@@ -63,7 +63,7 @@ async def create_resources(client: AsyncMilvusClient):
     return True
 
 
-async def test_grant_revoke_privilege(client: AsyncMilvusClient):
+async def test_grant_revoke_privilege(client: AsyncPlasmodClient):
     print(fmt.format("Testing grant_privilege / revoke_privilege"))
 
     # Test grant_privilege for different privileges
@@ -119,7 +119,7 @@ async def test_grant_revoke_privilege(client: AsyncMilvusClient):
     print("Role revoked from user")
 
 
-async def test_grant_revoke_privilege_v2(client: AsyncMilvusClient):
+async def test_grant_revoke_privilege_v2(client: AsyncPlasmodClient):
     print(fmt.format("Testing grant_privilege_v2 / revoke_privilege_v2"))
 
     # Test grant_privilege_v2 with custom privilege group
@@ -199,7 +199,7 @@ async def test_grant_revoke_privilege_v2(client: AsyncMilvusClient):
 
 
 async def main():
-    client = AsyncMilvusClient("http://localhost:19530", user=super_user, password=super_password)
+    client = AsyncPlasmodClient("http://localhost:19530", user=super_user, password=super_password)
 
     await create_resources(client)
     await test_grant_revoke_privilege(client)

@@ -1,6 +1,6 @@
 import numpy as np
-from pymilvus import (
-    MilvusClient,
+from pyplasmod import (
+    PlasmodClient,
     DataType,
     AnnSearchRequest, RRFRanker, WeightedRanker,
 )
@@ -9,26 +9,26 @@ fmt = "\n=== {:30} ===\n"
 search_latency_fmt = "search latency = {:.4f}s"
 num_entities, dim = 3000, 8
 
-collection_name = "hello_milvus"
-milvus_client = MilvusClient("http://localhost:19530")
+collection_name = "hello_plasmod"
+plasmod_client = PlasmodClient("http://localhost:19530")
 
-has_collection = milvus_client.has_collection(collection_name, timeout=5)
+has_collection = plasmod_client.has_collection(collection_name, timeout=5)
 if has_collection:
-    milvus_client.drop_collection(collection_name)
+    plasmod_client.drop_collection(collection_name)
 
-schema = milvus_client.create_schema(auto_id=False, description="hello_milvus is the simplest demo to introduce the APIs")
+schema = plasmod_client.create_schema(auto_id=False, description="hello_plasmod is the simplest demo to introduce the APIs")
 schema.add_field("pk", DataType.VARCHAR, is_primary=True, max_length=100)
 schema.add_field("random", DataType.DOUBLE)
 schema.add_field("embeddings", DataType.FLOAT_VECTOR, dim=dim)
 schema.add_field("embeddings2", DataType.FLOAT_VECTOR, dim=dim)
 
-index_params = milvus_client.prepare_index_params()
+index_params = plasmod_client.prepare_index_params()
 index_params.add_index(field_name = "embeddings", index_type = "IVF_FLAT", metric_type="L2", nlist=128)
 index_params.add_index(field_name = "embeddings2",index_type = "IVF_FLAT", metric_type="L2", nlist=128)
 
-print(fmt.format("Create collection `hello_milvus`"))
+print(fmt.format("Create collection `hello_plasmod`"))
 
-milvus_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
+plasmod_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
 
 print(fmt.format("Start inserting entities"))
 rng = np.random.default_rng(seed=19530)
@@ -42,11 +42,11 @@ entities = [
 
 rows = [ {"pk": entities[0][i], "random": entities[1][i], "embeddings": entities[2][i], "embeddings2": entities[3][i]} for i in range (num_entities)]
 
-insert_result = milvus_client.insert(collection_name, rows)
+insert_result = plasmod_client.insert(collection_name, rows)
 
 
 print(fmt.format("Start loading"))
-milvus_client.load_collection(collection_name)
+plasmod_client.load_collection(collection_name)
 
 field_names = ["embeddings", "embeddings2"]
 
@@ -68,7 +68,7 @@ for i in range(len(field_names)):
     req_list.append(req)
 
 print(fmt.format("rank by RRFRanker"))
-hybrid_res = milvus_client.hybrid_search(collection_name, req_list, RRFRanker(), default_limit, output_fields=["random"])
+hybrid_res = plasmod_client.hybrid_search(collection_name, req_list, RRFRanker(), default_limit, output_fields=["random"])
 for hits in hybrid_res:
     for hit in hits:
         print(f" hybrid search hit: {hit}")
@@ -88,7 +88,7 @@ for i in range(len(field_names)):
     req_list.append(req)
 
 print(fmt.format("rank by RRFRanker with expression template"))
-hybrid_res = milvus_client.hybrid_search(collection_name, req_list, RRFRanker(), default_limit, output_fields=["random"])
+hybrid_res = plasmod_client.hybrid_search(collection_name, req_list, RRFRanker(), default_limit, output_fields=["random"])
 for hits in hybrid_res:
     for hit in hits:
         print(f" hybrid search hit: {hit}")

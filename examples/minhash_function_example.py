@@ -2,11 +2,11 @@
 MinHash Text Deduplication Demo
 
 This example shows an end-to-end workflow to deduplicate texts using
-MinHash Function + MINHASH_LSH in Milvus.
+MinHash Function + MINHASH_LSH in Plasmod.
 
 Requirements:
-- Milvus server with MinHash function support (v2.5+)
-- pymilvus with MINHASH FunctionType support
+- Plasmod server with MinHash function support (v2.5+)
+- pyplasmod with MINHASH FunctionType support
 
 Constraints:
 - Index Type: MINHASH_LSH
@@ -14,12 +14,12 @@ Constraints:
 - Output Field: BINARY_VECTOR with dim = num_hashes * 32
 """
 
-from pymilvus import DataType, MilvusClient
-from pymilvus.client.types import FunctionType
-from pymilvus.orm.schema import Function
+from pyplasmod import DataType, PlasmodClient
+from pyplasmod.client.types import FunctionType
+from pyplasmod.orm.schema import Function
 
 
-def create_dedup_collection(client: MilvusClient, collection_name: str):
+def create_dedup_collection(client: PlasmodClient, collection_name: str):
     """Create a collection with MinHash function for deduplication."""
     if client.has_collection(collection_name):
         client.drop_collection(collection_name)
@@ -46,7 +46,7 @@ def create_dedup_collection(client: MilvusClient, collection_name: str):
     client.create_collection(collection_name=collection_name, schema=schema)
 
 
-def create_dedup_index(client: MilvusClient, collection_name: str):
+def create_dedup_index(client: PlasmodClient, collection_name: str):
     """Create a MINHASH_LSH index with raw data for exact Jaccard reranking."""
     index_params = client.prepare_index_params()
     index_params.add_index(
@@ -62,7 +62,7 @@ def create_dedup_index(client: MilvusClient, collection_name: str):
 
 
 def deduplicate_texts(
-    client: MilvusClient,
+    client: PlasmodClient,
     collection_name: str,
     texts: list,
     similarity_threshold: float = 0.8,
@@ -121,7 +121,7 @@ def deduplicate_texts(
 
 def main():
     uri = "http://localhost:19530"
-    client = MilvusClient(uri=uri)
+    client = PlasmodClient(uri=uri)
 
     collection_name = "minhash_dedup_demo"
     create_dedup_collection(client, collection_name)

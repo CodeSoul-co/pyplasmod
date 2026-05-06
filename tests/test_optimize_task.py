@@ -3,10 +3,10 @@ from typing import Any, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus import AsyncMilvusClient
-from pymilvus.exceptions import MilvusException, ParamError
-from pymilvus.milvus_client.async_optimize_task import AsyncOptimizeTask
-from pymilvus.milvus_client.optimize_task import (
+from pyplasmod import AsyncPlasmodClient
+from pyplasmod.exceptions import PlasmodException, ParamError
+from pyplasmod.plasmod_client.async_optimize_task import AsyncOptimizeTask
+from pyplasmod.plasmod_client.optimize_task import (
     _OPTIMIZE_DEFAULT_SIZE_MB,
     OptimizeResult,
     OptimizeTask,
@@ -55,13 +55,13 @@ async def test_optimize_wait_true_completes_successfully() -> None:
     )
 
     with patch(
-        "pymilvus.milvus_client.async_milvus_client.AsyncConnectionManager",
+        "pyplasmod.plasmod_client.async_plasmod_client.AsyncConnectionManager",
         return_value=MagicMock(),
-    ), patch("pymilvus.orm.connections.Connections._fetch_handler") as mock_fetch:
+    ), patch("pyplasmod.orm.connections.Connections._fetch_handler") as mock_fetch:
         handler = MagicMock()
-        handler.get_server_type.return_value = "milvus"
+        handler.get_server_type.return_value = "plasmod"
         mock_fetch.return_value = handler
-        client = AsyncMilvusClient()
+        client = AsyncPlasmodClient()
         client._execute_optimize = AsyncMock(return_value=optimize_result)
 
         response = await client.optimize("test_collection", target_size="1GB", wait=True)
@@ -84,13 +84,13 @@ async def test_optimize_wait_false_returns_task() -> None:
     )
 
     with patch(
-        "pymilvus.milvus_client.async_milvus_client.AsyncConnectionManager",
+        "pyplasmod.plasmod_client.async_plasmod_client.AsyncConnectionManager",
         return_value=MagicMock(),
-    ), patch("pymilvus.orm.connections.Connections._fetch_handler") as mock_fetch:
+    ), patch("pyplasmod.orm.connections.Connections._fetch_handler") as mock_fetch:
         handler = MagicMock()
-        handler.get_server_type.return_value = "milvus"
+        handler.get_server_type.return_value = "plasmod"
         mock_fetch.return_value = handler
-        client = AsyncMilvusClient()
+        client = AsyncPlasmodClient()
         client._execute_optimize = AsyncMock(return_value=optimize_result)
 
         task = await client.optimize("test_collection", target_size="512MB", wait=False)
@@ -131,7 +131,7 @@ async def test_async_optimize_task_can_be_cancelled_before_completion() -> None:
     await asyncio.sleep(0)
     assert task.cancel() is True
 
-    with pytest.raises(MilvusException):
+    with pytest.raises(PlasmodException):
         await task.result(timeout=0.5)
 
     assert task.cancelled() is True
@@ -198,7 +198,7 @@ class TestOptimizeTask:
         assert task.result() == expected
 
     def test_run_exception(self):
-        error = MilvusException(message="exec error")
+        error = PlasmodException(message="exec error")
 
         def raise_fn(task, collection_name, size_mb, timeout, **kw):
             raise error
@@ -206,7 +206,7 @@ class TestOptimizeTask:
         task = _make_task(execute_fn=raise_fn)
         task.run()
         assert task.done() is True
-        with pytest.raises(MilvusException, match="exec error"):
+        with pytest.raises(PlasmodException, match="exec error"):
             task.result()
 
     def test_cancel_before_done(self):
@@ -231,7 +231,7 @@ class TestOptimizeTask:
     def test_check_cancelled_raises_when_cancelled(self):
         task = _make_task()
         task.cancel()
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             task.check_cancelled()
 
     def test_check_cancelled_no_raise_when_not_cancelled(self):
@@ -263,7 +263,7 @@ class TestOptimizeTask:
             # cancelled before run: execute_fn raises → cancellation exception (not the inner error)
             (
                 lambda task, collection_name, size_mb, timeout, **kw: (_ for _ in ()).throw(
-                    MilvusException(message="runtime error")
+                    PlasmodException(message="runtime error")
                 ),
                 "cancelled",
             ),
@@ -273,7 +273,7 @@ class TestOptimizeTask:
         task = _make_task(execute_fn=execute_fn)
         task.cancel()
         task.run()
-        with pytest.raises(MilvusException, match=match):
+        with pytest.raises(PlasmodException, match=match):
             task.result()
 
     def test_threading_run_and_wait(self):

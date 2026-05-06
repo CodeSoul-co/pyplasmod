@@ -6,7 +6,7 @@ Coverage: Server version, compaction, analyzer, replica operations.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
 
 
 class TestAsyncGrpcHandlerUtility:
@@ -30,7 +30,7 @@ class TestAsyncGrpcHandlerUtility:
         mock_stub.GetVersion = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.check_status"):
             result = await handler.get_server_version(timeout=30)
 
             assert result == "v2.4.0"
@@ -54,7 +54,7 @@ class TestAsyncGrpcHandlerUtility:
         mock_stub.GetReplicateConfiguration = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.check_status"):
             result = await handler.get_replicate_configuration(timeout=10)
 
         assert result == mock_config
@@ -91,7 +91,7 @@ class TestAsyncGrpcHandlerUtility:
 
         mock_stub.Connect = AsyncMock(return_value=mock_response)
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.check_status"):
             result = await handler.get_server_version(detail=True)
 
         expected = {
@@ -135,7 +135,7 @@ class TestAsyncGrpcHandlerUtility:
 
         mock_stub.Connect = AsyncMock(return_value=mock_response)
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.check_status"):
             result1 = await handler.get_server_version(detail=True)
             result2 = await handler.get_server_version(detail=True)
 
@@ -158,8 +158,8 @@ class TestAsyncGrpcHandlerUtility:
         mock_stub.RunAnalyzer = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.run_analyzer_request.return_value = MagicMock()
             result = await handler.run_analyzer("hello world")
@@ -187,9 +187,9 @@ class TestAsyncGrpcHandlerCompaction:
         mock_stub.ManualCompaction = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.describe_collection_request.return_value = mock_request
 
@@ -219,8 +219,8 @@ class TestAsyncGrpcHandlerCompaction:
         mock_stub.ManualCompaction = AsyncMock(return_value=mock_comp_resp)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.describe_collection_request.return_value = MagicMock()
             mock_prepare.manual_compaction.return_value = MagicMock()
@@ -245,7 +245,7 @@ class TestAsyncGrpcHandlerCompaction:
         mock_stub.GetCompactionState = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.check_status"):
             result = await handler.get_compaction_state(12345, timeout=30)
 
             assert result is not None
@@ -282,8 +282,8 @@ class TestAsyncGrpcHandlerReplica:
         mock_stub.GetReplicas = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.get_replicas.return_value = MagicMock()
             result = await handler.describe_replica("test_coll")
@@ -309,9 +309,9 @@ class TestAsyncGrpcHandlerSegment:
         mock_stub.GetPersistentSegmentInfo = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.get_persistent_segment_info_request.return_value = MagicMock()
             result = await handler.get_persistent_segment_infos("test_coll")
             assert result == []

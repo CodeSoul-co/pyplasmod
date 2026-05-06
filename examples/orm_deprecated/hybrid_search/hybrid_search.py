@@ -1,5 +1,5 @@
 import numpy as np
-from pymilvus import (
+from pyplasmod import (
     connections,
     utility,
     FieldSchema, CollectionSchema, DataType,
@@ -11,13 +11,13 @@ fmt = "\n=== {:30} ===\n"
 search_latency_fmt = "search latency = {:.4f}s"
 num_entities, dim = 3000, 8
 
-print(fmt.format("start connecting to Milvus"))
+print(fmt.format("start connecting to Plasmod"))
 connections.connect("default", host="localhost", port="19530")
 
-has = utility.has_collection("hello_milvus")
-print(f"Does collection hello_milvus exist in Milvus: {has}")
+has = utility.has_collection("hello_plasmod")
+print(f"Does collection hello_plasmod exist in Plasmod: {has}")
 if has:
-    utility.drop_collection("hello_milvus")
+    utility.drop_collection("hello_plasmod")
 
 fields = [
     FieldSchema(name="pk", dtype=DataType.VARCHAR, is_primary=True, auto_id=False, max_length=100),
@@ -26,10 +26,10 @@ fields = [
     FieldSchema(name="embeddings2", dtype=DataType.FLOAT_VECTOR, dim=dim)
 ]
 
-schema = CollectionSchema(fields, "hello_milvus is the simplest demo to introduce the APIs")
+schema = CollectionSchema(fields, "hello_plasmod is the simplest demo to introduce the APIs")
 
-print(fmt.format("Create collection `hello_milvus`"))
-hello_milvus = Collection("hello_milvus", schema, consistency_level="Strong", num_shards = 4)
+print(fmt.format("Create collection `hello_plasmod`"))
+hello_plasmod = Collection("hello_plasmod", schema, consistency_level="Strong", num_shards = 4)
 
 print(fmt.format("Start inserting entities"))
 rng = np.random.default_rng(seed=19530)
@@ -41,10 +41,10 @@ entities = [
     rng.random((num_entities, dim)),    # field embeddings2, supports numpy.ndarray and list
 ]
 
-insert_result = hello_milvus.insert(entities)
+insert_result = hello_plasmod.insert(entities)
 
-hello_milvus.flush()
-print(f"Number of entities in Milvus: {hello_milvus.num_entities}")  # check the num_entities
+hello_plasmod.flush()
+print(f"Number of entities in Plasmod: {hello_plasmod.num_entities}")  # check the num_entities
 
 print(fmt.format("Start Creating index IVF_FLAT"))
 index = {
@@ -53,11 +53,11 @@ index = {
     "params": {"nlist": 128},
 }
 
-hello_milvus.create_index("embeddings", index)
-hello_milvus.create_index("embeddings2", index)
+hello_plasmod.create_index("embeddings", index)
+hello_plasmod.create_index("embeddings2", index)
 
 print(fmt.format("Start loading"))
-hello_milvus.load()
+hello_plasmod.load()
 
 field_names = ["embeddings", "embeddings2"]
 
@@ -80,13 +80,13 @@ for i in range(len(field_names)):
     req_list.append(req)
 
 print(fmt.format("rank by WightedRanker"))
-hybrid_res = hello_milvus.hybrid_search(req_list, WeightedRanker(*weights, norm_score=True), default_limit, output_fields=["random"])
+hybrid_res = hello_plasmod.hybrid_search(req_list, WeightedRanker(*weights, norm_score=True), default_limit, output_fields=["random"])
 for hits in hybrid_res:
     for hit in hits:
         print(f" hybrid search hit: {hit}")
 
 print(fmt.format("rank by RRFRanker"))
-hybrid_res = hello_milvus.hybrid_search(req_list, RRFRanker(), default_limit, output_fields=["random"])
+hybrid_res = hello_plasmod.hybrid_search(req_list, RRFRanker(), default_limit, output_fields=["random"])
 for hits in hybrid_res:
     for hit in hits:
         print(f" hybrid search hit: {hit}")
@@ -106,13 +106,13 @@ for i in range(len(field_names)):
     req_list.append(req)
 
 print(fmt.format("rank by WightedRanker with expression template"))
-hybrid_res = hello_milvus.hybrid_search(req_list, WeightedRanker(*weights), default_limit, output_fields=["random"])
+hybrid_res = hello_plasmod.hybrid_search(req_list, WeightedRanker(*weights), default_limit, output_fields=["random"])
 for hits in hybrid_res:
     for hit in hits:
         print(f" hybrid search hit: {hit}")
 
 print(fmt.format("rank by RRFRanker with expression template"))
-hybrid_res = hello_milvus.hybrid_search(req_list, RRFRanker(), default_limit, output_fields=["random"])
+hybrid_res = hello_plasmod.hybrid_search(req_list, RRFRanker(), default_limit, output_fields=["random"])
 for hits in hybrid_res:
     for hit in hits:
         print(f" hybrid search hit: {hit}")

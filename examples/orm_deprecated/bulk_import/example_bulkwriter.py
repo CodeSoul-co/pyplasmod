@@ -24,14 +24,14 @@ from examples.bulk_import.data_gengerator import *
 
 logging.basicConfig(level=logging.INFO)
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     FieldSchema, CollectionSchema, DataType,
     Collection,
     utility,
 )
 
-from pymilvus.bulk_writer import (
+from pyplasmod.bulk_writer import (
     LocalBulkWriter,
     RemoteBulkWriter,
     BulkFileType,
@@ -40,7 +40,7 @@ from pymilvus.bulk_writer import (
     get_import_progress,
 )
 
-LOCAL_FILES_PATH = "/tmp/milvus_bulkinsert/"
+LOCAL_FILES_PATH = "/tmp/plasmod_bulkinsert/"
 Path(LOCAL_FILES_PATH).mkdir(exist_ok=True)
 
 # minio
@@ -48,7 +48,7 @@ MINIO_ADDRESS = "0.0.0.0:9000"
 MINIO_SECRET_KEY = "minioadmin"
 MINIO_ACCESS_KEY = "minioadmin"
 
-# milvus
+# plasmod
 HOST = '127.0.0.1'
 PORT = '19530'
 
@@ -91,7 +91,7 @@ def build_all_type_schema(is_numpy: bool):
         FieldSchema(name="double", dtype=DataType.DOUBLE),
         FieldSchema(name="varchar", dtype=DataType.VARCHAR, max_length=512),
         FieldSchema(name="json", dtype=DataType.JSON),
-        # from 2.4.0, milvus supports multiple vector fields in one collection
+        # from 2.4.0, plasmod supports multiple vector fields in one collection
         # FieldSchema(name="float_vector", dtype=DataType.FLOAT_VECTOR, dim=DIM),
         FieldSchema(name="binary_vector", dtype=DataType.BINARY_VECTOR, dim=DIM),
         FieldSchema(name="float16_vector", dtype=DataType.FLOAT16_VECTOR, dim=DIM),
@@ -99,7 +99,7 @@ def build_all_type_schema(is_numpy: bool):
         FieldSchema(name="int8_vector", dtype=DataType.INT8_VECTOR, dim=DIM),
     ]
 
-    # milvus doesn't support parsing array/sparse_vector from numpy file
+    # plasmod doesn't support parsing array/sparse_vector from numpy file
     if not is_numpy:
         fields.append(FieldSchema(name="array_str", dtype=DataType.ARRAY, max_capacity=100, element_type=DataType.VARCHAR, max_length=128))
         fields.append(FieldSchema(name="array_int", dtype=DataType.ARRAY, max_capacity=100, element_type=DataType.INT64))
@@ -313,7 +313,7 @@ def call_bulkinsert(schema: CollectionSchema, batch_files: List[List[str]]):
 
     url = f"http://{HOST}:{PORT}"
 
-    print(f"\n===================== import files to milvus ====================")
+    print(f"\n===================== import files to plasmod ====================")
     resp = bulk_import(
         url=url,
         collection_name=ALL_TYPES_COLLECTION_NAME,

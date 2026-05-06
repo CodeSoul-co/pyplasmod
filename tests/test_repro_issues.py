@@ -1,15 +1,15 @@
-"""Regression tests for pymilvus issues."""
+"""Regression tests for pyplasmod issues."""
 
 import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pymilvus import AnnSearchRequest, WeightedRanker
-from pymilvus.client.abstract import CollectionSchema
-from pymilvus.client.connection_manager import ConnectionManager
-from pymilvus.client.types import ConsistencyLevel
-from pymilvus.exceptions import ParamError
-from pymilvus.milvus_client.milvus_client import MilvusClient
+from pyplasmod import AnnSearchRequest, WeightedRanker
+from pyplasmod.client.abstract import CollectionSchema
+from pyplasmod.client.connection_manager import ConnectionManager
+from pyplasmod.client.types import ConsistencyLevel
+from pyplasmod.exceptions import ParamError
+from pyplasmod.plasmod_client.plasmod_client import PlasmodClient
 
 log = logging.getLogger(__name__)
 
@@ -24,10 +24,10 @@ def reset_connection_manager():
 
 def make_client():
     mock_handler = MagicMock()
-    mock_handler.get_server_type.return_value = "milvus"
+    mock_handler.get_server_type.return_value = "plasmod"
     mock_handler._wait_for_channel_ready = MagicMock()
-    with patch("pymilvus.client.grpc_handler.GrpcHandler", return_value=mock_handler):
-        return MilvusClient()
+    with patch("pyplasmod.client.grpc_handler.GrpcHandler", return_value=mock_handler):
+        return PlasmodClient()
 
 
 class TestIssue2587:
@@ -74,7 +74,7 @@ class TestIssue2985:
     PR #3409 (commit 07a29c8f) changed CollectionSchema.dict() to emit
     consistency_level as a string (ConsistencyLevel.Name(...)) instead of the
     historical int. This broke public API back-compat: downstream callers
-    (including milvus e2e test_milvus_client_search_query_default) that
+    (including plasmod e2e test_plasmod_client_search_query_default) that
     indexed dict()['consistency_level'] expecting an int began failing.
 
     Dual-key fix: keep consistency_level as int (back-compat),

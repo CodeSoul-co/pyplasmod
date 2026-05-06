@@ -1,9 +1,9 @@
 """Examples for the new search_aggregation API (Phase 1).
 
-Requires Milvus server with search aggregation support. Run against a local
-Milvus by default (http://localhost:19530).
+Requires Plasmod server with search aggregation support. Run against a local
+Plasmod by default (http://localhost:19530).
 
-Covers the five cases from the PyMilvus search aggregation design doc §5:
+Covers the five cases from the PyPlasmod search aggregation design doc §5:
     1. Flat — single level, single field
     2. Flat — composite key + metrics + ordering
     3. JSON field grouping (disabled — server does not yet support JSON paths)
@@ -22,12 +22,12 @@ from typing import List
 
 import numpy as np
 
-from pymilvus import (
+from pyplasmod import (
     CollectionSchema,
     DataType,
     FieldSchema,
-    MilvusClient,
-    MilvusException,
+    PlasmodClient,
+    PlasmodException,
     SearchAggregation,
     TopHits,
 )
@@ -43,7 +43,7 @@ COLORS = ["red", "blue", "green", "black"]
 SKUS = [f"sku_{i:03d}" for i in range(20)]
 
 
-def build_collection(client: MilvusClient, rebuild: bool = True) -> None:
+def build_collection(client: PlasmodClient, rebuild: bool = True) -> None:
     if client.has_collection(COLLECTION) and not rebuild:
         client.load_collection(COLLECTION)
         return
@@ -141,7 +141,7 @@ def query_vectors(nq: int = NQ) -> List[List[float]]:
     return [rng.random(DIM).astype(np.float32).tolist() for _ in range(nq)]
 
 
-def case1_single_field(client: MilvusClient) -> None:
+def case1_single_field(client: PlasmodClient) -> None:
     """Single level, single field — simplest form."""
     res = client.search(
         collection_name=COLLECTION,
@@ -157,7 +157,7 @@ def case1_single_field(client: MilvusClient) -> None:
     print_buckets("Case 1: single field grouping", res.agg_buckets)
 
 
-def case2_composite_key_with_metrics(client: MilvusClient) -> None:
+def case2_composite_key_with_metrics(client: PlasmodClient) -> None:
     """Composite key (brand, color) + metrics + custom ordering + sorted top_hits."""
     res = client.search(
         collection_name=COLLECTION,
@@ -178,7 +178,7 @@ def case2_composite_key_with_metrics(client: MilvusClient) -> None:
     print_buckets("Case 2: composite key + metrics + ordering", res.agg_buckets)
 
 
-def case3_json_field(client: MilvusClient) -> None:
+def case3_json_field(client: PlasmodClient) -> None:
     """Group by JSON path expression.
 
     Currently disabled — SDK rejects JSON path fields until server support lands.
@@ -200,7 +200,7 @@ def case3_json_field(client: MilvusClient) -> None:
     print_buckets("Case 3: JSON path grouping", res.agg_buckets)
 
 
-def case4_two_level_nested(client: MilvusClient) -> None:
+def case4_two_level_nested(client: PlasmodClient) -> None:
     """Two-level: category → brand, with metrics + top_hits at both levels."""
     res = client.search(
         collection_name=COLLECTION,
@@ -229,7 +229,7 @@ def case4_two_level_nested(client: MilvusClient) -> None:
     print_buckets("Case 4: two-level nested", res.agg_buckets)
 
 
-def case5_three_level_nested(client: MilvusClient) -> None:
+def case5_three_level_nested(client: PlasmodClient) -> None:
     """Three levels: category → brand → (sku, color), with top_hits at every level."""
     res = client.search(
         collection_name=COLLECTION,
@@ -295,7 +295,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="reuse existing collection instead of dropping and re-inserting.",
     )
-    p.add_argument("--uri", default="http://localhost:19530", help="Milvus URI")
+    p.add_argument("--uri", default="http://localhost:19530", help="Plasmod URI")
     return p.parse_args()
 
 
@@ -303,14 +303,14 @@ def main() -> None:
     args = parse_args()
     selected = args.cases if args.cases else DEFAULT_CASES
 
-    client = MilvusClient(args.uri)
+    client = PlasmodClient(args.uri)
     build_collection(client, rebuild=not args.no_rebuild)
 
     failed = []
     for n in selected:
         try:
             CASES[n](client)
-        except MilvusException as e:
+        except PlasmodException as e:
             # Keep going so later cases still run. Case 3 is expected to fail
             # today (SDK bans JSON path fields); other failures bubble up in the
             # summary so they stay visible.

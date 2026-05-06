@@ -5,11 +5,11 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-from pymilvus.bulk_writer.buffer import Buffer
-from pymilvus.bulk_writer.constants import DYNAMIC_FIELD_NAME, BulkFileType
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import MilvusException
-from pymilvus.orm.schema import CollectionSchema, FieldSchema
+from pyplasmod.bulk_writer.buffer import Buffer
+from pyplasmod.bulk_writer.constants import DYNAMIC_FIELD_NAME, BulkFileType
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import PlasmodException
+from pyplasmod.orm.schema import CollectionSchema, FieldSchema
 
 
 class TestBuffer:
@@ -119,7 +119,7 @@ class TestBuffer:
         ]
         schema = CollectionSchema(fields=fields)
         # Buffer should raise exception because no fields remain after filtering
-        with pytest.raises(MilvusException, match="fields list is empty"):
+        with pytest.raises(PlasmodException, match="fields list is empty"):
             Buffer(schema, BulkFileType.JSON)
 
     def test_append_row_simple(self, simple_schema: CollectionSchema):
@@ -166,7 +166,7 @@ class TestBuffer:
     def test_append_row_invalid_dynamic_field(self, dynamic_schema: CollectionSchema):
         buffer = Buffer(dynamic_schema, BulkFileType.JSON)
         row = {"id": 1, "vector": [1.0] * 128, DYNAMIC_FIELD_NAME: "not_a_dict"}
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             buffer.append_row(row)
 
     def test_persist_npy(self, simple_schema):
@@ -224,7 +224,7 @@ class TestBuffer:
         buffer._file_type = 999  # Invalid type
         buffer.append_row({"id": 1, "vector": [1.0] * 128, "text": "test"})
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             buffer.persist("/tmp/test")
 
     def test_persist_mismatched_row_count(self, simple_schema):
@@ -233,7 +233,7 @@ class TestBuffer:
         buffer._buffer["vector"].append([1.0] * 128)
         # Missing text field value
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             buffer.persist("/tmp/test")
 
     def test_row_count_empty(self, simple_schema):
@@ -357,7 +357,7 @@ class TestBufferExtended:
         buffer.append_row({"id": 1, "array_field": [1, 2, 3, 4, 5]})
 
         with tempfile.TemporaryDirectory() as temp_dir, pytest.raises(
-            MilvusException, match="doesn't support parsing array type"
+            PlasmodException, match="doesn't support parsing array type"
         ):
             buffer.persist(temp_dir)
 
@@ -367,10 +367,10 @@ class TestBufferExtended:
         buffer.append_row({"id": 1, "sparse_vector": {1: 0.5, 10: 0.3}})
 
         with tempfile.TemporaryDirectory() as temp_dir, pytest.raises(
-            MilvusException, match="Failed to persist file"
+            PlasmodException, match="Failed to persist file"
         ):
             # The error happens because SPARSE_FLOAT_VECTOR is not in NUMPY_TYPE_CREATOR
-            # This causes a KeyError which is caught and re-raised as MilvusException
+            # This causes a KeyError which is caught and re-raised as PlasmodException
             buffer.persist(temp_dir)
 
     def test_persist_npy_with_json_field(self):
@@ -446,7 +446,7 @@ class TestBufferExtended:
         buffer.append_row({"id": 1})
 
         with tempfile.TemporaryDirectory() as temp_dir, pytest.raises(
-            MilvusException, match="Failed to persist file"
+            PlasmodException, match="Failed to persist file"
         ):
             buffer.persist(temp_dir)
 
@@ -464,7 +464,7 @@ class TestBufferExtended:
             # Make the second save fail
             mock_save.side_effect = [None, Exception("Second save failed")]
 
-            with pytest.raises(MilvusException, match="Failed to persist file"):
+            with pytest.raises(PlasmodException, match="Failed to persist file"):
                 buffer.persist(temp_dir)
 
     def test_persist_json_with_float16_vectors(self):
@@ -509,7 +509,7 @@ class TestBufferExtended:
         buffer = Buffer(schema, BulkFileType.JSON)
         buffer.append_row({"id": 1})
 
-        with pytest.raises(MilvusException, match="Failed to persist file"):
+        with pytest.raises(PlasmodException, match="Failed to persist file"):
             buffer.persist("/tmp/test")
 
     @pytest.mark.parametrize(
@@ -660,7 +660,7 @@ class TestBufferExtended:
         buffer = Buffer(schema, BulkFileType.CSV)
         buffer.append_row({"id": 1})
 
-        with pytest.raises(MilvusException, match="Failed to persist file"):
+        with pytest.raises(PlasmodException, match="Failed to persist file"):
             buffer.persist("/tmp/test")
 
     def test_persist_csv_with_custom_config(self):
@@ -708,12 +708,12 @@ class TestBufferExtended:
         assert "non_existent" not in buffer._fields
 
     def test_throw_method(self):
-        """Test the _throw method raises MilvusException"""
+        """Test the _throw method raises PlasmodException"""
         fields = [
             FieldSchema(name="id", dtype=DataType.INT64, is_primary=True),
         ]
         schema = CollectionSchema(fields=fields)
         buffer = Buffer(schema, BulkFileType.JSON)
 
-        with pytest.raises(MilvusException, match="Test error message"):
+        with pytest.raises(PlasmodException, match="Test error message"):
             buffer._throw("Test error message")

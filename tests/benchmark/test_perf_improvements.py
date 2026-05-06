@@ -1,4 +1,4 @@
-"""Benchmarks for general performance improvements in pymilvus.
+"""Benchmarks for general performance improvements in pyplasmod.
 
 Each benchmark compares the old (before) implementation against the new (after)
 implementation to demonstrate the performance improvement.

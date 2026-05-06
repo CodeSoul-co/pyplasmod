@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldSchema
-from pymilvus.exceptions import DataNotMatchException, DataTypeNotSupportException, ParamError
-from pymilvus.orm.prepare import Prepare
+from pyplasmod import CollectionSchema, DataType, FieldSchema
+from pyplasmod.exceptions import DataNotMatchException, DataTypeNotSupportException, ParamError
+from pyplasmod.orm.prepare import Prepare
 
 # ---------------------------------------------------------------------------
 # Helpers / fixtures

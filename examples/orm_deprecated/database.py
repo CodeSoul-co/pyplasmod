@@ -1,17 +1,17 @@
 import random
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     FieldSchema, CollectionSchema, DataType,
     Collection,
     db,
 )
-from pymilvus.orm import utility
+from pyplasmod.orm import utility
 
 _HOST = '127.0.0.1'
 _PORT = '19530'
 _ROOT = "root"
-_ROOT_PASSWORD = "Milvus"
+_ROOT_PASSWORD = "Plasmod"
 _METRIC_TYPE = 'IP'
 _INDEX_TYPE = 'IVF_FLAT'
 _NLIST = 1024
@@ -23,8 +23,8 @@ _DIM = 128
 _INDEX_FILE_SIZE = 32  # max file size of stored index
 
 
-def connect_to_milvus(db_name="default"):
-    print(f"connect to milvus\n")
+def connect_to_plasmod(db_name="default"):
+    print(f"connect to plasmod\n")
     connections.connect(host=_HOST,
                         port=_PORT,
                         user=_ROOT,
@@ -33,8 +33,8 @@ def connect_to_milvus(db_name="default"):
                         )
 
 
-def connect_to_milvus_with_uri(db_name="default"):
-    print(f"connect to milvus\n")
+def connect_to_plasmod_with_uri(db_name="default"):
+    print(f"connect to plasmod\n")
     connections.connect(
         alias="uri-connection",
         uri="http://{}:{}/{}".format(_HOST, _PORT, db_name),
@@ -110,9 +110,9 @@ def collection_read_write(collection, db_name):
 
 
 if __name__ == '__main__':
-    # connect to milvus and using database db1
+    # connect to plasmod and using database db1
     # there will not check db1 already exists during connect
-    connect_to_milvus(db_name="default")
+    connect_to_plasmod(db_name="default")
 
     # create collection within default
     col1_db1 = create_collection("col1_db1", "default")

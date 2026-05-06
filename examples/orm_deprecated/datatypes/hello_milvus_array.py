@@ -1,4 +1,4 @@
-from pymilvus import CollectionSchema, FieldSchema, Collection, connections, DataType, Partition, utility
+from pyplasmod import CollectionSchema, FieldSchema, Collection, connections, DataType, Partition, utility
 import numpy as np
 import random
 import pandas as pd

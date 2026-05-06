@@ -1,9 +1,9 @@
 """Tests for advanced Prepare methods (bulk operations, replication, analyzers)."""
 
 import pytest
-from pymilvus import Function, FunctionType
-from pymilvus.client.prepare import Prepare
-from pymilvus.exceptions import ParamError
+from pyplasmod import Function, FunctionType
+from pyplasmod.client.prepare import Prepare
+from pyplasmod.exceptions import ParamError
 
 
 class TestBulkInsertRequests:

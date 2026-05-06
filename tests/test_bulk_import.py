@@ -1,18 +1,18 @@
 import sys
 from unittest.mock import MagicMock, patch
 
-import pymilvus.bulk_writer.bulk_import  # noqa: F401
+import pyplasmod.bulk_writer.bulk_import  # noqa: F401
 import pytest
-from pymilvus.bulk_writer.bulk_import import (
+from pyplasmod.bulk_writer.bulk_import import (
     _http_headers,
     _post_request,
     bulk_import,
     get_import_progress,
     list_import_jobs,
 )
-from pymilvus.exceptions import MilvusException
+from pyplasmod.exceptions import PlasmodException
 
-bulk_import_mod = sys.modules["pymilvus.bulk_writer.bulk_import"]
+bulk_import_mod = sys.modules["pyplasmod.bulk_writer.bulk_import"]
 
 
 class TestHttpHeaders:
@@ -113,7 +113,7 @@ class TestGetImportProgress:
         mock_resp.json.return_value = {"code": 1, "message": "boom"}
         mock_post.return_value = mock_resp
 
-        with pytest.raises(MilvusException, match="boom"):
+        with pytest.raises(PlasmodException, match="boom"):
             get_import_progress(
                 url="http://example.com",
                 job_id="job-123",

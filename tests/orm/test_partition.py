@@ -1,10 +1,10 @@
-"""Unit tests for pymilvus.orm.partition.Partition."""
+"""Unit tests for pyplasmod.orm.partition.Partition."""
 
 from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
-from pymilvus import (
+from pyplasmod import (
     Collection,
     CollectionSchema,
     DataType,
@@ -12,7 +12,7 @@ from pymilvus import (
     Partition,
     connections,
 )
-from pymilvus.exceptions import MilvusException
+from pyplasmod.exceptions import PlasmodException
 
 from .conftest import GRPC_PREFIX
 
@@ -79,11 +79,11 @@ class TestPartitionInit:
         connections.disconnect("default")
 
     def test_create_with_invalid_collection_type(self, mock_grpc_connect, mock_grpc_close):
-        """Passing an invalid type for collection raises MilvusException."""
+        """Passing an invalid type for collection raises PlasmodException."""
         connections.connect(keep_alive=False)
         with pytest.raises(
-            MilvusException,
-            match=r"Collection must be of type pymilvus\.Collection or String",
+            PlasmodException,
+            match=r"Collection must be of type pyplasmod\.Collection or String",
         ):
             Partition(12345, "bad_part")
         connections.disconnect("default")

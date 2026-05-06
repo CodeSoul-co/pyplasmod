@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import grpc
 import pytest
-from pymilvus.decorators import (
+from pyplasmod.decorators import (
     IGNORE_RETRY_CODES,
     deprecated,
     error_handler,
@@ -14,14 +14,14 @@ from pymilvus.decorators import (
     tracing_request,
     upgrade_reminder,
 )
-from pymilvus.exceptions import (
+from pyplasmod.exceptions import (
     DataNotMatchException,
     ErrorCode,
-    MilvusException,
+    PlasmodException,
     ParamError,
     SchemaMismatchRetryableException,
 )
-from pymilvus.grpc_gen import common_pb2
+from pyplasmod.grpc_gen import common_pb2
 
 
 def assert_preserves_metadata(func, expected_name):
@@ -44,9 +44,9 @@ class MockDeadlineExceededError(grpc.RpcError):
         return "details of deadline exceeded"
 
 
-class _MockMilvusError(MilvusException):
+class _MockPlasmodProtocolError(PlasmodException):
     def __init__(self, code, message, compatible_code):
-        super(MilvusException, self).__init__(message)
+        super(PlasmodException, self).__init__(message)
         self._code = code
         self._message = message
         self._compatible_code = compatible_code
@@ -64,12 +64,12 @@ class _MockMilvusError(MilvusException):
         return self._compatible_code
 
 
-class MockForceDenyError(_MockMilvusError):
+class MockForceDenyError(_MockPlasmodProtocolError):
     def __init__(self, code=ErrorCode.FORCE_DENY, message="force deny"):
         super().__init__(code, message, common_pb2.ForceDeny)
 
 
-class MockRateLimitError(_MockMilvusError):
+class MockRateLimitError(_MockPlasmodProtocolError):
     def __init__(self, code=ErrorCode.RATE_LIMIT, message="rate limit"):
         super().__init__(code, message, common_pb2.RateLimit)
 
@@ -110,12 +110,12 @@ class TestDecorators:
         if code == MockDeadlineExceededError().code():
             raise MockDeadlineExceededError
 
-    def mock_milvus_exception(self, code: ErrorCode):
+    def mock_plasmod_exception(self, code: ErrorCode):
         if code == ErrorCode.FORCE_DENY:
             raise MockForceDenyError
         if code == ErrorCode.RATE_LIMIT:
             raise MockRateLimitError
-        raise MilvusException(ErrorCode.UNEXPECTED_ERROR, "unexpected error")
+        raise PlasmodException(ErrorCode.UNEXPECTED_ERROR, "unexpected error")
 
     @pytest.mark.parametrize("times", [0, 1, 2, 3])
     def test_retry_decorators_unavailable(self, times):
@@ -127,7 +127,7 @@ class TestDecorators:
             count += 1
             self.mock_failure(code)
 
-        with pytest.raises(MilvusException, match="unavailable"):
+        with pytest.raises(PlasmodException, match="unavailable"):
             test_api(self, grpc.StatusCode.UNAVAILABLE)
 
         assert count == times + 1
@@ -142,7 +142,7 @@ class TestDecorators:
             time.sleep(1)
             self.mock_failure(code)
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             test_api(self, grpc.StatusCode.UNAVAILABLE, timeout=1)
 
         assert count == 1
@@ -157,7 +157,7 @@ class TestDecorators:
             count += 1
             self.mock_failure(code)
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             test_api(self, grpc.StatusCode.UNAVAILABLE)
 
         assert count == 7 + 1
@@ -169,9 +169,9 @@ class TestDecorators:
         def test_api(self, code):
             nonlocal count
             count += 1
-            self.mock_milvus_exception(code)
+            self.mock_plasmod_exception(code)
 
-        with pytest.raises(MilvusException, match="force deny"):
+        with pytest.raises(PlasmodException, match="force deny"):
             test_api(self, ErrorCode.FORCE_DENY)
 
         assert count == 1
@@ -183,9 +183,9 @@ class TestDecorators:
         def test_api(self, code, retry_on_rate_limit, **kwargs):
             nonlocal count
             count += 1
-            self.mock_milvus_exception(code)
+            self.mock_plasmod_exception(code)
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             test_api(self, ErrorCode.RATE_LIMIT, retry_on_rate_limit=True, retry_times=3)
 
         assert count == 3 + 1
@@ -206,9 +206,9 @@ class TestDecorators:
         def test_api(self, code, retry_on_rate_limit):
             nonlocal count
             count += 1
-            self.mock_milvus_exception(code)
+            self.mock_plasmod_exception(code)
 
-        with pytest.raises(MilvusException, match="rate limit"):
+        with pytest.raises(PlasmodException, match="rate limit"):
             test_api(self, ErrorCode.RATE_LIMIT, retry_on_rate_limit=do_retry)
 
         assert count == expected_count_fn(times)
@@ -240,9 +240,9 @@ class TestErrorHandlerTraceback:
         [
             (
                 "test_func",
-                MilvusException(ErrorCode.UNEXPECTED_ERROR, "test error"),
+                PlasmodException(ErrorCode.UNEXPECTED_ERROR, "test error"),
                 ["Traceback:", "inner_func", "test_func"],
-                MilvusException,
+                PlasmodException,
             ),
             (
                 "test_grpc_func",
@@ -254,12 +254,12 @@ class TestErrorHandlerTraceback:
                 "test_generic_func",
                 ValueError("test generic error"),
                 ["Traceback:", "inner_func", "ValueError"],
-                MilvusException,
+                PlasmodException,
             ),
         ],
-        ids=["milvus_exception", "grpc_error", "generic_exception"],
+        ids=["plasmod_exception", "grpc_error", "generic_exception"],
     )
-    @patch("pymilvus.decorators.LOGGER")
+    @patch("pyplasmod.decorators.LOGGER")
     def test_error_handler_includes_traceback(
         self, mock_logger, func_name, raise_exc, expected_strings, expected_exc
     ):
@@ -278,19 +278,19 @@ class TestErrorHandlerTraceback:
         for s in expected_strings:
             assert s in log_message
 
-    @patch("pymilvus.decorators.LOGGER")
+    @patch("pyplasmod.decorators.LOGGER")
     def test_error_handler_traceback_shows_call_stack(self, mock_logger):
         @error_handler(func_name="outer_func")
         def outer_function():
             def middle_function():
                 def inner_function():
-                    raise MilvusException(ErrorCode.UNEXPECTED_ERROR, "deep error")
+                    raise PlasmodException(ErrorCode.UNEXPECTED_ERROR, "deep error")
 
                 inner_function()
 
             middle_function()
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             outer_function()
 
         assert mock_logger.error.called
@@ -301,16 +301,16 @@ class TestErrorHandlerTraceback:
         assert "inner_function" in log_message
 
     @pytest.mark.asyncio
-    @patch("pymilvus.decorators.LOGGER")
+    @patch("pyplasmod.decorators.LOGGER")
     async def test_async_error_handler_includes_traceback(self, mock_logger):
         @error_handler(func_name="test_async_func")
         async def async_func_that_raises():
             def inner_func():
-                raise MilvusException(ErrorCode.UNEXPECTED_ERROR, "async test error")
+                raise PlasmodException(ErrorCode.UNEXPECTED_ERROR, "async test error")
 
             inner_func()
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             await async_func_that_raises()
 
         assert mock_logger.error.called
@@ -338,7 +338,7 @@ class TestRetryDecoratorEdgeCases:
             call_times.append(time.time())
             raise MockUnavailableError
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             failing_func(mock_self)
 
         assert len(call_times) == 3
@@ -353,7 +353,7 @@ class TestRetryDecoratorEdgeCases:
             call_count += 1
             raise MockUnavailableError
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             failing_func(mock_self)
 
         assert call_count == 4
@@ -368,7 +368,7 @@ class TestRetryDecoratorEdgeCases:
             call_count += 1
             raise MockUnavailableError
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             failing_func(mock_self)
 
         assert call_count == 1
@@ -427,7 +427,7 @@ class TestRetryDecoratorEdgeCases:
             call_times.append(time.time())
             raise MockUnavailableError
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             failing_func(mock_self)
 
         assert len(call_times) == 3
@@ -437,7 +437,7 @@ class TestRetryDecoratorEdgeCases:
 
 
 class TestDeprecatedDecorator:
-    @patch("pymilvus.decorators.LOGGER")
+    @patch("pyplasmod.decorators.LOGGER")
     def test_deprecated_logs_warning(self, mock_logger):
         @deprecated
         def old_function():
@@ -454,7 +454,7 @@ class TestDeprecatedDecorator:
 
         assert_preserves_metadata(my_old_function, "my_old_function")
 
-    @patch("pymilvus.decorators.LOGGER")
+    @patch("pyplasmod.decorators.LOGGER")
     def test_deprecated_passes_arguments(self, mock_logger):
         @deprecated
         def old_function_with_args(a, b, c=None):
@@ -594,16 +594,16 @@ class TestUpgradeReminderDecorator:
         result = successful_func()
         assert result == "success"
 
-    def test_upgrade_reminder_raises_milvus_exception_on_unimplemented(self):
+    def test_upgrade_reminder_raises_plasmod_exception_on_unimplemented(self):
         @upgrade_reminder
         def unimplemented_func():
             raise MockUnimplementedError
 
-        with pytest.raises(MilvusException) as exc_info:
+        with pytest.raises(PlasmodException) as exc_info:
             unimplemented_func()
 
         assert "default: 19530" in exc_info.value.message
-        assert "pymilvus version" in exc_info.value.message
+        assert "pyplasmod version" in exc_info.value.message
 
     def test_upgrade_reminder_raises_other_grpc_errors(self):
         @upgrade_reminder
@@ -748,20 +748,20 @@ class TestRetryOnSchemaMismatchDecorator:
 
 
 class TestErrorHandlerEdgeCases:
-    @patch("pymilvus.decorators.LOGGER")
+    @patch("pyplasmod.decorators.LOGGER")
     def test_error_handler_with_empty_func_name(self, mock_logger):
         @error_handler(func_name="")
         def my_function_name():
-            raise MilvusException(ErrorCode.UNEXPECTED_ERROR, "test error")
+            raise PlasmodException(ErrorCode.UNEXPECTED_ERROR, "test error")
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             my_function_name()
 
         assert mock_logger.error.called
         log_message = mock_logger.error.call_args[0][0]
         assert "my_function_name" in log_message
 
-    @patch("pymilvus.decorators.LOGGER")
+    @patch("pyplasmod.decorators.LOGGER")
     def test_error_handler_grpc_future_timeout_error(self, mock_logger):
         @error_handler(func_name="timeout_func")
         def func_that_times_out():
@@ -774,7 +774,7 @@ class TestErrorHandlerEdgeCases:
         log_message = mock_logger.error.call_args[0][0]
         assert "gRPC timeout" in log_message.lower() or "grpc Timeout" in log_message
 
-    @patch("pymilvus.decorators.LOGGER")
+    @patch("pyplasmod.decorators.LOGGER")
     def test_error_handler_successful_function_no_logging(self, mock_logger):
         @error_handler(func_name="successful_func")
         def successful_func():
@@ -799,7 +799,7 @@ class TestAsyncRetryTimeout:
             await asyncio.sleep(60)
 
         start = time.time()
-        with pytest.raises(MilvusException, match="Retry timeout"):
+        with pytest.raises(PlasmodException, match="Retry timeout"):
             await blocking_func(mock_self, timeout=1)
         elapsed = time.time() - start
 
@@ -817,7 +817,7 @@ class TestAsyncRetryTimeout:
             call_count += 1
             raise MockUnavailableError
 
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             await failing_func(mock_self)
 
         assert call_count == 3  # initial + 2 retries

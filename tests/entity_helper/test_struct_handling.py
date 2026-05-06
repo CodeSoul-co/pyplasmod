@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
-from pymilvus.client.entity_helper import extract_struct_array_from_column_data
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import ParamError
-from pymilvus.grpc_gen import schema_pb2 as schema_types
+from pyplasmod.client.entity_helper import extract_struct_array_from_column_data
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import ParamError
+from pyplasmod.grpc_gen import schema_pb2 as schema_types
 
 
 class TestExtractStructArray:

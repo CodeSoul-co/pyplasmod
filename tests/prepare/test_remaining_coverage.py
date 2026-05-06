@@ -1,8 +1,8 @@
 """Additional tests to reach 90% coverage for Prepare methods."""
 
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldSchema
-from pymilvus.client.prepare import Prepare
+from pyplasmod import CollectionSchema, DataType, FieldSchema
+from pyplasmod.client.prepare import Prepare
 
 
 class TestRowParseEdgeCases:

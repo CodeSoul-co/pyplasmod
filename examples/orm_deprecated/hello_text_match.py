@@ -1,6 +1,6 @@
-# hello_text_match.py demonstrates how to insert raw data only into Milvus and perform
+# hello_text_match.py demonstrates how to insert raw data only into Plasmod and perform
 # document retrieval based on specific terms by text match expression.
-# 1. connect to Milvus
+# 1. connect to Plasmod
 # 2. create collection
 # 3. insert data
 # 4. create index
@@ -9,7 +9,7 @@
 import time
 import numpy as np
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     utility,
     FieldSchema, CollectionSchema, Function, DataType, FunctionType,
@@ -21,13 +21,13 @@ search_latency_fmt = "search latency = {:.4f}s"
 dim = 8
 
 #################################################################################
-# 1. connect to Milvus
-# Add a new connection alias `default` for Milvus server in `localhost:19530`
-print(fmt.format("start connecting to Milvus"))
+# 1. connect to Plasmod
+# Add a new connection alias `default` for Plasmod server in `localhost:19530`
+print(fmt.format("start connecting to Plasmod"))
 connections.connect("default", host="localhost", port="19530")
 
 has = utility.has_collection("hello_text_match")
-print(f"Does collection hello_text_match exist in Milvus: {has}")
+print(f"Does collection hello_text_match exist in Plasmod: {has}")
 
 #################################################################################
 # 2. create collection
@@ -63,14 +63,14 @@ hello_text_match = Collection("hello_text_match", schema, consistency_level="Str
 # Data to be inserted must be organized in fields.
 #
 # The insert() method returns:
-# - either automatically generated primary keys by Milvus if auto_id=True in the schema;
+# - either automatically generated primary keys by Plasmod if auto_id=True in the schema;
 # - or the existing primary key field from the entities if auto_id=False in the schema.
 
 print(fmt.format("Start inserting entities"))
 
 rng = np.random.default_rng(seed=19530)
 num_entities = 6
-keywords = ["milvus", "match", "search", "query", "analyzer", "tokenizer"]
+keywords = ["plasmod", "match", "search", "query", "analyzer", "tokenizer"]
 
 entities = [
     [f"This is a test document {i + hello_text_match.num_entities} with keywords: {keywords[i]}" for i in range(num_entities)],
@@ -81,7 +81,7 @@ insert_result = hello_text_match.insert(entities)
 ids = insert_result.primary_keys
 
 hello_text_match.flush()
-print(f"Number of entities in Milvus: {hello_text_match.num_entities}")  # check the num_entities
+print(f"Number of entities in Plasmod: {hello_text_match.num_entities}")  # check the num_entities
 
 ################################################################################
 # 4. create index
@@ -95,7 +95,7 @@ index = {
 hello_text_match.create_index("embeddings", index)
 ################################################################################
 # 5. query and scalar filtering search with text match
-# After data were inserted into Milvus and indexed, you can perform:
+# After data were inserted into Plasmod and indexed, you can perform:
 # - query with text match expression
 # - search data with text match filter
 

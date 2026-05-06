@@ -1,14 +1,14 @@
 import numpy as np
 import ml_dtypes
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     Collection,
     FieldSchema,
     CollectionSchema,
     DataType,
     utility,
-    MilvusClient,
+    PlasmodClient,
 )
 
 DIM = 4
@@ -220,7 +220,7 @@ def test_add_nullable_vector_column(vector_config, initial_rows=10, new_rows=10,
     collection.insert(initial_data)
     collection.flush()
 
-    client = MilvusClient(uri="http://localhost:19530")
+    client = PlasmodClient(uri="http://localhost:19530")
     if dim is not None:
         client.add_collection_field(collection_name, "embedding", dtype, dim=dim, nullable=True)
     else:

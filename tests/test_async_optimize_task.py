@@ -2,9 +2,9 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pymilvus.exceptions import MilvusException
-from pymilvus.milvus_client.async_optimize_task import AsyncOptimizeTask
-from pymilvus.milvus_client.optimize_task import ProgressStage
+from pyplasmod.exceptions import PlasmodException
+from pyplasmod.plasmod_client.async_optimize_task import AsyncOptimizeTask
+from pyplasmod.plasmod_client.optimize_task import ProgressStage
 
 
 def _make_task(execute_fn=None):
@@ -58,7 +58,7 @@ class TestAsyncOptimizeTaskCheckCancelled:
     def test_check_cancelled_when_cancelled_raises(self):
         task = _make_task()
         task.cancel()
-        with pytest.raises(MilvusException, match="cancelled"):
+        with pytest.raises(PlasmodException, match="cancelled"):
             task.check_cancelled()
 
 
@@ -67,7 +67,7 @@ class TestAsyncOptimizeTaskResult:
         task = _make_task()
 
         async def run():
-            with pytest.raises(MilvusException, match="not been started"):
+            with pytest.raises(PlasmodException, match="not been started"):
                 await task.result()
 
         asyncio.run(run())
@@ -92,7 +92,7 @@ class TestAsyncOptimizeTaskResult:
         async def run():
             task = AsyncOptimizeTask("col", None, None, slow_execute)
             task.start()
-            with pytest.raises(MilvusException):
+            with pytest.raises(PlasmodException):
                 await task.result(timeout=0.01)
 
         asyncio.run(run())
@@ -103,7 +103,7 @@ class TestAsyncOptimizeTaskResult:
             task = _make_task(execute_fn)
             task.start()
             task._task.cancel()
-            with pytest.raises(MilvusException):
+            with pytest.raises(PlasmodException):
                 await task.result()
 
         asyncio.run(run())

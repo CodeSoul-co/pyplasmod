@@ -1,7 +1,7 @@
 """
-Milvus Snapshot API Usage Examples
+Plasmod Snapshot API Usage Examples
 
-This script demonstrates how to use the snapshot functionality in Milvus for:
+This script demonstrates how to use the snapshot functionality in Plasmod for:
 - Creating backups of collections
 - Listing and describing snapshots
 - Restoring snapshots to new collections
@@ -9,22 +9,22 @@ This script demonstrates how to use the snapshot functionality in Milvus for:
 - Managing snapshot lifecycle
 
 Requirements:
-- Milvus server running (standalone or cluster)
-- pymilvus with snapshot API support
+- Plasmod server running (standalone or cluster)
+- pyplasmod with snapshot API support
 """
 
 import time
-from pymilvus import MilvusClient, DataType
-from pymilvus.milvus_client.index import IndexParams
+from pyplasmod import PlasmodClient, DataType
+from pyplasmod.plasmod_client.index import IndexParams
 
 # Configuration
-MILVUS_URI = "http://localhost:19530"
+PLASMOD_URI = "http://localhost:19530"
 COLLECTION_NAME = "demo_collection"
 SNAPSHOT_NAME = "demo_backup_20240101"
 RESTORED_COLLECTION = "demo_restored"
 
 
-def create_demo_collection(client: MilvusClient):
+def create_demo_collection(client: PlasmodClient):
     """Create a demo collection with sample data."""
     print("\n=== Creating Demo Collection ===")
 
@@ -73,7 +73,7 @@ def create_demo_collection(client: MilvusClient):
     print("✓ Index created")
 
 
-def demo_create_snapshot(client: MilvusClient):
+def demo_create_snapshot(client: PlasmodClient):
     """Demonstrate snapshot creation."""
     print("\n=== Creating Snapshot ===")
 
@@ -91,7 +91,7 @@ def demo_create_snapshot(client: MilvusClient):
     print(f"✓ Snapshot '{SNAPSHOT_NAME}' created successfully")
 
 
-def demo_list_snapshots(client: MilvusClient):
+def demo_list_snapshots(client: PlasmodClient):
     """Demonstrate listing snapshots."""
     print("\n=== Listing Snapshots ===")
 
@@ -103,7 +103,7 @@ def demo_list_snapshots(client: MilvusClient):
 
 
 
-def demo_describe_snapshot(client: MilvusClient):
+def demo_describe_snapshot(client: PlasmodClient):
     """Demonstrate describing a snapshot."""
     print("\n=== Describing Snapshot ===")
 
@@ -118,7 +118,7 @@ def demo_describe_snapshot(client: MilvusClient):
     print(f"  S3 Location:      {info.s3_location}")
 
 
-def demo_restore_snapshot(client: MilvusClient):
+def demo_restore_snapshot(client: PlasmodClient):
     """Demonstrate restoring a snapshot with progress monitoring."""
     print("\n=== Restoring Snapshot ===")
 
@@ -171,7 +171,7 @@ def demo_restore_snapshot(client: MilvusClient):
     return True
 
 
-def demo_list_restore_jobs(client: MilvusClient):
+def demo_list_restore_jobs(client: PlasmodClient):
     """Demonstrate listing restore jobs."""
     print("\n=== Listing Restore Jobs ===")
 
@@ -196,7 +196,7 @@ def demo_list_restore_jobs(client: MilvusClient):
     print(f"\nJobs for collection '{RESTORED_COLLECTION}': {len(collection_jobs)}")
 
 
-def demo_cleanup(client: MilvusClient):
+def demo_cleanup(client: PlasmodClient):
     """Clean up demo resources."""
     print("\n=== Cleanup ===")
 
@@ -216,12 +216,12 @@ def demo_cleanup(client: MilvusClient):
 def main():
     """Main execution function."""
     print("=" * 60)
-    print("Milvus Snapshot API Demo")
+    print("Plasmod Snapshot API Demo")
     print("=" * 60)
 
-    # Connect to Milvus
-    print(f"\nConnecting to Milvus at {MILVUS_URI}...")
-    client = MilvusClient(uri=MILVUS_URI)
+    # Connect to Plasmod
+    print(f"\nConnecting to Plasmod at {PLASMOD_URI}...")
+    client = PlasmodClient(uri=PLASMOD_URI)
     print("✓ Connected successfully")
 
     try:
@@ -256,23 +256,23 @@ def main():
     finally:
         # Close connection
         print("\nClosing connection...")
-        # Note: MilvusClient doesn't have explicit close method
+        # Note: PlasmodClient doesn't have explicit close method
 
 
 async def async_demo():
     """
-    Async version of snapshot demo using AsyncMilvusClient.
+    Async version of snapshot demo using AsyncPlasmodClient.
     Demonstrates all snapshot-related async APIs.
     """
-    from pymilvus import AsyncMilvusClient
+    from pyplasmod import AsyncPlasmodClient
     import asyncio
 
     print("\n" + "=" * 60)
-    print("Async Snapshot Demo - AsyncMilvusClient")
+    print("Async Snapshot Demo - AsyncPlasmodClient")
     print("=" * 60)
 
-    # Connect to Milvus
-    client = AsyncMilvusClient(uri="http://localhost:19530")
+    # Connect to Plasmod
+    client = AsyncPlasmodClient(uri="http://localhost:19530")
 
     try:
         collection_name = "async_snapshot_demo_collection"
@@ -392,7 +392,7 @@ async def async_demo():
     finally:
         # Close connection
         print("\nClosing async connection...")
-        # Note: AsyncMilvusClient will auto-close
+        # Note: AsyncPlasmodClient will auto-close
 
 
 if __name__ == "__main__":

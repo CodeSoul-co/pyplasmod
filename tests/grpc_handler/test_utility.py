@@ -4,11 +4,11 @@ from itertools import count
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pymilvus import AnnSearchRequest, RRFRanker
-from pymilvus.client.cache import GlobalCache
-from pymilvus.exceptions import AmbiguousIndexName, MilvusException
-from pymilvus.grpc_gen import common_pb2
-from pymilvus.grpc_gen import milvus_pb2 as milvus_types
+from pyplasmod import AnnSearchRequest, RRFRanker
+from pyplasmod.client.cache import GlobalCache
+from pyplasmod.exceptions import AmbiguousIndexName, PlasmodException
+from pyplasmod.grpc_gen import common_pb2
+from pyplasmod.grpc_gen import plasmod_pb2 as plasmod_types
 
 from .conftest import make_response
 
@@ -74,7 +74,7 @@ class TestGrpcHandlerUtilityOps:
         assert result == mock_config
         handler._stub.GetReplicateConfiguration.assert_called_once()
         args, kwargs = handler._stub.GetReplicateConfiguration.call_args
-        assert isinstance(args[0], milvus_types.GetReplicateConfigurationRequest)
+        assert isinstance(args[0], plasmod_types.GetReplicateConfigurationRequest)
         assert kwargs["timeout"] == 10
 
     def test_get_server_version_with_detail(self, handler):
@@ -96,7 +96,7 @@ class TestGrpcHandlerUtilityOps:
 
         handler._stub.Connect = MagicMock(return_value=mock_response)
 
-        with patch("pymilvus.client.grpc_handler.check_status"):
+        with patch("pyplasmod.client.grpc_handler.check_status"):
             result = handler.get_server_version(detail=True)
 
         expected = {
@@ -128,7 +128,7 @@ class TestGrpcHandlerUtilityOps:
 
         handler._stub.Connect = MagicMock(return_value=mock_response)
 
-        with patch("pymilvus.client.grpc_handler.check_status"):
+        with patch("pyplasmod.client.grpc_handler.check_status"):
             result1 = handler.get_server_version(detail=True)
             result2 = handler.get_server_version(detail=True)
 
@@ -436,7 +436,7 @@ class TestGrpcHandlerWaitOps:
         time_values = [0, 0.5, 1.5]
         with patch("time.sleep"):
             with patch("time.time", side_effect=lambda: time_values.pop(0) if time_values else 2.0):
-                with pytest.raises(MilvusException):
+                with pytest.raises(PlasmodException):
                     handler.wait_for_loading_collection("coll", timeout=1)
 
     def test_wait_for_loading_partitions_timeout(self, handler):
@@ -450,7 +450,7 @@ class TestGrpcHandlerWaitOps:
         time_values = [0, 0.5, 1.5]
         with patch("time.sleep"):
             with patch("time.time", side_effect=lambda: time_values.pop(0) if time_values else 2.0):
-                with pytest.raises(MilvusException):
+                with pytest.raises(PlasmodException):
                     handler.wait_for_loading_partitions("coll", ["p1"], timeout=1)
 
     def test_wait_for_creating_index_timeout(self, handler):
@@ -468,7 +468,7 @@ class TestGrpcHandlerWaitOps:
         time_counter = count(start=0, step=0.6)  # Increment by 0.6 each call
         with patch("time.sleep"):
             with patch("time.time", side_effect=lambda: next(time_counter)):
-                with pytest.raises(MilvusException):
+                with pytest.raises(PlasmodException):
                     handler.wait_for_creating_index("coll", "idx", timeout=1)
 
 
@@ -493,7 +493,7 @@ class TestGrpcHandlerSearchException:
         handler._stub.Search.future.side_effect = Exception("network error")
 
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             result = handler.search(
                 "coll", "vec", {"metric_type": "L2"}, 10, data=[[0.1, 0.2, 0.3, 0.4]], _async=True
@@ -502,12 +502,12 @@ class TestGrpcHandlerSearchException:
             assert result is not None
 
     def test_search_exception_sync_raises(self, handler):
-        handler._stub.Search.side_effect = MilvusException(message="network error")
+        handler._stub.Search.side_effect = PlasmodException(message="network error")
 
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
-            with pytest.raises(MilvusException):
+            with pytest.raises(PlasmodException):
                 handler.search(
                     "coll", "vec", {"metric_type": "L2"}, 10, data=[[0.1, 0.2, 0.3, 0.4]]
                 )
@@ -523,7 +523,7 @@ class TestGrpcHandlerHybridSearchException:
             data=[[0.1, 0.2, 0.3, 0.4]], anns_field="vec", param={"metric_type": "L2"}, limit=10
         )
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             result = handler.hybrid_search("coll", [req], RRFRanker(), 10, _async=True)
             # Should return a SearchFuture with exception

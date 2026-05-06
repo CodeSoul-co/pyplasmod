@@ -1,13 +1,13 @@
 from unittest.mock import MagicMock
 
-from pymilvus.client.search_result import SearchResult
-from pymilvus.orm.future import (
+from pyplasmod.client.search_result import SearchResult
+from pyplasmod.orm.future import (
     BaseFuture,
     MutationFuture,
     SearchFuture,
     _EmptySearchFuture,
 )
-from pymilvus.orm.mutation import MutationResult
+from pyplasmod.orm.mutation import MutationResult
 
 
 class TestEmptySearchFuture:

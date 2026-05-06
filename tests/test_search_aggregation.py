@@ -9,16 +9,16 @@
 # is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied. See the License for the specific language governing permissions and limitations under the License.
 
-"""Tests for pymilvus/client/search_aggregation.py and its prepare.py integration."""
+"""Tests for pyplasmod/client/search_aggregation.py and its prepare.py integration."""
 
 from unittest.mock import patch
 
 import pytest
-from pymilvus import AggregationBucket, SearchAggregation, TopHits
-from pymilvus.client.prepare import Prepare
-from pymilvus.client.search_result import SearchResult
-from pymilvus.exceptions import ParamError
-from pymilvus.grpc_gen import schema_pb2
+from pyplasmod import AggregationBucket, SearchAggregation, TopHits
+from pyplasmod.client.prepare import Prepare
+from pyplasmod.client.search_result import SearchResult
+from pyplasmod.exceptions import ParamError
+from pyplasmod.grpc_gen import schema_pb2
 
 
 def _basic_agg(**overrides):
@@ -507,7 +507,7 @@ class TestResponseParsing:
             res.agg_buckets.add().CopyFrom(
                 _make_bucket_proto(key_entries=[(100, "cat", f"x{i}")], count=i + 1)
             )
-        with patch("pymilvus.client.search_result.logger.warning") as mock_warning:
+        with patch("pyplasmod.client.search_result.logger.warning") as mock_warning:
             sr = SearchResult(res)
         assert sr.agg_buckets == [[], [], []]
         mock_warning.assert_called_once()
@@ -520,7 +520,7 @@ class TestResponseParsing:
                 _make_bucket_proto(key_entries=[(100, "cat", f"x{i}")], count=i + 1)
             )
         res.agg_topks.extend([2, 1])
-        with patch("pymilvus.client.search_result.logger.warning") as mock_warning:
+        with patch("pyplasmod.client.search_result.logger.warning") as mock_warning:
             sr = SearchResult(res)
         assert [len(buckets) for buckets in sr.agg_buckets] == [2, 2]
         assert [b.count for b in sr.agg_buckets[1]] == [3, 4]

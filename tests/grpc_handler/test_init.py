@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import grpc
 import pytest
-from pymilvus.client.grpc_handler import GrpcHandler, ReconnectHandler
-from pymilvus.exceptions import MilvusException, ParamError
+from pyplasmod.client.grpc_handler import GrpcHandler, ReconnectHandler
+from pyplasmod.exceptions import PlasmodException, ParamError
 
 
 class TestReconnectHandler:
@@ -54,23 +54,23 @@ class TestGrpcHandlerInit:
         assert handler._connect_reserved == {}
 
     def test_init_with_uri(self):
-        with patch("pymilvus.client.grpc_handler.grpc.insecure_channel") as mock_ch:
-            with patch("pymilvus.client.grpc_handler.milvus_pb2_grpc.MilvusServiceStub"):
+        with patch("pyplasmod.client.grpc_handler.grpc.insecure_channel") as mock_ch:
+            with patch("pyplasmod.client.grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub"):
                 mock_ch.return_value = MagicMock()
                 handler = GrpcHandler(uri="http://localhost:19530")
                 assert handler._address == "localhost:19530"
 
     def test_init_with_host_port(self):
-        with patch("pymilvus.client.grpc_handler.grpc.insecure_channel") as mock_ch:
-            with patch("pymilvus.client.grpc_handler.milvus_pb2_grpc.MilvusServiceStub"):
+        with patch("pyplasmod.client.grpc_handler.grpc.insecure_channel") as mock_ch:
+            with patch("pyplasmod.client.grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub"):
                 mock_ch.return_value = MagicMock()
                 handler = GrpcHandler(host="127.0.0.1", port="19530")
                 assert handler._address == "127.0.0.1:19530"
 
     def test_init_secure_channel(self):
-        with patch("pymilvus.client.grpc_handler.grpc.secure_channel") as mock_sec:
-            with patch("pymilvus.client.grpc_handler.grpc.ssl_channel_credentials"):
-                with patch("pymilvus.client.grpc_handler.milvus_pb2_grpc.MilvusServiceStub"):
+        with patch("pyplasmod.client.grpc_handler.grpc.secure_channel") as mock_sec:
+            with patch("pyplasmod.client.grpc_handler.grpc.ssl_channel_credentials"):
+                with patch("pyplasmod.client.grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub"):
                     mock_sec.return_value = MagicMock()
                     GrpcHandler(uri="localhost:19530", secure=True)
                     mock_sec.assert_called_once()
@@ -111,8 +111,8 @@ class TestGrpcHandlerConnectionMgmt:
     def test_get_server_type(self):
         handler = GrpcHandler(channel=MagicMock())
         handler._address = "localhost:19530"
-        with patch("pymilvus.client.grpc_handler.get_server_type", return_value="milvus"):
-            assert handler.get_server_type() == "milvus"
+        with patch("pyplasmod.client.grpc_handler.get_server_type", return_value="plasmod"):
+            assert handler.get_server_type() == "plasmod"
 
     def test_register_state_change_callback(self):
         mock_ch = MagicMock()
@@ -132,20 +132,20 @@ class TestGrpcHandlerConnectionMgmt:
 
     def test_wait_for_channel_ready_timeout(self):
         handler = GrpcHandler(channel=MagicMock())
-        with patch("pymilvus.client.grpc_handler.grpc.channel_ready_future") as mock_ready:
+        with patch("pyplasmod.client.grpc_handler.grpc.channel_ready_future") as mock_ready:
             mock_ready.return_value.result.side_effect = grpc.FutureTimeoutError()
-            with pytest.raises(MilvusException):
+            with pytest.raises(PlasmodException):
                 handler._wait_for_channel_ready(timeout=0.1)
 
     def test_wait_for_channel_ready_no_channel(self):
         handler = GrpcHandler(channel=None)
         handler._channel = None
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             handler._wait_for_channel_ready()
 
     def test_wait_for_channel_ready_generic_exception(self):
         handler = GrpcHandler(channel=MagicMock())
-        with patch("pymilvus.client.grpc_handler.grpc.channel_ready_future") as mock_ready:
+        with patch("pyplasmod.client.grpc_handler.grpc.channel_ready_future") as mock_ready:
             mock_ready.return_value.result.side_effect = RuntimeError("unexpected error")
             with pytest.raises(RuntimeError, match="unexpected error"):
                 handler._wait_for_channel_ready(timeout=1.0)
@@ -153,15 +153,15 @@ class TestGrpcHandlerConnectionMgmt:
     def test_wait_for_channel_ready_none_timeout_uses_default(self):
         """_wait_for_channel_ready(timeout=None) must use a finite default, not block forever.
 
-        When MilvusClient is constructed with the default timeout=None and the URI is
-        unreachable, the call should raise MilvusException instead of hanging indefinitely.
+        When PlasmodClient is constructed with the default timeout=None and the URI is
+        unreachable, the call should raise PlasmodException instead of hanging indefinitely.
         The root cause is that grpc.Future.result(timeout=None) blocks forever; this test
         ensures the implementation substitutes a finite timeout before calling .result().
         """
         handler = GrpcHandler(channel=MagicMock())
-        with patch("pymilvus.client.grpc_handler.grpc.channel_ready_future") as mock_ready:
+        with patch("pyplasmod.client.grpc_handler.grpc.channel_ready_future") as mock_ready:
             mock_ready.return_value.result.side_effect = grpc.FutureTimeoutError()
-            with pytest.raises(MilvusException, match="Fail connecting"):
+            with pytest.raises(PlasmodException, match="Fail connecting"):
                 handler._wait_for_channel_ready(timeout=None)
             # The key assertion: result() must have been called with a finite timeout, not None.
             call_kwargs = mock_ready.return_value.result.call_args
@@ -175,7 +175,7 @@ class TestGrpcHandlerConnectionMgmt:
 
     def test_wait_for_channel_ready_success(self):
         handler = GrpcHandler(channel=MagicMock())
-        with patch("pymilvus.client.grpc_handler.grpc.channel_ready_future") as mock_ready:
+        with patch("pyplasmod.client.grpc_handler.grpc.channel_ready_future") as mock_ready:
             mock_ready.return_value.result.return_value = None
             with patch.object(handler, "_setup_identifier_interceptor") as mock_setup:
                 handler._wait_for_channel_ready(timeout=None)
@@ -188,8 +188,8 @@ class TestGrpcHandlerConnectionMgmt:
         mock_response.identifier = 42
         handler._stub = MagicMock()
         handler._stub.Connect.return_value = mock_response
-        with patch("pymilvus.client.grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.grpc_handler.check_status"
+        with patch("pyplasmod.client.grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.grpc_handler.check_status"
         ):
             mock_prepare.register_request.return_value = MagicMock()
             handler._GrpcHandler__internal_register("user", "host")

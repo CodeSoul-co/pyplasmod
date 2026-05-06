@@ -3,16 +3,16 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pymilvus import AnnSearchRequest, FieldOp, RRFRanker
-from pymilvus.client.call_context import CallContext
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import (
+from pyplasmod import AnnSearchRequest, FieldOp, RRFRanker
+from pyplasmod.client.call_context import CallContext
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import (
     DataNotMatchException,
-    MilvusException,
+    PlasmodException,
     ParamError,
     SchemaMismatchRetryableException,
 )
-from pymilvus.grpc_gen import common_pb2
+from pyplasmod.grpc_gen import common_pb2
 
 from .conftest import make_mutation_response
 
@@ -43,18 +43,18 @@ class TestGrpcHandlerDataOps:
     def test_batch_insert_sync_raises_on_exception(self, handler):
         handler._stub.Insert.future.return_value.result.side_effect = RuntimeError("rpc error")
         with patch.object(handler, "_prepare_batch_insert_request", return_value=MagicMock()):
-            with pytest.raises(MilvusException):
+            with pytest.raises(PlasmodException):
                 handler.batch_insert("coll", [])
 
     def test_delete_sync_raises_on_exception(self, handler):
         handler._stub.Delete.future.return_value.result.side_effect = RuntimeError("rpc error")
-        with pytest.raises(MilvusException):
+        with pytest.raises(PlasmodException):
             handler.delete("coll", "id > 0")
 
     def test_upsert_sync_raises_on_exception(self, handler):
         handler._stub.Upsert.future.return_value.result.side_effect = RuntimeError("rpc error")
         with patch.object(handler, "_prepare_batch_upsert_request", return_value=MagicMock()):
-            with pytest.raises(MilvusException):
+            with pytest.raises(PlasmodException):
                 handler.upsert("coll", [])
 
     def test_delete_sync(self, handler):
@@ -97,7 +97,7 @@ class TestGrpcHandlerSearchOps:
         handler._stub.Search.return_value = mock_resp
 
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             handler.search("coll", "vec", {"metric_type": "L2"}, 10, data=[[0.1, 0.2, 0.3, 0.4]])
             handler._stub.Search.assert_called_once()
@@ -107,7 +107,7 @@ class TestGrpcHandlerSearchOps:
         handler._stub.Search.future.return_value = mock_future
 
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             result = handler.search(
                 "coll", "vec", {"metric_type": "L2"}, 10, data=[[0.1, 0.2, 0.3, 0.4]], _async=True
@@ -132,7 +132,7 @@ class TestGrpcHandlerSearchOps:
             data=[[0.1, 0.2, 0.3, 0.4]], anns_field="vec", param={"metric_type": "L2"}, limit=10
         )
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             handler.hybrid_search("coll", [req], RRFRanker(), 10)
             handler._stub.HybridSearch.assert_called_once()
@@ -145,35 +145,35 @@ class TestGrpcHandlerSearchOps:
             data=[[0.1, 0.2, 0.3, 0.4]], anns_field="vec", param={"metric_type": "L2"}, limit=10
         )
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             result = handler.hybrid_search("coll", [req], RRFRanker(), 10, _async=True)
             assert result is not None
 
-    def test_search_stub_returns_none_raises_milvus_exception(self, handler):
+    def test_search_stub_returns_none_raises_plasmod_exception(self, handler):
         handler._stub.Search.return_value = None
 
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             with pytest.raises(
-                MilvusException, match="Received None response from server during search"
+                PlasmodException, match="Received None response from server during search"
             ):
                 handler.search(
                     "coll", "vec", {"metric_type": "L2"}, 10, data=[[0.1, 0.2, 0.3, 0.4]]
                 )
 
-    def test_hybrid_search_stub_returns_none_raises_milvus_exception(self, handler):
+    def test_hybrid_search_stub_returns_none_raises_plasmod_exception(self, handler):
         handler._stub.HybridSearch.return_value = None
 
         req = AnnSearchRequest(
             data=[[0.1, 0.2, 0.3, 0.4]], anns_field="vec", param={"metric_type": "L2"}, limit=10
         )
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             with pytest.raises(
-                MilvusException, match="Received None response from server during search"
+                PlasmodException, match="Received None response from server during search"
             ):
                 handler.hybrid_search("coll", [req], RRFRanker(), 10)
 
@@ -193,7 +193,7 @@ class TestGrpcHandlerSearchOps:
         handler._stub.Search.return_value = mock_resp
 
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             handler.search("coll", "vec", {"metric_type": "L2"}, 10, ids=123)
             handler._stub.Search.assert_called_once()
@@ -217,17 +217,17 @@ class TestGrpcHandlerQueryOps:
         handler._stub.Query.return_value = mock_resp
 
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ):
             with patch(
-                "pymilvus.client.grpc_handler.entity_helper.extract_dynamic_field_from_result",
+                "pyplasmod.client.grpc_handler.entity_helper.extract_dynamic_field_from_result",
                 return_value=([], []),
             ):
                 with patch(
-                    "pymilvus.client.grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
+                    "pyplasmod.client.grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
                     return_value=False,
                 ):
-                    with patch("pymilvus.client.grpc_handler.len_of", return_value=3):
+                    with patch("pyplasmod.client.grpc_handler.len_of", return_value=3):
                         handler.query("coll", "id > 0", ["id"])
 
     def test_query_with_element_indices(self, handler):
@@ -252,15 +252,15 @@ class TestGrpcHandlerQueryOps:
         handler._stub.Query.return_value = mock_resp
 
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ), patch(
-            "pymilvus.client.grpc_handler.entity_helper.extract_dynamic_field_from_result",
+            "pyplasmod.client.grpc_handler.entity_helper.extract_dynamic_field_from_result",
             return_value=([], []),
         ), patch(
-            "pymilvus.client.grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
+            "pyplasmod.client.grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
             return_value=False,
         ), patch(
-            "pymilvus.client.grpc_handler.len_of", return_value=2
+            "pyplasmod.client.grpc_handler.len_of", return_value=2
         ):
             result = handler.query("coll", "id > 0", ["id"])
 
@@ -271,7 +271,7 @@ class TestGrpcHandlerQueryOps:
         assert result[2]["offset"] == 1
 
     def test_query_element_indices_length_mismatch(self, handler):
-        """Test that mismatched element_indices length raises MilvusException."""
+        """Test that mismatched element_indices length raises PlasmodException."""
         mock_field = MagicMock()
         mock_field.field_name = "id"
         mock_field.type = DataType.INT64
@@ -290,17 +290,17 @@ class TestGrpcHandlerQueryOps:
         handler._stub.Query.return_value = mock_resp
 
         with patch(
-            "pymilvus.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ), patch(
-            "pymilvus.client.grpc_handler.entity_helper.extract_dynamic_field_from_result",
+            "pyplasmod.client.grpc_handler.entity_helper.extract_dynamic_field_from_result",
             return_value=([], []),
         ), patch(
-            "pymilvus.client.grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
+            "pyplasmod.client.grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
             return_value=False,
         ), patch(
-            "pymilvus.client.grpc_handler.len_of", return_value=3
+            "pyplasmod.client.grpc_handler.len_of", return_value=3
         ):
-            with pytest.raises(MilvusException, match="element_indices length"):
+            with pytest.raises(PlasmodException, match="element_indices length"):
                 handler.query("coll", "id > 0", ["id"])
 
     def test_query_invalid_output_fields(self, handler):
@@ -315,7 +315,7 @@ class TestGrpcHandlerBatchInsert:
         """Test _prepare_batch_insert_request method."""
         entities = [[1, 2], [[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8]]]
         with patch.object(handler, "describe_collection", return_value=mock_schema):
-            with patch("pymilvus.client.grpc_handler.Prepare.batch_insert_param") as mock_prepare:
+            with patch("pyplasmod.client.grpc_handler.Prepare.batch_insert_param") as mock_prepare:
                 mock_prepare.return_value = MagicMock()
                 handler._prepare_batch_insert_request("coll", entities)
                 mock_prepare.assert_called_once()
@@ -333,7 +333,7 @@ class TestSchemaMismatchRetry:
     retry_on_schema_mismatch catches it → schema cache invalidated → retry
     with fresh schema.
 
-    This simulates the scenario from milvus-io/milvus#48522 where concurrent
+    This simulates the scenario from plasmod-io/plasmod#48522 where concurrent
     add_field changes the collection schema mid-insert.
     """
 
@@ -535,7 +535,7 @@ class TestSchemaMismatchRetry:
         """After schema invalidation, the retried request uses the new schema_timestamp.
 
         The schema_timestamp is embedded in the insert request and checked by the
-        Milvus proxy. A stale timestamp causes SchemaMismatch rejection.
+        Plasmod proxy. A stale timestamp causes SchemaMismatch rejection.
         """
         context = CallContext(db_name="test_db")
         captured_timestamps = []
@@ -599,7 +599,7 @@ class TestSchemaMismatchRetry:
     ):
         """End-to-end: retry re-prepares the request through _parse_row_request.
 
-        Simulates the milvus-io/milvus#48522 scenario:
+        Simulates the plasmod-io/plasmod#48522 scenario:
         1. Rows have 2 fields (id, vector) — matching old schema
         2. Concurrent add_field adds a 3rd nullable field
         3. Server returns SchemaMismatch on first attempt

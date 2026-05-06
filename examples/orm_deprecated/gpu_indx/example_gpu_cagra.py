@@ -2,7 +2,7 @@ import numpy as np
 import time 
 import random
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     list_collections,
     FieldSchema, CollectionSchema, DataType,
@@ -14,7 +14,7 @@ nb = 10000
 nq = 10
 collection_name = "GPU_CAGRA_test"
 
-# configure milvus hostname and port
+# configure plasmod hostname and port
 print(f"\nCreate connection...")
 connections.connect(host="localhost", port=19530)
 

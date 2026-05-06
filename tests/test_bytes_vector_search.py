@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
-from pymilvus import DataType
-from pymilvus.client.abstract import AnnSearchRequest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.client.grpc_handler import GrpcHandler
+from pyplasmod import DataType
+from pyplasmod.client.abstract import AnnSearchRequest
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.grpc_handler import GrpcHandler
 
 MOCK_SCHEMA = {
     "fields": [
@@ -50,7 +50,7 @@ def _make_async_grpc_handler():
 class TestGrpcHandlerSearchBytesVector:
     """Test GrpcHandler.search auto-fetches schema for bytes vectors."""
 
-    @patch("pymilvus.client.grpc_handler.ts_utils")
+    @patch("pyplasmod.client.grpc_handler.ts_utils")
     def test_search_bytes_data_fetches_schema(self, mock_ts_utils):
         """When data[0] is bytes and no schema kwarg, _get_schema is called."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -69,7 +69,7 @@ class TestGrpcHandlerSearchBytesVector:
         call_kwargs = handler._execute_search.call_args
         assert call_kwargs is not None
 
-    @patch("pymilvus.client.grpc_handler.ts_utils")
+    @patch("pyplasmod.client.grpc_handler.ts_utils")
     def test_search_bytes_data_with_existing_schema_skips_fetch(self, mock_ts_utils):
         """When schema kwarg already present, _get_schema is NOT called."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -86,7 +86,7 @@ class TestGrpcHandlerSearchBytesVector:
 
         handler._get_schema.assert_not_called()
 
-    @patch("pymilvus.client.grpc_handler.ts_utils")
+    @patch("pyplasmod.client.grpc_handler.ts_utils")
     def test_search_float_data_skips_schema_fetch(self, mock_ts_utils):
         """When data is float vectors, _get_schema is NOT called."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -106,7 +106,7 @@ class TestGrpcHandlerSearchBytesVector:
 class TestGrpcHandlerSearchNumpyArray:
     """Test GrpcHandler.search does not raise ValueError with numpy array data."""
 
-    @patch("pymilvus.client.grpc_handler.ts_utils")
+    @patch("pyplasmod.client.grpc_handler.ts_utils")
     def test_search_numpy_array_does_not_raise(self, mock_ts_utils):
         """When data is a numpy array, the truthiness check must not raise ValueError."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -125,7 +125,7 @@ class TestGrpcHandlerSearchNumpyArray:
 
         handler._get_schema.assert_not_called()
 
-    @patch("pymilvus.client.grpc_handler.ts_utils")
+    @patch("pyplasmod.client.grpc_handler.ts_utils")
     def test_search_numpy_array_multi_vectors(self, mock_ts_utils):
         """Multiple numpy vectors should also work without raising."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -146,7 +146,7 @@ class TestGrpcHandlerSearchNumpyArray:
 class TestGrpcHandlerHybridSearchBytesVector:
     """Test GrpcHandler.hybrid_search auto-fetches schema for bytes vectors."""
 
-    @patch("pymilvus.client.grpc_handler.ts_utils")
+    @patch("pyplasmod.client.grpc_handler.ts_utils")
     def test_hybrid_search_bytes_data_fetches_schema(self, mock_ts_utils):
         """When any req has bytes data, _get_schema is called once."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -174,7 +174,7 @@ class TestGrpcHandlerHybridSearchBytesVector:
 
         handler._get_schema.assert_called_once()
 
-    @patch("pymilvus.client.grpc_handler.ts_utils")
+    @patch("pyplasmod.client.grpc_handler.ts_utils")
     def test_hybrid_search_no_bytes_skips_schema_fetch(self, mock_ts_utils):
         """When no req has bytes data, _get_schema is NOT called."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -196,7 +196,7 @@ class TestGrpcHandlerHybridSearchBytesVector:
 
         handler._get_schema.assert_not_called()
 
-    @patch("pymilvus.client.grpc_handler.ts_utils")
+    @patch("pyplasmod.client.grpc_handler.ts_utils")
     def test_hybrid_search_with_existing_schema_skips_fetch(self, mock_ts_utils):
         """When schema kwarg present, _get_schema is NOT called even with bytes."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -224,7 +224,7 @@ class TestAsyncGrpcHandlerSearchBytesVector:
     """Test AsyncGrpcHandler.search auto-fetches schema for bytes vectors."""
 
     @pytest.mark.asyncio
-    @patch("pymilvus.client.async_grpc_handler.ts_utils")
+    @patch("pyplasmod.client.async_grpc_handler.ts_utils")
     async def test_async_search_bytes_data_fetches_schema(self, mock_ts_utils):
         """When data[0] is bytes and no schema kwarg, _get_schema is called."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -241,7 +241,7 @@ class TestAsyncGrpcHandlerSearchBytesVector:
         handler._get_schema.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("pymilvus.client.async_grpc_handler.ts_utils")
+    @patch("pyplasmod.client.async_grpc_handler.ts_utils")
     async def test_async_search_with_existing_schema_skips_fetch(self, mock_ts_utils):
         """When schema kwarg already present, _get_schema is NOT called."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -259,7 +259,7 @@ class TestAsyncGrpcHandlerSearchBytesVector:
         handler._get_schema.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch("pymilvus.client.async_grpc_handler.ts_utils")
+    @patch("pyplasmod.client.async_grpc_handler.ts_utils")
     async def test_async_search_float_data_skips_schema_fetch(self, mock_ts_utils):
         """When data is float vectors, _get_schema is NOT called."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -280,7 +280,7 @@ class TestAsyncGrpcHandlerHybridSearchBytesVector:
     """Test AsyncGrpcHandler.hybrid_search auto-fetches schema for bytes vectors."""
 
     @pytest.mark.asyncio
-    @patch("pymilvus.client.async_grpc_handler.ts_utils")
+    @patch("pyplasmod.client.async_grpc_handler.ts_utils")
     async def test_async_hybrid_search_bytes_data_fetches_schema(self, mock_ts_utils):
         """When any req has bytes data, _get_schema is called once."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -303,7 +303,7 @@ class TestAsyncGrpcHandlerHybridSearchBytesVector:
         handler._get_schema.assert_called_once()
 
     @pytest.mark.asyncio
-    @patch("pymilvus.client.async_grpc_handler.ts_utils")
+    @patch("pyplasmod.client.async_grpc_handler.ts_utils")
     async def test_async_hybrid_search_no_bytes_skips_fetch(self, mock_ts_utils):
         """When no req has bytes data, _get_schema is NOT called."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -326,7 +326,7 @@ class TestAsyncGrpcHandlerHybridSearchBytesVector:
         handler._get_schema.assert_not_called()
 
     @pytest.mark.asyncio
-    @patch("pymilvus.client.async_grpc_handler.ts_utils")
+    @patch("pyplasmod.client.async_grpc_handler.ts_utils")
     async def test_async_hybrid_search_with_schema_skips_fetch(self, mock_ts_utils):
         """When schema kwarg present, _get_schema is NOT called."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -354,7 +354,7 @@ class TestAsyncGrpcHandlerSearchNumpyArray:
     """Test AsyncGrpcHandler.search does not raise ValueError with numpy array data."""
 
     @pytest.mark.asyncio
-    @patch("pymilvus.client.async_grpc_handler.ts_utils")
+    @patch("pyplasmod.client.async_grpc_handler.ts_utils")
     async def test_async_search_numpy_array_does_not_raise(self, mock_ts_utils):
         """When data is a numpy array, the truthiness check must not raise ValueError."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -375,7 +375,7 @@ class TestAsyncGrpcHandlerSearchNumpyArray:
 class TestGrpcHandlerHybridSearchNumpyArray:
     """Test GrpcHandler.hybrid_search does not raise ValueError with numpy array data."""
 
-    @patch("pymilvus.client.grpc_handler.ts_utils")
+    @patch("pyplasmod.client.grpc_handler.ts_utils")
     def test_hybrid_search_numpy_array_does_not_raise(self, mock_ts_utils):
         """When a request has numpy array data, hybrid_search must not raise."""
         mock_ts_utils.construct_guarantee_ts.return_value = True
@@ -402,7 +402,7 @@ class TestAsyncGrpcHandlerHybridSearchNumpyArray:
     """Test AsyncGrpcHandler.hybrid_search does not raise ValueError with numpy array data."""
 
     @pytest.mark.asyncio
-    @patch("pymilvus.client.async_grpc_handler.ts_utils")
+    @patch("pyplasmod.client.async_grpc_handler.ts_utils")
     async def test_async_hybrid_search_numpy_array_does_not_raise(self, mock_ts_utils):
         """When a request has numpy array data, hybrid_search must not raise."""
         mock_ts_utils.construct_guarantee_ts.return_value = True

@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-from pymilvus.client import entity_helper
-from pymilvus.client.entity_helper import (
+from pyplasmod.client import entity_helper
+from pyplasmod.client.entity_helper import (
     convert_to_json,
     entity_to_field_data,
     entity_to_json_arr,
@@ -13,9 +13,9 @@ from pymilvus.client.entity_helper import (
     extract_struct_array_from_column_data,
     pack_field_value_to_field_data,
 )
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import DataNotMatchException, ParamError
-from pymilvus.grpc_gen import schema_pb2 as schema_types
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import DataNotMatchException, ParamError
+from pyplasmod.grpc_gen import schema_pb2 as schema_types
 
 
 class TestEntityHelperEdgeCases:
@@ -253,7 +253,7 @@ class TestEntityHelperEdgeCases:
 
             if dtype == DataType.SPARSE_FLOAT_VECTOR:
                 with patch(
-                    "pymilvus.client.entity_helper.SciPyHelper.is_scipy_sparse", return_value=False
+                    "pyplasmod.client.entity_helper.SciPyHelper.is_scipy_sparse", return_value=False
                 ):
                     with pytest.raises(DataNotMatchException):
                         pack_field_value_to_field_data(valid_val, field_data_mock, field_info, {})
@@ -352,7 +352,7 @@ class TestEntityHelperCoverage:
         # Add dummy content
         proto.contents.append(b"dummy")
 
-        with mock.patch("pymilvus.client.entity_helper.sparse_parse_single_row") as mock_parse:
+        with mock.patch("pyplasmod.client.entity_helper.sparse_parse_single_row") as mock_parse:
             entity_helper.sparse_proto_to_rows(proto)  # defaults start=None, end=None
             mock_parse.assert_called()
 
@@ -362,7 +362,7 @@ class TestEntityHelperCoverage:
     def test_get_input_num_rows_mock(self):
         """Cover get_input_num_rows with scipy sparse"""
         with mock.patch(
-            "pymilvus.client.entity_helper.SciPyHelper.is_scipy_sparse", return_value=True
+            "pyplasmod.client.entity_helper.SciPyHelper.is_scipy_sparse", return_value=True
         ):
             mock_entity = mock.MagicMock()
             mock_entity.shape = (5, 10)
@@ -395,7 +395,7 @@ class TestEntityHelperCoverage:
 
         # non-string key in parsed json string
         # Mock orjson.loads to return a dict with non-string keys from a string input
-        with mock.patch("pymilvus.client.entity_helper.orjson.loads", return_value={1: "v"}):
+        with mock.patch("pyplasmod.client.entity_helper.orjson.loads", return_value={1: "v"}):
             with pytest.raises(DataNotMatchException, match="Invalid JSON string"):
                 entity_helper.convert_to_json('{"1": "v"}')
 

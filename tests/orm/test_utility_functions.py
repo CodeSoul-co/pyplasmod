@@ -1,18 +1,18 @@
-"""Tests for pymilvus/orm/utility.py -- thin wrapper functions that delegate to connection handlers.
+"""Tests for pyplasmod/orm/utility.py -- thin wrapper functions that delegate to connection handlers.
 
 Each utility function follows the pattern:
     context = connections._generate_call_context(using)
     return _get_connection(using).handler_method(args, timeout=timeout, context=context)
 
 We mock connections._fetch_handler and connections._generate_call_context to verify
-correct delegation without needing a real Milvus server.
+correct delegation without needing a real Plasmod server.
 """
 
 from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from pymilvus.orm.utility import (
+from pyplasmod.orm.utility import (
     alter_alias,
     create_alias,
     create_resource_group,
@@ -58,7 +58,7 @@ def mock_conn():
     returned by connections._fetch_handler(), and mock_connections is the
     patched connections module-level singleton.
     """
-    with mock.patch("pymilvus.orm.utility.connections") as mock_connections:
+    with mock.patch("pyplasmod.orm.utility.connections") as mock_connections:
         mock_handler = Mock()
         mock_connections._fetch_handler.return_value = mock_handler
         mock_connections._generate_call_context.return_value = Mock()
@@ -424,10 +424,10 @@ class TestFlushAll:
 class TestGetServerType:
     def test_get_server_type(self, mock_conn):
         handler, _ = mock_conn
-        handler.get_server_type.return_value = "milvus"
+        handler.get_server_type.return_value = "plasmod"
         result = get_server_type()
         handler.get_server_type.assert_called_once()
-        assert result == "milvus"
+        assert result == "plasmod"
 
     def test_get_server_type_zilliz(self, mock_conn):
         handler, _ = mock_conn

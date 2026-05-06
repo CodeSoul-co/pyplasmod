@@ -3,13 +3,13 @@
 import numpy as np
 import orjson
 import pytest
-from pymilvus import DataType, Function, FunctionType
-from pymilvus.client.abstract import BaseRanker
-from pymilvus.client.constants import QUERY_ITER_LAST_ELEMENT_OFFSET, QUERY_ITER_LAST_PK
-from pymilvus.client.prepare import Prepare
-from pymilvus.exceptions import ParamError
-from pymilvus.grpc_gen import common_pb2 as common_types
-from pymilvus.orm.schema import FunctionScore, LexicalHighlighter
+from pyplasmod import DataType, Function, FunctionType
+from pyplasmod.client.abstract import BaseRanker
+from pyplasmod.client.constants import QUERY_ITER_LAST_ELEMENT_OFFSET, QUERY_ITER_LAST_PK
+from pyplasmod.client.prepare import Prepare
+from pyplasmod.exceptions import ParamError
+from pyplasmod.grpc_gen import common_pb2 as common_types
+from pyplasmod.orm.schema import FunctionScore, LexicalHighlighter
 
 
 class TestSearchRequestsWithExpr:

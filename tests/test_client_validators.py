@@ -2,7 +2,7 @@ import datetime
 
 import numpy as np
 import pytest
-from pymilvus.client.check import (
+from pyplasmod.client.check import (
     ParamChecker,
     check_id_and_data,
     check_pass_param,
@@ -42,10 +42,10 @@ from pymilvus.client.check import (
     validate_nullable_strs,
     validate_strs,
 )
-from pymilvus.client.constants import BOUNDED_TS, EVENTUALLY_TS, GUARANTEE_TIMESTAMP, ITERATOR_FIELD
-from pymilvus.client.ts_utils import construct_guarantee_ts
-from pymilvus.exceptions import ParamError
-from pymilvus.milvus_client.check import validate_noneable_param, validate_param, validate_params
+from pyplasmod.client.constants import BOUNDED_TS, EVENTUALLY_TS, GUARANTEE_TIMESTAMP, ITERATOR_FIELD
+from pyplasmod.client.ts_utils import construct_guarantee_ts
+from pyplasmod.exceptions import ParamError
+from pyplasmod.plasmod_client.check import validate_noneable_param, validate_param, validate_params
 
 
 class TestValidateStrs:
@@ -449,7 +449,7 @@ def test_construct_guarantee_ts(kwargs, check):
     assert check(result, kwargs)
 
 
-class TestMilvusClientCheck:
+class TestPlasmodClientCheck:
     def test_validate_param_none_raises(self):
         with pytest.raises(ParamError, match="missing required"):
             validate_param("foo", None, str)

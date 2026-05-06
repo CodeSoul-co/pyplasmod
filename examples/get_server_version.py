@@ -1,8 +1,8 @@
-from pymilvus import (
-    MilvusClient,
+from pyplasmod import (
+    PlasmodClient,
 )
 
-milvus_client = MilvusClient("http://localhost:19530")
+plasmod_client = PlasmodClient("http://localhost:19530")
 
-version = milvus_client.get_server_version()
+version = plasmod_client.get_server_version()
 print(f"server version: {version}")

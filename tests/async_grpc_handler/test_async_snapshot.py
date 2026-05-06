@@ -6,7 +6,7 @@ Coverage: Snapshot create, drop, list, describe, restore operations.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
 
 
 class TestAsyncGrpcHandlerSnapshot:
@@ -34,8 +34,8 @@ class TestAsyncGrpcHandlerSnapshot:
         mock_response.status = mock_status
         mock_stub.CreateSnapshot = AsyncMock(return_value=mock_status)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_request = MagicMock()
             mock_prepare.create_snapshot_req.return_value = mock_request
@@ -75,8 +75,8 @@ class TestAsyncGrpcHandlerSnapshot:
         mock_status.reason = ""
         mock_stub.DropSnapshot = AsyncMock(return_value=mock_status)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_request = MagicMock()
             mock_prepare.drop_snapshot_req.return_value = mock_request
@@ -119,8 +119,8 @@ class TestAsyncGrpcHandlerSnapshot:
         ]
         mock_stub.ListSnapshots = AsyncMock(return_value=mock_response)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_request = MagicMock()
             mock_prepare.list_snapshots_req.return_value = mock_request
@@ -160,8 +160,8 @@ class TestAsyncGrpcHandlerSnapshot:
         mock_response.s3_location = "s3://bucket/path"
         mock_stub.DescribeSnapshot = AsyncMock(return_value=mock_response)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_request = MagicMock()
             mock_prepare.describe_snapshot_req.return_value = mock_request
@@ -204,8 +204,8 @@ class TestAsyncGrpcHandlerSnapshot:
         mock_response.job_id = 12345
         mock_stub.RestoreSnapshot = AsyncMock(return_value=mock_response)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_request = MagicMock()
             mock_prepare.restore_snapshot_req.return_value = mock_request
@@ -261,10 +261,10 @@ class TestAsyncGrpcHandlerSnapshot:
 
         mock_stub.GetRestoreSnapshotState = AsyncMock(return_value=mock_response)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ), patch(
-            "pymilvus.client.async_grpc_handler.milvus_types.RestoreSnapshotState.Name",
+            "pyplasmod.client.async_grpc_handler.plasmod_types.RestoreSnapshotState.Name",
             return_value="RestoreSnapshotExecuting",
         ):
             mock_request = MagicMock()
@@ -322,10 +322,10 @@ class TestAsyncGrpcHandlerSnapshot:
         mock_response.jobs = [mock_job1, mock_job2]
         mock_stub.ListRestoreSnapshotJobs = AsyncMock(return_value=mock_response)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ), patch(
-            "pymilvus.client.async_grpc_handler.milvus_types.RestoreSnapshotState.Name",
+            "pyplasmod.client.async_grpc_handler.plasmod_types.RestoreSnapshotState.Name",
             side_effect=lambda x: f"State{x}",
         ):
             mock_request = MagicMock()
@@ -365,8 +365,8 @@ class TestAsyncGrpcHandlerSnapshot:
         mock_response.pin_id = 42
         mock_stub.PinSnapshotData = AsyncMock(return_value=mock_response)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.pin_snapshot_data_req.return_value = MagicMock()
 
@@ -405,8 +405,8 @@ class TestAsyncGrpcHandlerSnapshot:
         mock_status.reason = ""
         mock_stub.UnpinSnapshotData = AsyncMock(return_value=mock_status)
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.unpin_snapshot_data_req.return_value = MagicMock()
 

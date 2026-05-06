@@ -9,12 +9,12 @@
 # is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
 # or implied. See the License for the specific language governing permissions and limitations under the License.
 
-"""Comprehensive tests for pymilvus/client/abstract.py"""
+"""Comprehensive tests for pyplasmod/client/abstract.py"""
 
 from unittest.mock import MagicMock
 
 import pytest
-from pymilvus.client.abstract import (
+from pyplasmod.client.abstract import (
     AnnSearchRequest,
     BaseRanker,
     CollectionSchema,
@@ -26,9 +26,9 @@ from pymilvus.client.abstract import (
     StructArrayFieldSchema,
     WeightedRanker,
 )
-from pymilvus.client.constants import RANKER_TYPE_RRF, RANKER_TYPE_WEIGHTED
-from pymilvus.client.types import ConsistencyLevel, DataType, FunctionType
-from pymilvus.exceptions import DataTypeNotMatchException, ParamError
+from pyplasmod.client.constants import RANKER_TYPE_RRF, RANKER_TYPE_WEIGHTED
+from pyplasmod.client.types import ConsistencyLevel, DataType, FunctionType
+from pyplasmod.exceptions import DataTypeNotMatchException, ParamError
 
 
 class TestFieldSchema:
@@ -1104,7 +1104,7 @@ class TestExternalCollectionFields:
         assert "external_field" not in d["fields"][0]
 
     def test_collection_schema_old_server_no_external_fields(self):
-        """Simulate old Milvus server that doesn't have external_source/external_spec."""
+        """Simulate old Plasmod server that doesn't have external_source/external_spec."""
         fields = [self._create_mock_raw_field(name="id")]
         raw = self._create_mock_describe_response(fields=fields)
         # Remove external attributes to simulate old server proto response

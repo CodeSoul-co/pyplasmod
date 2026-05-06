@@ -2,11 +2,11 @@
 
 import numpy as np
 import pytest
-from pymilvus.client.embedding_list import EmbeddingList
-from pymilvus.client.prepare import Prepare
-from pymilvus.client.types import DataType, PlaceholderType
-from pymilvus.exceptions import ParamError
-from pymilvus.grpc_gen import common_pb2
+from pyplasmod.client.embedding_list import EmbeddingList
+from pyplasmod.client.prepare import Prepare
+from pyplasmod.client.types import DataType, PlaceholderType
+from pyplasmod.exceptions import ParamError
+from pyplasmod.grpc_gen import common_pb2
 
 
 def _deserialize_placeholder(serialized_bytes):

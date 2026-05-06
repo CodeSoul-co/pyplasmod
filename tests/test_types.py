@@ -11,9 +11,9 @@
 
 import numpy as np
 import pytest
-from pymilvus import DataType
-from pymilvus.client.constants import DEFAULT_RESOURCE_GROUP
-from pymilvus.client.types import (
+from pyplasmod import DataType
+from pyplasmod.client.constants import DEFAULT_RESOURCE_GROUP
+from pyplasmod.client.types import (
     ConsistencyLevel,
     Group,
     LoadedSegmentInfo,
@@ -22,8 +22,8 @@ from pymilvus.client.types import (
     Shard,
     get_consistency_level,
 )
-from pymilvus.exceptions import InvalidConsistencyLevel
-from pymilvus.orm.types import (
+from pyplasmod.exceptions import InvalidConsistencyLevel
+from pyplasmod.orm.types import (
     infer_dtype_bydata,
 )
 

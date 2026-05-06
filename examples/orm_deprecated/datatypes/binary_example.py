@@ -1,7 +1,7 @@
 import time
 import random
 import numpy as np
-from pymilvus import (
+from pyplasmod import (
      connections,
      utility,
      FieldSchema, CollectionSchema, DataType,
@@ -33,12 +33,12 @@ def binary_vector_search():
     binary_vector = FieldSchema(name=vector_field_name, dtype=DataType.BINARY_VECTOR, dim=dim)
     schema = CollectionSchema(fields=[int64_field, binary_vector], enable_dynamic_field=True)
 
-    has = utility.has_collection("hello_milvus")
+    has = utility.has_collection("hello_plasmod")
     if has:
-        hello_milvus = Collection("hello_milvus_bin")
-        hello_milvus.drop()
+        hello_plasmod = Collection("hello_plasmod_bin")
+        hello_plasmod.drop()
     else:
-        hello_milvus = Collection("hello_milvus_bin", schema)
+        hello_plasmod = Collection("hello_plasmod_bin", schema)
 
     _, vectors = gen_binary_vectors(nb, dim)
     rows = [
@@ -50,19 +50,19 @@ def binary_vector_search():
         {vector_field_name: vectors[5]},
     ]
 
-    hello_milvus.insert(rows)
-    hello_milvus.flush()
+    hello_plasmod.insert(rows)
+    hello_plasmod.flush()
     for i, index_type in enumerate(bin_index_types):
         index_params = default_bin_index_params[i]
-        hello_milvus.create_index(vector_field_name,
+        hello_plasmod.create_index(vector_field_name,
                                   index_params={"index_type": index_type, "params": index_params, "metric_type": "HAMMING"})
-        hello_milvus.load()
+        hello_plasmod.load()
         print("index_type = ", index_type)
-        res = hello_milvus.search(vectors[:1], vector_field_name, {"metric_type": "HAMMING"}, limit=1)
+        res = hello_plasmod.search(vectors[:1], vector_field_name, {"metric_type": "HAMMING"}, limit=1)
         print("res = ", res)
-        hello_milvus.release()
-        hello_milvus.drop_index()
-    hello_milvus.drop()
+        hello_plasmod.release()
+        hello_plasmod.drop_index()
+    hello_plasmod.drop()
 
 
 if __name__ == "__main__":

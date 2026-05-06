@@ -1,11 +1,11 @@
 """Tests for FieldPartialUpdateOp wiring through Prepare."""
 
 import pytest
-from pymilvus import CollectionSchema, DataType, FieldOp, FieldOpType, FieldSchema
-from pymilvus.client.field_ops import normalize_field_ops
-from pymilvus.client.prepare import Prepare
-from pymilvus.exceptions import ParamError
-from pymilvus.grpc_gen import milvus_pb2, schema_pb2
+from pyplasmod import CollectionSchema, DataType, FieldOp, FieldOpType, FieldSchema
+from pyplasmod.client.field_ops import normalize_field_ops
+from pyplasmod.client.prepare import Prepare
+from pyplasmod.exceptions import ParamError
+from pyplasmod.grpc_gen import plasmod_pb2, schema_pb2
 
 # ============================================================
 # FieldOp factory + normalize_field_ops helpers
@@ -199,7 +199,7 @@ def test_batch_upsert_param_without_ops_default(array_schema):
 
 
 def test_apply_field_ops_appends_each_to_request():
-    req = milvus_pb2.UpsertRequest()
+    req = plasmod_pb2.UpsertRequest()
     ops = {
         "a": schema_pb2.FieldPartialUpdateOp(op=FieldOpType.ARRAY_APPEND),
         "b": schema_pb2.FieldPartialUpdateOp(op=FieldOpType.ARRAY_REMOVE),
@@ -211,7 +211,7 @@ def test_apply_field_ops_appends_each_to_request():
 
 
 def test_apply_field_ops_empty_is_noop():
-    req = milvus_pb2.UpsertRequest()
+    req = plasmod_pb2.UpsertRequest()
     Prepare._apply_field_ops(req, {})
     Prepare._apply_field_ops(req, None)
     assert len(req.field_ops) == 0

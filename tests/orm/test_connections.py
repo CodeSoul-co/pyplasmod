@@ -2,11 +2,15 @@ from unittest import mock
 from urllib import parse
 
 import pytest
-from pymilvus import DefaultConfig, MilvusException, connections
-from pymilvus.client.call_context import CallContext
-from pymilvus.exceptions import ConnectionNotExistException, ErrorCode
+from pyplasmod import DefaultConfig, PlasmodException, connections
+from pyplasmod.client.call_context import CallContext
+from pyplasmod._interop_names import lite_embedding_package
+from pyplasmod.exceptions import ConnectionNotExistException, ErrorCode
 
 from .conftest import GRPC_PREFIX
+
+_LITE_PKG = lite_embedding_package()
+_LITE_SM = f"{_LITE_PKG}.server_manager"
 
 
 class TestConnect:
@@ -81,7 +85,7 @@ class TestConnect:
         alias = "no_config_alias"
 
         assert connections.has_connection(alias) is False
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.connect(alias, keep_alive=False)
 
         assert "You need to pass in the configuration" in excinfo.value.message
@@ -210,7 +214,7 @@ class TestAddConnection:
         ],
     )
     def test_add_connection_raise_host_type(self, invalid_host):
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.add_connection(test=invalid_host)
 
         assert "Type of 'host' must be str." in excinfo.value.message
@@ -225,7 +229,7 @@ class TestAddConnection:
         ],
     )
     def test_add_connection_raise_port_type(self, invalid_port):
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.add_connection(test=invalid_port)
 
         assert "Type of 'port' must be str" in excinfo.value.message
@@ -251,7 +255,7 @@ class TestAddConnection:
         ],
     )
     def test_add_connection_address_invalid(self, invalid_addr):
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.add_connection(test=invalid_addr)
 
         assert "Illegal address" in excinfo.value.message
@@ -283,7 +287,7 @@ class TestAddConnection:
         ],
     )
     def test_add_connection_uri_invalid(self, invalid_uri):
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.add_connection(test=invalid_uri)
 
         assert "Illegal uri" in excinfo.value.message
@@ -372,24 +376,24 @@ class TestParseAddressFromUri:
 
     def test_uri_with_empty_netloc_raises(self):
         """URI with empty netloc (e.g. 'http://') should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.add_connection(test={"uri": "http://"})
         assert "Illegal uri" in excinfo.value.message
 
     def test_uri_port_out_of_range_raises(self):
-        """Port number >= 65535 should raise MilvusException or ValueError."""
-        with pytest.raises((MilvusException, ValueError)):
+        """Port number >= 65535 should raise PlasmodException or ValueError."""
+        with pytest.raises((PlasmodException, ValueError)):
             connections.add_connection(test={"uri": "http://localhost:99999"})
 
     def test_uri_non_string_raises(self):
         """Non-string URI should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.add_connection(test={"uri": -1})
         assert "Illegal uri" in excinfo.value.message
 
     def test_uri_none_raises(self):
         """None URI should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.add_connection(test={"uri": None})
         assert "Illegal uri" in excinfo.value.message
 
@@ -400,15 +404,15 @@ class TestGetFullAddress:
     def test_unix_socket_uri(self, mock_grpc_connect, mock_grpc_close):
         """unix: URI should be returned as-is without parsing (line 213)."""
         alias = "unix_test"
-        connections.connect(alias, uri="unix:/tmp/milvus.sock", keep_alive=False)
+        connections.connect(alias, uri="unix:/tmp/plasmod.sock", keep_alive=False)
         config = connections.get_connection_addr(alias)
-        assert config.get("address") == "unix:/tmp/milvus.sock"
+        assert config.get("address") == "unix:/tmp/plasmod.sock"
 
     def test_add_connection_with_unix_socket_uri(self):
         """unix: URI through add_connection should be stored directly."""
-        connections.add_connection(unix_alias={"uri": "unix:/var/run/milvus.sock"})
+        connections.add_connection(unix_alias={"uri": "unix:/var/run/plasmod.sock"})
         config = connections.get_connection_addr("unix_alias")
-        assert config.get("address") == "unix:/var/run/milvus.sock"
+        assert config.get("address") == "unix:/var/run/plasmod.sock"
 
 
 class TestAddConnectionWithExistingHandler:
@@ -423,7 +427,7 @@ class TestAddConnectionWithExistingHandler:
         connections.connect(alias, address="localhost:19530", keep_alive=False)
         assert connections.has_connection(alias) is True
 
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.add_connection(**{alias: {"address": "otherhost:19531"}})
         assert "already creating connections" in excinfo.value.message
 
@@ -442,7 +446,7 @@ class TestDisconnect:
 
     def test_disconnect_non_string_alias_raises(self):
         """disconnect with non-string alias should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.disconnect(123)
         assert "Alias should be string" in excinfo.value.message
 
@@ -462,14 +466,14 @@ class TestDisconnect:
 
     def test_remove_connection_non_string_alias_raises(self):
         """remove_connection with non-string alias should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.remove_connection(42)
         assert "Alias should be string" in excinfo.value.message
 
     @pytest.mark.asyncio
     async def test_async_disconnect_non_string_alias_raises(self):
         """async_disconnect with non-string alias should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             await connections.async_disconnect(123)
         assert "Alias should be string" in excinfo.value.message
 
@@ -500,33 +504,34 @@ class TestDisconnect:
         assert alias not in connections._alias_config
 
 
-class TestConnectMilvusLite:
-    """Cover the milvus-lite path in connect (lines 337-362)."""
+class TestConnectLocalDbUri:
+    """Cover the optional local *.db engine path in connect."""
 
     def test_uri_not_ending_with_db_raises(self):
         """URI that doesn't match schemes and doesn't end with .db should raise."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.connect("lite_test", uri="/tmp/data.txt")
         assert "illegal" in excinfo.value.message.lower()
 
     def test_parent_dir_not_exist_raises(self):
         """URI ending with .db but parent dir doesn't exist should raise."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.connect("lite_test", uri="/nonexistent_dir_xyz/test.db")
         assert "not exists" in excinfo.value.message or "not exist" in excinfo.value.message
 
-    def test_milvus_lite_import_fails_raises(self, tmp_path):
-        """When milvus_lite import fails, should raise ConnectionConfigException."""
+    def test_local_engine_import_fails_raises(self, tmp_path):
+        """When the optional local engine import fails, should raise."""
         db_path = str(tmp_path / "test.db")
         with mock.patch.dict(
-            "sys.modules", {"milvus_lite": None, "milvus_lite.server_manager": None}
+            "sys.modules",
+            {_LITE_PKG: None, _LITE_SM: None},
         ):
-            with pytest.raises(MilvusException) as excinfo:
+            with pytest.raises(PlasmodException) as excinfo:
                 connections.connect("lite_test", uri=db_path)
-            assert "milvus-lite" in excinfo.value.message.lower()
+            assert "optional local engine" in excinfo.value.message.lower()
 
-    def test_milvus_lite_server_returns_none_raises(self, tmp_path):
-        """When server_manager returns None URI, should raise ConnectionConfigException."""
+    def test_local_engine_server_returns_none_raises(self, tmp_path):
+        """When server_manager returns None URI, should raise."""
         db_path = str(tmp_path / "test.db")
         mock_manager = mock.MagicMock()
         mock_manager.start_and_get_uri.return_value = None
@@ -536,16 +541,16 @@ class TestConnectMilvusLite:
         with mock.patch.dict(
             "sys.modules",
             {
-                "milvus_lite": mock.MagicMock(),
-                "milvus_lite.server_manager": mock_module,
+                _LITE_PKG: mock.MagicMock(),
+                _LITE_SM: mock_module,
             },
         ):
-            with pytest.raises(MilvusException) as excinfo:
+            with pytest.raises(PlasmodException) as excinfo:
                 connections.connect("lite_test", uri=db_path)
-            assert "Open local milvus failed" in excinfo.value.message
+            assert "Open local database failed" in excinfo.value.message
 
-    def test_milvus_lite_success(self, tmp_path, mock_grpc_connect, mock_grpc_close):
-        """When milvus_lite is available and returns a URI, connect should succeed."""
+    def test_local_engine_success(self, tmp_path, mock_grpc_connect, mock_grpc_close):
+        """When the local engine is available and returns a URI, connect should succeed."""
         db_path = str(tmp_path / "test.db")
         mock_manager = mock.MagicMock()
         mock_manager.start_and_get_uri.return_value = "http://127.0.0.1:19530"
@@ -555,8 +560,8 @@ class TestConnectMilvusLite:
         with mock.patch.dict(
             "sys.modules",
             {
-                "milvus_lite": mock.MagicMock(),
-                "milvus_lite.server_manager": mock_module,
+                _LITE_PKG: mock.MagicMock(),
+                _LITE_SM: mock_module,
             },
         ):
             connections.connect("lite_ok", uri=db_path, keep_alive=False)
@@ -619,7 +624,7 @@ class TestConnectNonStringAlias:
 
     def test_connect_non_string_alias_raises(self):
         """connect with non-string alias should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.connect(123)
         assert "Alias should be string" in excinfo.value.message
 
@@ -635,7 +640,7 @@ class TestConnectDifferentAddress:
         connections.connect(alias, address="host1:19530", keep_alive=False)
         assert connections.has_connection(alias) is True
 
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections.connect(alias, address="host2:19531", keep_alive=False)
         assert "already creating connections" in excinfo.value.message
 
@@ -671,13 +676,13 @@ class TestUpdateDbName:
 
     def test_update_db_name_non_string_alias_raises(self):
         """Non-string alias should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections._update_db_name(123, "new_db")
         assert "Alias should be string" in excinfo.value.message
 
     def test_update_db_name_non_string_db_name_raises(self):
         """Non-string db_name should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections._update_db_name("default", 123)
         assert "db_name must be a string" in excinfo.value.message
 
@@ -694,7 +699,7 @@ class TestUpdateDbName:
         # Forcibly remove from config but keep in handlers
         connections._alias_config.pop(alias)
 
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections._update_db_name(alias, "new_db")
         assert "not bound" in excinfo.value.message
 
@@ -709,7 +714,7 @@ class TestUpdateDbName:
         assert alias in connections._alias_config
         assert "db_name" not in connections._alias_config[alias]
 
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections._update_db_name(alias, "new_db")
         assert "not bound with a database" in excinfo.value.message
 
@@ -730,7 +735,7 @@ class TestFetchHandler:
 
     def test_fetch_handler_non_string_alias_raises(self):
         """Non-string alias should raise ConnectionConfigException."""
-        with pytest.raises(MilvusException) as excinfo:
+        with pytest.raises(PlasmodException) as excinfo:
             connections._fetch_handler(123)
         assert "Alias should be string" in excinfo.value.message
 

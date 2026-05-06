@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from pymilvus.client.entity_helper import (
+from pyplasmod.client.entity_helper import (
     convert_to_array,
     convert_to_array_of_vector,
     extract_array_row_data_no_validity,
@@ -8,9 +8,9 @@ from pymilvus.client.entity_helper import (
     get_array_length,
     get_array_value_at_index,
 )
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import ParamError
-from pymilvus.grpc_gen import schema_pb2 as schema_types
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import ParamError
+from pyplasmod.grpc_gen import schema_pb2 as schema_types
 
 
 class TestExtractArrayRowDataFunctions:

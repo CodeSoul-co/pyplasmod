@@ -6,8 +6,8 @@ Coverage: Partition create, drop, has, list, load, release operations.
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.exceptions import MilvusException
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.exceptions import PlasmodException
 
 
 class TestAsyncGrpcHandlerPartition:
@@ -30,9 +30,9 @@ class TestAsyncGrpcHandlerPartition:
         mock_stub.CreatePartition = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.create_partition_request.return_value = mock_request
 
@@ -57,9 +57,9 @@ class TestAsyncGrpcHandlerPartition:
         mock_stub.DropPartition = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.drop_partition_request.return_value = mock_request
 
@@ -85,9 +85,9 @@ class TestAsyncGrpcHandlerPartition:
         mock_stub.HasPartition = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.has_partition_request.return_value = mock_request
 
@@ -113,9 +113,9 @@ class TestAsyncGrpcHandlerPartition:
         mock_stub.ShowPartitions = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_prepare.show_partitions_request.return_value = mock_request
 
@@ -151,9 +151,9 @@ class TestAsyncGrpcHandlerPartitionLoad:
 
         handler.wait_for_loading_partitions = AsyncMock()
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_request.refresh = True
             mock_prepare.load_partitions.return_value = mock_request
@@ -206,9 +206,9 @@ class TestAsyncGrpcHandlerPartitionLoad:
 
         handler.wait_for_loading_partitions = AsyncMock()
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_request.refresh = False
             mock_prepare.load_partitions.return_value = mock_request
@@ -262,7 +262,7 @@ class TestAsyncGrpcHandlerPartitionLoad:
 
         handler.get_loading_progress = AsyncMock(return_value=50)
 
-        with pytest.raises(MilvusException) as exc_info:
+        with pytest.raises(PlasmodException) as exc_info:
             await handler.wait_for_loading_partitions(
                 collection_name="test_collection",
                 partition_names=["partition1"],
@@ -297,9 +297,9 @@ class TestAsyncGrpcHandlerPartitionLoad:
 
         handler.wait_for_loading_partitions = AsyncMock()
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_request = MagicMock()
             mock_request.refresh = False
             mock_prepare.load_partitions.return_value = mock_request
@@ -334,9 +334,9 @@ class TestAsyncGrpcHandlerPartitionLoad:
         mock_stub.ReleasePartitions = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.release_partitions_request.return_value = MagicMock()
             await handler.release_partitions("test_coll", ["partition1"])
             mock_stub.ReleasePartitions.assert_called_once()

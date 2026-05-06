@@ -2,8 +2,8 @@
 
 import numpy as np
 import pytest
-from pymilvus.client.prepare import Prepare
-from pymilvus.exceptions import ParamError
+from pyplasmod.client.prepare import Prepare
+from pyplasmod.exceptions import ParamError
 
 
 class TestCreateCollectionNumPartitions:

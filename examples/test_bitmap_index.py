@@ -1,5 +1,5 @@
 # test_bitmap_index.py demonstrates how to create bitmap index and perform query
-# 1. connect to Milvus
+# 1. connect to Plasmod
 # 2. create collection
 # 3. insert data
 # 4. create bitmap index
@@ -7,8 +7,8 @@
 # 6. drop collection
 import time
 
-from pymilvus import (
-    MilvusClient,
+from pyplasmod import (
+    PlasmodClient,
     utility,
     FieldSchema, CollectionSchema, Function, DataType, FunctionType,
     Collection,
@@ -16,19 +16,19 @@ from pymilvus import (
 
 collection_name = "text_bitmap_book"
 
-milvus_client = MilvusClient("http://localhost:19530")
+plasmod_client = PlasmodClient("http://localhost:19530")
 
-has_collection = milvus_client.has_collection(collection_name, timeout=5)
+has_collection = plasmod_client.has_collection(collection_name, timeout=5)
 if has_collection:
-    milvus_client.drop_collection(collection_name)
+    plasmod_client.drop_collection(collection_name)
 
-schema = milvus_client.create_schema()
+schema = plasmod_client.create_schema()
 schema.add_field("id", DataType.INT64, is_primary=True, auto_id=False)
 schema.add_field("title", DataType.VARCHAR, max_length=200)
 schema.add_field("type", DataType.VARCHAR, max_length=200)
 schema.add_field("embeddings", DataType.FLOAT_VECTOR, dim=8)
 
-index_params = milvus_client.prepare_index_params()
+index_params = plasmod_client.prepare_index_params()
 index_params.add_index(
     field_name="embeddings",
     index_name="vec_index",
@@ -41,7 +41,7 @@ index_params.add_index(
     index_type="BITMAP",
 )
 
-ret = milvus_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
+ret = plasmod_client.create_collection(collection_name, schema=schema, index_params=index_params, consistency_level="Strong")
 
 rows = [
     {
@@ -64,10 +64,10 @@ rows = [
     },
 ]
 
-insert_result = milvus_client.insert(collection_name, rows, progress_bar=True)
+insert_result = plasmod_client.insert(collection_name, rows, progress_bar=True)
 
-result = milvus_client.query(collection_name, filter='type in ["reference"]', output_fields=["type"], consistency_level="Strong")           
+result = plasmod_client.query(collection_name, filter='type in ["reference"]', output_fields=["type"], consistency_level="Strong")           
 print(result)
 
 # Finally, drop the collection
-milvus_client.drop_collection(collection_name)
+plasmod_client.drop_collection(collection_name)

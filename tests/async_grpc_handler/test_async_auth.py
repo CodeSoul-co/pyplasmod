@@ -6,7 +6,7 @@ Coverage: User, role, privilege, grant, resource group operations.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
 
 
 class TestAsyncGrpcHandlerUser:
@@ -30,8 +30,8 @@ class TestAsyncGrpcHandlerUser:
         mock_stub.CreateCredential = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_request = MagicMock()
             mock_prepare.create_credential_request.return_value = mock_request
@@ -55,8 +55,8 @@ class TestAsyncGrpcHandlerUser:
         mock_stub.DeleteCredential = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.delete_credential_request.return_value = MagicMock()
             await handler.drop_user("test_user")
@@ -77,8 +77,8 @@ class TestAsyncGrpcHandlerUser:
         mock_stub.UpdateCredential = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.update_credential_request.return_value = MagicMock()
             await handler.update_password("user", "old_pass", "new_pass")
@@ -100,7 +100,7 @@ class TestAsyncGrpcHandlerUser:
         mock_stub.ListCredUsers = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.check_status"):
             result = await handler.list_users()
             assert result == ["user1", "user2"]
 
@@ -125,8 +125,8 @@ class TestAsyncGrpcHandlerUser:
         mock_stub.SelectUser = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.select_user_request.return_value = MagicMock()
             result = await handler.describe_user("test_user", include_role_info=True)
@@ -154,8 +154,8 @@ class TestAsyncGrpcHandlerRole:
         mock_stub.CreateRole = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_request = MagicMock()
             mock_prepare.create_role_request.return_value = mock_request
@@ -182,8 +182,8 @@ class TestAsyncGrpcHandlerRole:
         mock_stub.DropRole = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_request = MagicMock()
             mock_prepare.drop_role_request.return_value = mock_request
@@ -210,8 +210,8 @@ class TestAsyncGrpcHandlerRole:
         mock_stub.SelectRole = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.select_role_request.return_value = MagicMock()
             result = await handler.list_roles(include_user_info=False)
@@ -235,8 +235,8 @@ class TestAsyncGrpcHandlerRole:
         mock_stub.SelectRole = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.select_role_request.return_value = MagicMock()
             result = await handler.describe_role("admin", include_user_info=True)
@@ -261,8 +261,8 @@ class TestAsyncGrpcHandlerGrant:
         mock_stub.OperateUserRole = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.operate_user_role_request.return_value = MagicMock()
             await handler.grant_role("user1", "admin")
@@ -283,8 +283,8 @@ class TestAsyncGrpcHandlerGrant:
         mock_stub.OperateUserRole = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.operate_user_role_request.return_value = MagicMock()
             await handler.revoke_role("user1", "admin")
@@ -305,8 +305,8 @@ class TestAsyncGrpcHandlerGrant:
         mock_stub.OperatePrivilege = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.operate_privilege_request.return_value = MagicMock()
             await handler.grant_privilege("admin", "Collection", "*", "Insert", "default")
@@ -327,8 +327,8 @@ class TestAsyncGrpcHandlerGrant:
         mock_stub.OperatePrivilege = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.operate_privilege_request.return_value = MagicMock()
             await handler.revoke_privilege("admin", "Collection", "*", "Insert", "default")
@@ -350,8 +350,8 @@ class TestAsyncGrpcHandlerGrant:
         mock_stub.SelectGrant = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.select_grant_request.return_value = MagicMock()
             result = await handler.select_grant_for_one_role("admin", "default")
@@ -372,8 +372,8 @@ class TestAsyncGrpcHandlerGrant:
         mock_stub.OperatePrivilegeV2 = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.operate_privilege_v2_request.return_value = MagicMock()
             await handler.grant_privilege_v2("admin", "Insert", "test_coll", db_name="default")
@@ -394,8 +394,8 @@ class TestAsyncGrpcHandlerGrant:
         mock_stub.OperatePrivilegeV2 = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.operate_privilege_v2_request.return_value = MagicMock()
             await handler.revoke_privilege_v2("admin", "Insert", "test_coll", db_name="default")
@@ -420,8 +420,8 @@ class TestAsyncGrpcHandlerPrivilegeGroup:
         mock_stub.CreatePrivilegeGroup = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.create_privilege_group_req.return_value = MagicMock()
             await handler.create_privilege_group("test_group")
@@ -442,8 +442,8 @@ class TestAsyncGrpcHandlerPrivilegeGroup:
         mock_stub.DropPrivilegeGroup = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.drop_privilege_group_req.return_value = MagicMock()
             await handler.drop_privilege_group("test_group")
@@ -465,8 +465,8 @@ class TestAsyncGrpcHandlerPrivilegeGroup:
         mock_stub.ListPrivilegeGroups = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.list_privilege_groups_req.return_value = MagicMock()
             result = await handler.list_privilege_groups()
@@ -487,8 +487,8 @@ class TestAsyncGrpcHandlerPrivilegeGroup:
         mock_stub.OperatePrivilegeGroup = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.operate_privilege_group_req.return_value = MagicMock()
             await handler.add_privileges_to_group("test_group", ["Insert", "Query"])
@@ -509,8 +509,8 @@ class TestAsyncGrpcHandlerPrivilegeGroup:
         mock_stub.OperatePrivilegeGroup = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.operate_privilege_group_req.return_value = MagicMock()
             await handler.remove_privileges_from_group("test_group", ["Insert"])
@@ -535,8 +535,8 @@ class TestAsyncGrpcHandlerResourceGroup:
         mock_stub.CreateResourceGroup = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.create_resource_group.return_value = MagicMock()
             await handler.create_resource_group("test_rg")
@@ -557,8 +557,8 @@ class TestAsyncGrpcHandlerResourceGroup:
         mock_stub.DropResourceGroup = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.drop_resource_group.return_value = MagicMock()
             await handler.drop_resource_group("test_rg")
@@ -580,7 +580,7 @@ class TestAsyncGrpcHandlerResourceGroup:
         mock_stub.ListResourceGroups = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.check_status"):
             result = await handler.list_resource_groups()
             assert result == ["rg1", "rg2"]
 
@@ -609,8 +609,8 @@ class TestAsyncGrpcHandlerResourceGroup:
         mock_stub.DescribeResourceGroup = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.describe_resource_group.return_value = MagicMock()
             result = await handler.describe_resource_group("test_rg")
@@ -631,8 +631,8 @@ class TestAsyncGrpcHandlerResourceGroup:
         mock_stub.UpdateResourceGroups = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.update_resource_groups.return_value = MagicMock()
             await handler.update_resource_groups({})
@@ -653,8 +653,8 @@ class TestAsyncGrpcHandlerResourceGroup:
         mock_stub.TransferReplica = AsyncMock(return_value=mock_status)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.transfer_replica.return_value = MagicMock()
             await handler.transfer_replica("src_rg", "tgt_rg", "test_coll", 1)

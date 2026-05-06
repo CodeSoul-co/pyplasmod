@@ -3,17 +3,17 @@ import struct
 from datetime import timedelta
 
 import pytest
-from pymilvus.client import utils
-from pymilvus.client.constants import LOGICAL_BITS, LOGICAL_BITS_MASK
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import MilvusException, ParamError
+from pyplasmod.client import utils
+from pyplasmod.client.constants import LOGICAL_BITS, LOGICAL_BITS_MASK
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import PlasmodException, ParamError
 
 
 class TestGetServerType:
     def test_get_server_type(self):
         urls_and_wants = [
             ("in01-0390f61a8675594.aws-us-west-2.vectordb.zillizcloud.com", "zilliz"),
-            ("something.abc.com", "milvus"),
+            ("something.abc.com", "plasmod"),
             ("something.zillizcloud.cn", "zilliz"),
         ]
         for url, want in urls_and_wants:
@@ -24,8 +24,8 @@ class TestGetServerType:
         assert utils.get_server_type("ZiLlIzCloud.com") == "zilliz"
 
     def test_get_server_type_non_string(self):
-        assert utils.get_server_type(None) == "milvus"
-        assert utils.get_server_type(123) == "milvus"
+        assert utils.get_server_type(None) == "plasmod"
+        assert utils.get_server_type(123) == "plasmod"
 
 
 class TestHybridtsToUnixtime:
@@ -95,19 +95,19 @@ class TestMktsFromHybridts:
     def test_invalid_milliseconds_type(self):
         hybridts = 1000 << LOGICAL_BITS
         with pytest.raises(
-            MilvusException, match="parameter milliseconds should be type of int or float"
+            PlasmodException, match="parameter milliseconds should be type of int or float"
         ):
             utils.mkts_from_hybridts(hybridts, milliseconds="invalid")
 
     def test_invalid_delta_type(self):
         hybridts = 1000 << LOGICAL_BITS
         with pytest.raises(
-            MilvusException, match=r"parameter delta should be type of datetime\.timedelta"
+            PlasmodException, match=r"parameter delta should be type of datetime\.timedelta"
         ):
             utils.mkts_from_hybridts(hybridts, delta="invalid")
 
     def test_invalid_hybridts_type(self):
-        with pytest.raises(MilvusException, match="parameter hybridts should be type of int"):
+        with pytest.raises(PlasmodException, match="parameter hybridts should be type of int"):
             utils.mkts_from_hybridts("invalid")
 
 
@@ -151,18 +151,18 @@ class TestMktsFromUnixtime:
         assert result == expected
 
     def test_invalid_epoch_type(self):
-        with pytest.raises(MilvusException, match="parameter epoch should be type of int or float"):
+        with pytest.raises(PlasmodException, match="parameter epoch should be type of int or float"):
             utils.mkts_from_unixtime("invalid")
 
     def test_invalid_milliseconds_type(self):
         with pytest.raises(
-            MilvusException, match="parameter milliseconds should be type of int or float"
+            PlasmodException, match="parameter milliseconds should be type of int or float"
         ):
             utils.mkts_from_unixtime(1.0, milliseconds="invalid")
 
     def test_invalid_delta_type(self):
         with pytest.raises(
-            MilvusException, match=r"parameter delta should be type of datetime\.timedelta"
+            PlasmodException, match=r"parameter delta should be type of datetime\.timedelta"
         ):
             utils.mkts_from_unixtime(1.0, delta="invalid")
 
@@ -193,13 +193,13 @@ class TestMktsFromDatetime:
 
     def test_invalid_datetime_type(self):
         with pytest.raises(
-            MilvusException, match=r"parameter d_time should be type of datetime\.datetime"
+            PlasmodException, match=r"parameter d_time should be type of datetime\.datetime"
         ):
             utils.mkts_from_datetime("2023-01-01")
 
     def test_invalid_datetime_type_int(self):
         with pytest.raises(
-            MilvusException, match=r"parameter d_time should be type of datetime\.datetime"
+            PlasmodException, match=r"parameter d_time should be type of datetime\.datetime"
         ):
             utils.mkts_from_datetime(1672531200)
 

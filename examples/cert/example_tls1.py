@@ -1,13 +1,13 @@
 import random
 
-from pymilvus import (
-    MilvusClient,
+from pyplasmod import (
+    PlasmodClient,
     FieldSchema, CollectionSchema, DataType,
     utility
 )
 
 # This example shows how to:
-#   1. connect to Milvus server
+#   1. connect to Plasmod server
 #   2. create a collection
 #   3. insert entities
 #   4. create index
@@ -38,30 +38,30 @@ _TOPK = 3
 def main():
     # create a connection
     print(f"\nCreate connection...")
-    milvus_client = MilvusClient(uri=_URI,
+    plasmod_client = PlasmodClient(uri=_URI,
                             secure=True,
                             server_pem_path="cert/server.pem",
                             server_name='localhost')
     print(f"\nList connection:")
-    print(milvus_client._get_connection())
+    print(plasmod_client._get_connection())
 
     # drop collection if the collection exists
-    if milvus_client.has_collection(_COLLECTION_NAME):
-        milvus_client.drop_collection(_COLLECTION_NAME)
+    if plasmod_client.has_collection(_COLLECTION_NAME):
+        plasmod_client.drop_collection(_COLLECTION_NAME)
 
     # create collection
     field1 = FieldSchema(name=_ID_FIELD_NAME, dtype=DataType.INT64, description="int64", is_primary=True)
     field2 = FieldSchema(name=_VECTOR_FIELD_NAME, dtype=DataType.FLOAT_VECTOR, description="float vector", dim=_DIM,
                          is_primary=False)
     schema = CollectionSchema(fields=[field1, field2], description="collection description")
-    milvus_client.create_collection(collection_name=_COLLECTION_NAME,schema=schema)
-    milvus_client.describe_collection(collection_name=_COLLECTION_NAME)
+    plasmod_client.create_collection(collection_name=_COLLECTION_NAME,schema=schema)
+    plasmod_client.describe_collection(collection_name=_COLLECTION_NAME)
 
     print("\ncollection created:", _COLLECTION_NAME)
 
     # show collections
     print("\nlist collections:")
-    print(milvus_client.list_collections())
+    print(plasmod_client.list_collections())
 
     # insert 10000 vectors with 128 dimension
     data_dict = []
@@ -71,13 +71,13 @@ def main():
         "float_vector_field": [random.random() for _ in range(_DIM)]
         }
         data_dict.append(entity)
-    insert_result = milvus_client.insert(collection_name=_COLLECTION_NAME,data=data_dict)
+    insert_result = plasmod_client.insert(collection_name=_COLLECTION_NAME,data=data_dict)
 
     # get the number of entities
     print(f"\nThe number of entity: {insert_result['insert_count']}")
 
     # create index
-    index_params = milvus_client.prepare_index_params()
+    index_params = plasmod_client.prepare_index_params()
 
     index_params.add_index(
         field_name=_VECTOR_FIELD_NAME, 
@@ -86,14 +86,14 @@ def main():
         params={"nlist": _NLIST}
     )
 
-    milvus_client.create_index(
+    plasmod_client.create_index(
         collection_name=_COLLECTION_NAME,
         index_params=index_params
     )
     print("\nCreated index")
 
     # load data to memory
-    milvus_client.load_collection(_COLLECTION_NAME)
+    plasmod_client.load_collection(_COLLECTION_NAME)
     vector = data_dict[1]
     vectors = [vector["float_vector_field"]]
 
@@ -102,21 +102,21 @@ def main():
         "anns_field": _VECTOR_FIELD_NAME,
         "param": {"metric_type": _METRIC_TYPE, "params": {"nprobe": _NPROBE}},
         "expr": f"{_ID_FIELD_NAME} > 0"}
-    results = milvus_client.search(collection_name=_COLLECTION_NAME,data=vectors,limit= _TOPK,search_params=search_param)
+    results = plasmod_client.search(collection_name=_COLLECTION_NAME,data=vectors,limit= _TOPK,search_params=search_param)
     for i, result in enumerate(results):
         print("\nSearch result for {}th vector: ".format(i))
         for j, res in enumerate(result):
             print("Top {}: {}".format(j, res))
 
     # release memory
-    milvus_client.release_collection(_COLLECTION_NAME)
+    plasmod_client.release_collection(_COLLECTION_NAME)
 
     # drop collection index
-    milvus_client.drop_index(_COLLECTION_NAME,index_name=_VECTOR_FIELD_NAME)
+    plasmod_client.drop_index(_COLLECTION_NAME,index_name=_VECTOR_FIELD_NAME)
     print("\nDrop index sucessfully")
 
     # drop collection
-    milvus_client.drop_collection(_COLLECTION_NAME)
+    plasmod_client.drop_collection(_COLLECTION_NAME)
     print("\nDrop collection: {}".format(_COLLECTION_NAME))
 
 

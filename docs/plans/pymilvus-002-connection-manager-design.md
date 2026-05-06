@@ -6,10 +6,10 @@
 
 ## Overview
 
-A new ConnectionManager component that replaces the `connections` singleton for MilvusClient.
+A new ConnectionManager component that replaces the `connections` singleton for PlasmodClient.
 
 **Key Principles:**
-- MilvusClient only (ORM continues using `connections` singleton until deprecated)
+- PlasmodClient only (ORM continues using `connections` singleton until deprecated)
 - Bypass `connections` singleton entirely
 - Strategy pattern for regular vs global endpoints
 - Shared recovery logic on UNAVAILABLE errors
@@ -20,7 +20,7 @@ A new ConnectionManager component that replaces the `connections` singleton for 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        MilvusClient                             │
+│                        PlasmodClient                             │
 └─────────────────────────────┬───────────────────────────────────┘
                               │ uses
                               ▼
@@ -94,8 +94,8 @@ https://{user:pass|token}@host:19530/mydb
 
 | Form | Behavior |
 |------|----------|
-| `.db` suffix (e.g. `./local.db`) | Milvus-lite: validates parent dir, starts local server via `server_manager_instance`, rewrites URI to local gRPC endpoint |
-| `unix:` scheme (e.g. `unix:/var/run/milvus.sock`) | Raw URI passed as `address` (no parsing) |
+| `.db` suffix (e.g. `./local.db`) | Plasmod-lite: validates parent dir, starts local server via `server_manager_instance`, rewrites URI to local gRPC endpoint |
+| `unix:` scheme (e.g. `unix:/var/run/plasmod.sock`) | Raw URI passed as `address` (no parsing) |
 | `https://` scheme | Auto-sets `secure=True` in handler kwargs |
 
 ### ConnectionConfig.from_uri(uri, ...) -> ConnectionConfig
@@ -113,16 +113,16 @@ https://{user:pass|token}@host:19530/mydb
 | `http://localhost:19530` | `address=localhost:19530, token=""` |
 | `https://host:19530/mydb` | `address=host:19530, db_name=mydb, secure=True` |
 | `https://user:pass@host:19530` | `address=host:19530, token=user:pass, secure=True` |
-| `./local.db` | milvus-lite: starts local server, rewrites to gRPC URI |
-| `unix:/var/run/milvus.sock` | `address=unix:/var/run/milvus.sock` (raw pass-through) |
+| `./local.db` | plasmod-lite: starts local server, rewrites to gRPC URI |
+| `unix:/var/run/plasmod.sock` | `address=unix:/var/run/plasmod.sock` (raw pass-through) |
 
 ### Priority
 
 If both URI and explicit parameter provided, explicit wins:
 
 ```python
-MilvusClient(uri="https://host/db1", db_name="db2")  # db_name = "db2"
-MilvusClient(uri="https://user:pass@host", token="other")  # token = "other"
+PlasmodClient(uri="https://host/db1", db_name="db2")  # db_name = "db2"
+PlasmodClient(uri="https://user:pass@host", token="other")  # token = "other"
 ```
 
 ## API Reference
@@ -257,7 +257,7 @@ Runs if connection idle > 30 seconds:
 | Error | Action |
 |-------|--------|
 | `UNAVAILABLE` | Trigger recovery via strategy |
-| `STREAMING_CODE_REPLICATE_VIOLATION` (MilvusException) | Trigger recovery via strategy (same as UNAVAILABLE) |
+| `STREAMING_CODE_REPLICATE_VIOLATION` (PlasmodException) | Trigger recovery via strategy (same as UNAVAILABLE) |
 | Other errors | No action |
 
 ### Error Callback Chain
@@ -297,14 +297,14 @@ directly, bypassing `AsyncConnectionManager`. This path does not call
 `ensure_channel_ready()` and is considered **unsupported internal API** (note the
 `_async` underscore prefix). It will be removed when the ORM layer is deprecated.
 
-New async code should use `AsyncMilvusClient` which uses `AsyncConnectionManager`.
+New async code should use `AsyncPlasmodClient` which uses `AsyncConnectionManager`.
 
 ## Client Integration
 
-### MilvusClient
+### PlasmodClient
 
 ```python
-class MilvusClient:
+class PlasmodClient:
     def __init__(self, uri, token, *, dedicated=False, **kwargs):
         self._manager = ConnectionManager.get_instance()
         self._handler = self._manager.get_or_create(config, dedicated, client=self)
@@ -313,12 +313,12 @@ class MilvusClient:
         self._manager.release(self._handler, client=self)
 ```
 
-### AsyncMilvusClient
+### AsyncPlasmodClient
 
 `__init__` stores config only (no connection). Connection is deferred to first use.
 
 ```python
-class AsyncMilvusClient:
+class AsyncPlasmodClient:
     def __init__(self, uri, token, *, dedicated=False, **kwargs):
         self._config = ConnectionConfig.from_uri(uri, token=token, **kwargs)
         self._manager = None
@@ -351,7 +351,7 @@ class AsyncMilvusClient:
 ## File Structure
 
 ```
-pymilvus/client/
+pyplasmod/client/
 ├── connection_manager.py
 │   ├── ConnectionConfig
 │   ├── ManagedConnection

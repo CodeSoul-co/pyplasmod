@@ -2,11 +2,11 @@ import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pymilvus.client.async_interceptor import (
+from pyplasmod.client.async_interceptor import (
     _GenericAsyncClientInterceptor,
     async_header_adder_interceptor,
 )
-from pymilvus.client.interceptor import (
+from pyplasmod.client.interceptor import (
     _ClientCallDetails,
     _GenericClientInterceptor,
     header_adder_interceptor,

@@ -9,16 +9,14 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["pymilvus"]
+packages = ["pyplasmod"]
 
 
 [project]
-name="pymilvus"
-authors = [
-  {name='PyMilvus Team', email="pymilvus@zilliz.com"},
-]
+name="pyplasmod"
+authors = [{ name = "CodeSoul-co" }]
 requires-python = '>=3.8'
-description = "Python Sdk for Milvus"
+description = "Python SDK for the Plasmod vector database and agent-native storage stack."
 readme = "README.md"
 dependencies=[
     "setuptools <= 75.3.2; python_version == '3.8'",
@@ -48,7 +46,8 @@ classifiers=[
 dynamic = ["version"]
 
 [project.urls]
-"repository" = 'https://github.com/milvus-io/pymilvus'
+"homepage" = "https://github.com/CodeSoul-co/Plasmod"
+"repository" = "https://github.com/CodeSoul-co/Plasmod"
 
 [project.optional-dependencies]
 bulk_writer = [
@@ -57,14 +56,6 @@ bulk_writer = [
     "pyarrow>=12.0.0",
     "azure-storage-blob",
     "urllib3",
-]
-
-model = [
-    "pymilvus.model>=0.3.0",
-]
-
-milvus_lite = [
-    "milvus-lite>=2.4.0;sys_platform!='win32'",
 ]
 
 dev = [
@@ -192,7 +183,7 @@ exclude = [
     "venv",
     "grpc_gen",
     "__pycache__",
-    "pymilvus/client/stub.py",
+    "pyplasmod/client/stub.py",
 ]
 
 # Same as Black.
@@ -228,12 +219,12 @@ builtins-allowed-modules = ["types"]
 
 [tool.coverage.run]
 omit = [
-    "pymilvus/grpc_gen/*",
+    "pyplasmod/grpc_gen/*",
 ]
 
 [tool.coverage.report]
 omit = [
-    "pymilvus/grpc_gen/*",
+    "pyplasmod/grpc_gen/*",
 ]
 exclude_lines = [
     "pragma: no cover",

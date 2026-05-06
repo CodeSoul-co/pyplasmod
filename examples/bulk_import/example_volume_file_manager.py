@@ -1,5 +1,5 @@
-from pymilvus.bulk_writer.constants import ConnectType
-from pymilvus.bulk_writer.volume_file_manager import VolumeFileManager
+from pyplasmod.bulk_writer.constants import ConnectType
+from pyplasmod.bulk_writer.volume_file_manager import VolumeFileManager
 
 if __name__ == "__main__":
     volume_file_manager = VolumeFileManager(

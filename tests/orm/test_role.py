@@ -1,11 +1,11 @@
-"""Tests for pymilvus/orm/role.py — Role class."""
+"""Tests for pyplasmod/orm/role.py — Role class."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pymilvus.orm.role import Role
+from pyplasmod.orm.role import Role
 
-CONNECTIONS_PREFIX = "pymilvus.orm.role.connections"
+CONNECTIONS_PREFIX = "pyplasmod.orm.role.connections"
 
 
 @pytest.fixture

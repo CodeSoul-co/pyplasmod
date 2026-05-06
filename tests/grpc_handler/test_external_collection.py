@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from pymilvus.client.types import RefreshExternalCollectionJobInfo
+from pyplasmod.client.types import RefreshExternalCollectionJobInfo
 
 from .conftest import make_response
 

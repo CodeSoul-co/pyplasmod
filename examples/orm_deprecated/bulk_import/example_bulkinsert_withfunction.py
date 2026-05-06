@@ -6,7 +6,7 @@ import os
 
 from pathlib import Path
 
-from pymilvus import (
+from pyplasmod import (
     connections,
     FieldSchema, CollectionSchema, DataType,
     Collection,
@@ -16,10 +16,10 @@ from pymilvus import (
 )
 
 
-LOCAL_FILES_PATH = "/tmp/milvus_bulkinsert/"
+LOCAL_FILES_PATH = "/tmp/plasmod_bulkinsert/"
 Path(LOCAL_FILES_PATH).mkdir(exist_ok=True)
 
-# Milvus service address
+# Plasmod service address
 _HOST = '127.0.0.1'
 _PORT = '19530'
 
@@ -38,7 +38,7 @@ _DIM = 1536
 # to generate increment ID
 id_start = 1
 
-# Create a Milvus connection
+# Create a Plasmod connection
 def create_connection():
     retry = True
     while retry:
@@ -47,8 +47,8 @@ def create_connection():
             connections.connect(host=_HOST, port=_PORT)
             retry = False
         except Exception as e:
-            print("Cannot connect to Milvus. Error: " + str(e))
-            print(f"Cannot connect to Milvus. Trying to connect Again. Sleeping for: 1")
+            print("Cannot connect to Plasmod. Error: " + str(e))
+            print(f"Cannot connect to Plasmod. Trying to connect Again. Sleeping for: 1")
             time.sleep(1)
 
     print(f"\nList connections:")
@@ -85,14 +85,14 @@ def create_collection(has_partition_key: bool):
 def has_collection():
     return utility.has_collection(_COLLECTION_NAME)
 
-# Drop a collection in Milvus
+# Drop a collection in Plasmod
 def drop_collection():
     collection = Collection(_COLLECTION_NAME)
     collection.drop()
     print("\nDrop collection:", _COLLECTION_NAME)
 
 
-# List all collections in Milvus
+# List all collections in Plasmod
 def list_collections():
     print("\nList collections:")
     print(utility.list_collections())
@@ -358,6 +358,6 @@ def main(has_partition_key: bool):
 
 if __name__ == '__main__':
     # change this value if you want to test bulkinert with partition key
-    # Note: bulkinsert supports partition key from Milvus v2.2.12
+    # Note: bulkinsert supports partition key from Plasmod v2.2.12
     has_partition_key = False
     main(has_partition_key)

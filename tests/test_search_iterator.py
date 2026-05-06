@@ -2,12 +2,12 @@ from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
-from pymilvus.client.call_context import CallContext
-from pymilvus.client.constants import GUARANTEE_TIMESTAMP
-from pymilvus.client.search_iterator import SearchIteratorV2
-from pymilvus.client.search_result import SearchResult
-from pymilvus.exceptions import ParamError, ServerVersionIncompatibleException
-from pymilvus.grpc_gen import schema_pb2
+from pyplasmod.client.call_context import CallContext
+from pyplasmod.client.constants import GUARANTEE_TIMESTAMP
+from pyplasmod.client.search_iterator import SearchIteratorV2
+from pyplasmod.client.search_result import SearchResult
+from pyplasmod.exceptions import ParamError, ServerVersionIncompatibleException
+from pyplasmod.grpc_gen import schema_pb2
 
 
 class TestSearchIteratorV2:
@@ -107,7 +107,7 @@ class TestSearchIteratorV2:
 
         mock_connection.describe_collection.assert_called_once_with("test_collection", context=ctx)
 
-    @patch("pymilvus.client.search_iterator.SearchIteratorV2._probe_for_compability")
+    @patch("pyplasmod.client.search_iterator.SearchIteratorV2._probe_for_compability")
     def test_next_without_external_filter(self, mock_probe, mock_connection, search_data):
         mock_connection.search.return_value = self.create_mock_search_result()
         iterator = SearchIteratorV2(
@@ -121,7 +121,7 @@ class TestSearchIteratorV2:
         assert result is not None
         assert len(result) == 10  # Number of results from mock
 
-    @patch("pymilvus.client.search_iterator.SearchIteratorV2._probe_for_compability")
+    @patch("pyplasmod.client.search_iterator.SearchIteratorV2._probe_for_compability")
     def test_next_with_limit(self, mock_probe, mock_connection, search_data):
         mock_connection.search.return_value = self.create_mock_search_result()
         iterator = SearchIteratorV2(
@@ -185,7 +185,7 @@ class TestSearchIteratorV2:
         mock_connection.search.return_value = probe_result
 
         with patch(
-            "pymilvus.client.search_iterator.fall_back_to_latest_session_ts",
+            "pyplasmod.client.search_iterator.fall_back_to_latest_session_ts",
             return_value=99999,
         ) as mock_fallback:
             iterator = SearchIteratorV2(
@@ -207,7 +207,7 @@ class TestSearchIteratorV2:
         mock_connection.search.return_value = probe_result
 
         with patch(
-            "pymilvus.client.search_iterator.fall_back_to_latest_session_ts",
+            "pyplasmod.client.search_iterator.fall_back_to_latest_session_ts",
             return_value=99999,
         ) as mock_fallback:
             iterator = SearchIteratorV2(
@@ -222,7 +222,7 @@ class TestSearchIteratorV2:
 
         assert iterator._params[GUARANTEE_TIMESTAMP] == 42
 
-    @patch("pymilvus.client.search_iterator.SearchIteratorV2._probe_for_compability")
+    @patch("pyplasmod.client.search_iterator.SearchIteratorV2._probe_for_compability")
     def test_external_filter(self, mock_probe, mock_connection, search_data):
         mock_connection.search.return_value = self.create_mock_search_result()
 
@@ -241,7 +241,7 @@ class TestSearchIteratorV2:
         assert result is not None
         assert all(hit["distance"] < 5.0 for hit in result)
 
-    @patch("pymilvus.client.search_iterator.SearchIteratorV2._probe_for_compability")
+    @patch("pyplasmod.client.search_iterator.SearchIteratorV2._probe_for_compability")
     def test_filter_and_external_filter(self, mock_probe, mock_connection, search_data):
         # Create mock search result with field values
         mock_result = self.create_mock_search_result()

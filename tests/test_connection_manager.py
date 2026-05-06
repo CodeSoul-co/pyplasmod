@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import grpc
 import pytest
-from pymilvus import AsyncMilvusClient, MilvusClient
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.client.connection_manager import (
+from pyplasmod import AsyncPlasmodClient, PlasmodClient
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.connection_manager import (
     IDLE_THRESHOLD_SECONDS,
     AsyncConnectionManager,
     AsyncGlobalStrategy,
@@ -23,9 +23,13 @@ from pymilvus.client.connection_manager import (
     RegularStrategy,
     _GlobalStrategyMixin,
 )
-from pymilvus.client.global_topology import ClusterInfo
-from pymilvus.client.grpc_handler import GrpcHandler
-from pymilvus.exceptions import ConnectionConfigException, MilvusException
+from pyplasmod.client.global_topology import ClusterInfo
+from pyplasmod.client.grpc_handler import GrpcHandler
+from pyplasmod._interop_names import lite_embedding_package
+from pyplasmod.exceptions import ConnectionConfigException, PlasmodException
+
+_LITE_PKG = lite_embedding_package()
+_LITE_SM = f"{_LITE_PKG}.server_manager"
 
 # =============================================================================
 # Module-level helpers
@@ -84,13 +88,13 @@ def _make_topology(version, cluster_id, endpoint, capability=3):
 @pytest.fixture
 def mock_grpc_handler():
     """Create a mock GrpcHandler."""
-    return _make_sync_handler(get_server_type=Mock(return_value="milvus"))
+    return _make_sync_handler(get_server_type=Mock(return_value="plasmod"))
 
 
 @pytest.fixture
 def mock_async_handler():
     """Create a mock AsyncGrpcHandler."""
-    return _make_async_handler(get_server_type=AsyncMock(return_value="milvus"))
+    return _make_async_handler(get_server_type=AsyncMock(return_value="plasmod"))
 
 
 @pytest.fixture
@@ -233,22 +237,22 @@ class TestConnectionConfig:
             ConnectionConfig.from_uri("ftp://host:19530")
 
     def test_local_db_skips_scheme_check(self):
-        """Test that .db files skip scheme validation and go through milvus-lite."""
+        """Test that .db files skip scheme validation and use the optional local engine."""
         mock_manager = Mock()
         mock_manager.start_and_get_uri.return_value = "http://127.0.0.1:12345"
 
         with patch.dict(
             "sys.modules",
             {
-                "milvus_lite": Mock(),
-                "milvus_lite.server_manager": Mock(server_manager_instance=mock_manager),
+                _LITE_PKG: Mock(),
+                _LITE_SM: Mock(server_manager_instance=mock_manager),
             },
         ):
             config = ConnectionConfig.from_uri("mydata.db")
             assert config.address == "127.0.0.1:12345"
 
-    def test_milvus_lite_rewrites_uri(self, tmp_path):
-        """Milvus-Lite URI rewrite: from_uri('./test.db') rewrites to local gRPC URI."""
+    def test_local_engine_rewrites_uri(self, tmp_path):
+        """Local *.db URI rewrite: from_uri rewrites to a gRPC endpoint."""
         db_path = str(tmp_path / "test.db")
         mock_manager = Mock()
         mock_manager.start_and_get_uri.return_value = "http://127.0.0.1:12345"
@@ -256,8 +260,8 @@ class TestConnectionConfig:
         with patch.dict(
             "sys.modules",
             {
-                "milvus_lite": Mock(),
-                "milvus_lite.server_manager": Mock(server_manager_instance=mock_manager),
+                _LITE_PKG: Mock(),
+                _LITE_SM: Mock(server_manager_instance=mock_manager),
             },
         ):
             config = ConnectionConfig.from_uri(db_path)
@@ -265,20 +269,20 @@ class TestConnectionConfig:
             assert config.uri == "http://127.0.0.1:12345"
             assert config.address == "127.0.0.1:12345"
 
-    def test_milvus_lite_parent_dir_missing(self):
+    def test_local_engine_parent_dir_missing(self):
         """ConnectionConfigException when parent directory doesn't exist."""
         with pytest.raises(ConnectionConfigException, match="not exists"):
             ConnectionConfig.from_uri("/nonexistent/dir/test.db")
 
-    def test_milvus_lite_import_error(self, tmp_path):
-        """Helpful error when milvus-lite is not installed."""
+    def test_local_engine_import_error(self, tmp_path):
+        """Helpful error when the optional local engine is not installed."""
         db_path = str(tmp_path / "test.db")
 
-        with patch.dict("sys.modules", {"milvus_lite": None, "milvus_lite.server_manager": None}):
-            with pytest.raises(ConnectionConfigException, match="milvus-lite is required"):
+        with patch.dict("sys.modules", {_LITE_PKG: None, _LITE_SM: None}):
+            with pytest.raises(ConnectionConfigException, match="Optional local engine"):
                 ConnectionConfig.from_uri(db_path)
 
-    def test_milvus_lite_returns_none(self, tmp_path):
+    def test_local_engine_returns_none(self, tmp_path):
         """ConnectionConfigException when start_and_get_uri returns None."""
         db_path = str(tmp_path / "test.db")
         mock_manager = Mock()
@@ -287,25 +291,25 @@ class TestConnectionConfig:
         with patch.dict(
             "sys.modules",
             {
-                "milvus_lite": Mock(),
-                "milvus_lite.server_manager": Mock(server_manager_instance=mock_manager),
+                _LITE_PKG: Mock(),
+                _LITE_SM: Mock(server_manager_instance=mock_manager),
             },
         ):
-            with pytest.raises(ConnectionConfigException, match="Open local milvus failed"):
+            with pytest.raises(ConnectionConfigException, match="Open local database failed"):
                 ConnectionConfig.from_uri(db_path)
 
     def test_unix_socket_address(self):
         """Unix socket URI is passed through as address."""
-        config = ConnectionConfig.from_uri("unix:///tmp/milvus.sock")
-        assert config.address == "unix:///tmp/milvus.sock"
-        assert config.uri == "unix:///tmp/milvus.sock"
+        config = ConnectionConfig.from_uri("unix:///tmp/plasmod.sock")
+        assert config.address == "unix:///tmp/plasmod.sock"
+        assert config.uri == "unix:///tmp/plasmod.sock"
 
     def test_unix_socket_with_token(self):
         """Unix socket preserves token and db_name."""
         config = ConnectionConfig.from_uri(
-            "unix:///tmp/milvus.sock", token="root:milvus", db_name="mydb"
+            "unix:///tmp/plasmod.sock", token="root:plasmod", db_name="mydb"
         )
-        assert config.token == "root:milvus"
+        assert config.token == "root:plasmod"
         assert config.db_name == "mydb"
 
     def test_https_sets_secure_true(self):
@@ -340,7 +344,7 @@ class TestConnectionConfig:
         config = ConnectionConfig.from_uri("http://host:19530", secure=True)
         strategy = RegularStrategy()
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = Mock()
             strategy.create_handler(config)
             mock_handler_cls.assert_called_once_with(
@@ -356,7 +360,7 @@ class TestConnectionConfig:
         config = ConnectionConfig.from_uri("http://host:19530", secure=True)
         strategy = AsyncRegularStrategy()
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = Mock()
             strategy.create_handler(config)
             mock_handler_cls.assert_called_once_with(
@@ -386,7 +390,7 @@ class TestRegularStrategy:
         config = ConnectionConfig.from_uri("https://host:19530/mydb", token="mytoken")
         strategy = RegularStrategy()
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = Mock()
             handler = strategy.create_handler(config)
 
@@ -449,9 +453,9 @@ class TestRegularStrategy:
 class TestGlobalStrategy:
     """Tests for GlobalStrategy."""
 
-    @patch("pymilvus.client.connection_manager.TopologyRefresher")
-    @patch("pymilvus.client.grpc_handler.GrpcHandler")
-    @patch("pymilvus.client.connection_manager.fetch_topology")
+    @patch("pyplasmod.client.connection_manager.TopologyRefresher")
+    @patch("pyplasmod.client.grpc_handler.GrpcHandler")
+    @patch("pyplasmod.client.connection_manager.fetch_topology")
     def test_create_handler_fetches_topology(
         self, mock_fetch, mock_handler_cls, mock_refresher_cls, sample_topology
     ):
@@ -478,9 +482,9 @@ class TestGlobalStrategy:
         assert handler is mock_handler_cls.return_value
         mock_refresher.start.assert_called_once()
 
-    @patch("pymilvus.client.connection_manager.TopologyRefresher")
-    @patch("pymilvus.client.grpc_handler.GrpcHandler")
-    @patch("pymilvus.client.connection_manager.fetch_topology")
+    @patch("pyplasmod.client.connection_manager.TopologyRefresher")
+    @patch("pyplasmod.client.grpc_handler.GrpcHandler")
+    @patch("pyplasmod.client.connection_manager.fetch_topology")
     def test_close_stops_refresher(
         self, mock_fetch, mock_handler_cls, mock_refresher_cls, sample_topology
     ):
@@ -519,9 +523,9 @@ class TestGlobalStrategy:
         old_topology = _make_topology(1, "c1", old_endpoint, capability=0b11)
         new_topology = _make_topology(2, "c2", new_endpoint, capability=0b11)
 
-        with patch("pymilvus.client.connection_manager.fetch_topology") as mock_fetch, patch(
-            "pymilvus.client.grpc_handler.GrpcHandler"
-        ), patch("pymilvus.client.connection_manager.TopologyRefresher"):
+        with patch("pyplasmod.client.connection_manager.fetch_topology") as mock_fetch, patch(
+            "pyplasmod.client.grpc_handler.GrpcHandler"
+        ), patch("pyplasmod.client.connection_manager.TopologyRefresher"):
             mock_fetch.side_effect = [old_topology, new_topology]
             strategy = GlobalStrategy()
             handler = strategy.create_handler(config)
@@ -553,9 +557,9 @@ class TestGlobalStrategy:
         )
         strategy = GlobalStrategy()
 
-        with patch("pymilvus.client.connection_manager.fetch_topology") as mock_fetch, patch(
-            "pymilvus.client.grpc_handler.GrpcHandler"
-        ), patch("pymilvus.client.connection_manager.TopologyRefresher"):
+        with patch("pyplasmod.client.connection_manager.fetch_topology") as mock_fetch, patch(
+            "pyplasmod.client.grpc_handler.GrpcHandler"
+        ), patch("pyplasmod.client.connection_manager.TopologyRefresher"):
             mock_fetch.side_effect = [sample_topology, RuntimeError("network error")]
             handler = strategy.create_handler(config)
             managed = ManagedConnection(handler=handler, config=config, strategy=strategy)
@@ -584,7 +588,7 @@ class TestConnectionManager:
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
         mgr = ConnectionManager.get_instance()
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.side_effect = [_make_sync_handler(), _make_sync_handler()]
 
             h1 = mgr.get_or_create(config, dedicated=dedicated)
@@ -602,7 +606,7 @@ class TestConnectionManager:
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
         mgr = ConnectionManager.get_instance()
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler", return_value=mock_grpc_handler):
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler", return_value=mock_grpc_handler):
             client = Mock()
             handler = mgr.get_or_create(config, client=client)
 
@@ -620,7 +624,7 @@ class TestConnectionManager:
             ConnectionConfig.from_uri("http://host2:19530", token="t2"),
         ]
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handlers = [_make_sync_handler(), _make_sync_handler()]
             mock_handler_cls.side_effect = handlers
 
@@ -638,7 +642,7 @@ class TestConnectionManager:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler", return_value=mock_grpc_handler):
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler", return_value=mock_grpc_handler):
             mgr.get_or_create(config)
 
             stats = mgr.get_stats()
@@ -651,9 +655,9 @@ class TestConnectionManager:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("https://global-cluster.example.com:19530", token="test")
 
-        with patch("pymilvus.client.connection_manager.fetch_topology") as mock_fetch, patch(
-            "pymilvus.client.grpc_handler.GrpcHandler"
-        ) as mock_handler_cls, patch("pymilvus.client.connection_manager.TopologyRefresher"):
+        with patch("pyplasmod.client.connection_manager.fetch_topology") as mock_fetch, patch(
+            "pyplasmod.client.grpc_handler.GrpcHandler"
+        ) as mock_handler_cls, patch("pyplasmod.client.connection_manager.TopologyRefresher"):
             mock_fetch.return_value = sample_topology
             mock_handler_cls.return_value = mock_grpc_handler
             mgr.get_or_create(config)
@@ -666,7 +670,7 @@ class TestConnectionManager:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.side_effect = [_make_sync_handler(), _make_sync_handler()]
 
             mgr.get_or_create(config)
@@ -695,7 +699,7 @@ class TestConnectionManager:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -719,7 +723,7 @@ class TestConnectionManager:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_sync_handler()
 
             mgr.get_or_create(config)
@@ -789,7 +793,7 @@ class TestConnectionManager:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             old_handler = _make_sync_handler()
             mock_handler_cls.return_value = old_handler
 
@@ -802,7 +806,7 @@ class TestConnectionManager:
                 mgr._recover(managed)
 
     def test_handle_error_non_rpc_error_ignored(self):
-        """Test handle_error ignores non-RpcError/non-MilvusException errors."""
+        """Test handle_error ignores non-RpcError/non-PlasmodException errors."""
         mgr = ConnectionManager.get_instance()
         handler = Mock()
         assert mgr.handle_error(handler, ValueError("some error")) is False
@@ -819,7 +823,7 @@ class TestConnectionManager:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_sync_handler()
 
             handler = mgr.get_or_create(config)
@@ -846,7 +850,7 @@ class TestConnectionManager:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -866,7 +870,7 @@ class TestConnectionManager:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -931,9 +935,9 @@ class TestConnectionManager:
 class TestAsyncGlobalStrategy:
     """Tests for AsyncGlobalStrategy."""
 
-    @patch("pymilvus.client.connection_manager.TopologyRefresher")
-    @patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler")
-    @patch("pymilvus.client.connection_manager.fetch_topology")
+    @patch("pyplasmod.client.connection_manager.TopologyRefresher")
+    @patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler")
+    @patch("pyplasmod.client.connection_manager.fetch_topology")
     def test_create_handler_fetches_topology_and_starts_refresher(
         self, mock_fetch, mock_handler_cls, mock_refresher_cls, sample_topology
     ):
@@ -965,10 +969,10 @@ class TestAsyncGlobalStrategy:
         config = ConnectionConfig.from_uri(
             "https://global-cluster.example.com:19530", token="mytoken"
         )
-        with patch("pymilvus.client.connection_manager.fetch_topology") as mock_fetch, patch(
-            "pymilvus.client.async_grpc_handler.AsyncGrpcHandler"
+        with patch("pyplasmod.client.connection_manager.fetch_topology") as mock_fetch, patch(
+            "pyplasmod.client.async_grpc_handler.AsyncGrpcHandler"
         ) as mock_handler_cls, patch(
-            "pymilvus.client.connection_manager.TopologyRefresher"
+            "pyplasmod.client.connection_manager.TopologyRefresher"
         ) as mock_refresher_cls:
             mock_fetch.return_value = sample_topology
             mock_handler = _make_async_handler()
@@ -991,10 +995,10 @@ class TestAsyncGlobalStrategy:
         config = ConnectionConfig.from_uri(
             "https://global-cluster.example.com:19530", token="mytoken"
         )
-        with patch("pymilvus.client.connection_manager.fetch_topology") as mock_fetch, patch(
-            "pymilvus.client.async_grpc_handler.AsyncGrpcHandler"
+        with patch("pyplasmod.client.connection_manager.fetch_topology") as mock_fetch, patch(
+            "pyplasmod.client.async_grpc_handler.AsyncGrpcHandler"
         ) as mock_handler_cls, patch(
-            "pymilvus.client.connection_manager.TopologyRefresher"
+            "pyplasmod.client.connection_manager.TopologyRefresher"
         ) as mock_refresher_cls:
             mock_fetch.return_value = sample_topology
             mock_handler = _make_async_handler()
@@ -1022,10 +1026,10 @@ class TestAsyncGlobalStrategy:
         async def mock_close():
             close_called.append(True)
 
-        with patch("pymilvus.client.connection_manager.fetch_topology") as mock_fetch, patch(
-            "pymilvus.client.async_grpc_handler.AsyncGrpcHandler"
+        with patch("pyplasmod.client.connection_manager.fetch_topology") as mock_fetch, patch(
+            "pyplasmod.client.async_grpc_handler.AsyncGrpcHandler"
         ) as mock_handler_cls, patch(
-            "pymilvus.client.connection_manager.TopologyRefresher"
+            "pyplasmod.client.connection_manager.TopologyRefresher"
         ) as mock_refresher_cls:
             mock_fetch.return_value = sample_topology
             mock_handler_cls.return_value = _make_async_handler(close=mock_close)
@@ -1070,7 +1074,7 @@ class TestAsyncConnectionManager:
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
         mgr = AsyncConnectionManager.get_instance()
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler_cls.side_effect = [_make_async_handler(), _make_async_handler()]
 
             h1 = await mgr.get_or_create(config, dedicated=dedicated)
@@ -1088,7 +1092,7 @@ class TestAsyncConnectionManager:
         mgr = AsyncConnectionManager.get_instance()
 
         with patch(
-            "pymilvus.client.async_grpc_handler.AsyncGrpcHandler", return_value=mock_async_handler
+            "pyplasmod.client.async_grpc_handler.AsyncGrpcHandler", return_value=mock_async_handler
         ):
             client = Mock()
             handler = await mgr.get_or_create(config, client=client)
@@ -1105,7 +1109,7 @@ class TestAsyncConnectionManager:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -1125,7 +1129,7 @@ class TestAsyncConnectionManager:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -1156,7 +1160,7 @@ class TestAsyncConnectionManager:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler = _make_async_handler()
             mock_handler_cls.return_value = mock_handler
 
@@ -1173,7 +1177,7 @@ class TestAsyncConnectionManager:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -1260,7 +1264,7 @@ class TestAsyncConnectionManager:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -1273,7 +1277,7 @@ class TestAsyncConnectionManager:
 
     @pytest.mark.asyncio
     async def test_handle_error_non_rpc_error_ignored(self):
-        """Test async handle_error ignores non-RpcError/non-MilvusException errors."""
+        """Test async handle_error ignores non-RpcError/non-PlasmodException errors."""
         mgr = AsyncConnectionManager.get_instance()
         handler = Mock()
         assert await mgr.handle_error(handler, ValueError("some error")) is False
@@ -1299,7 +1303,7 @@ class TestAsyncConnectionManager:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -1318,7 +1322,7 @@ class TestAsyncConnectionManager:
         config1 = ConnectionConfig.from_uri("http://host1:19530", token="t1")
         config2 = ConnectionConfig.from_uri("http://host2:19530", token="t2")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handlers = [_make_async_handler() for _ in range(3)]
             mock_handler_cls.side_effect = handlers
 
@@ -1343,7 +1347,7 @@ class TestAsyncConnectionManager:
         config1 = ConnectionConfig.from_uri("http://localhost:19530", token="test")
         config2 = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler_cls.side_effect = [
                 _make_async_handler(close=AsyncMock(side_effect=RuntimeError("close failed"))),
                 _make_async_handler(close=AsyncMock(side_effect=RuntimeError("close failed"))),
@@ -1365,7 +1369,7 @@ class TestAsyncConnectionManager:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -1401,7 +1405,7 @@ class TestErrorHandling:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler = _make_sync_handler()
             mock_handler_cls.return_value = mock_handler
 
@@ -1423,7 +1427,7 @@ class TestErrorHandling:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler = Mock(spec=[])  # no spec attrs, so _on_rpc_error must be set
             mock_handler._wait_for_channel_ready = Mock()
             mock_handler_cls.return_value = mock_handler
@@ -1438,7 +1442,7 @@ class TestErrorHandling:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler = Mock(spec=[])
             mock_handler._wait_for_channel_ready = Mock()
             mock_handler_cls.return_value = mock_handler
@@ -1455,7 +1459,7 @@ class TestErrorHandling:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -1475,7 +1479,7 @@ class TestErrorHandling:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler = _make_async_handler()
             mock_handler_cls.return_value = mock_handler
 
@@ -1490,7 +1494,7 @@ class TestErrorHandling:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler = _make_async_handler()
             mock_handler_cls.return_value = mock_handler
 
@@ -1504,7 +1508,7 @@ class TestErrorHandling:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -1523,7 +1527,7 @@ class TestErrorHandling:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -1535,21 +1539,21 @@ class TestErrorHandling:
 
 
 # =============================================================================
-# TestMilvusClientIntegration
+# TestPlasmodClientIntegration
 # =============================================================================
 
 
-class TestMilvusClientIntegration:
-    """Integration tests for MilvusClient with ConnectionManager."""
+class TestPlasmodClientIntegration:
+    """Integration tests for PlasmodClient with ConnectionManager."""
 
     def test_uses_connection_manager(self, mock_grpc_handler):
-        """Test MilvusClient uses ConnectionManager."""
+        """Test PlasmodClient uses ConnectionManager."""
         with patch.object(ConnectionManager, "get_instance") as mock_get_instance:
             mock_manager = Mock()
             mock_manager.get_or_create.return_value = mock_grpc_handler
             mock_get_instance.return_value = mock_manager
 
-            client = MilvusClient(uri="http://localhost:19530")
+            client = PlasmodClient(uri="http://localhost:19530")
 
             mock_manager.get_or_create.assert_called_once()
             config = mock_manager.get_or_create.call_args.args[0]
@@ -1581,14 +1585,14 @@ class TestMilvusClientIntegration:
     )
     def test_connection_sharing(self, scenario, uri1, token1, uri2, token2, expect_same_handler):
         """Test connection sharing behavior based on config."""
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.side_effect = [
-                _make_sync_handler(get_server_type=Mock(return_value="milvus")),
-                _make_sync_handler(get_server_type=Mock(return_value="milvus")),
+                _make_sync_handler(get_server_type=Mock(return_value="plasmod")),
+                _make_sync_handler(get_server_type=Mock(return_value="plasmod")),
             ]
 
-            client1 = MilvusClient(uri=uri1, token=token1)
-            client2 = MilvusClient(uri=uri2, token=token2)
+            client1 = PlasmodClient(uri=uri1, token=token1)
+            client2 = PlasmodClient(uri=uri2, token=token2)
 
             if expect_same_handler:
                 assert client1._handler is client2._handler
@@ -1602,14 +1606,14 @@ class TestMilvusClientIntegration:
 
     def test_dedicated_mode(self):
         """Test dedicated mode creates separate connections."""
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.side_effect = [
-                _make_sync_handler(get_server_type=Mock(return_value="milvus")),
-                _make_sync_handler(get_server_type=Mock(return_value="milvus")),
+                _make_sync_handler(get_server_type=Mock(return_value="plasmod")),
+                _make_sync_handler(get_server_type=Mock(return_value="plasmod")),
             ]
 
-            client1 = MilvusClient(uri="http://localhost:19530", token="test", dedicated=True)
-            client2 = MilvusClient(uri="http://localhost:19530", token="test", dedicated=True)
+            client1 = PlasmodClient(uri="http://localhost:19530", token="test", dedicated=True)
+            client2 = PlasmodClient(uri="http://localhost:19530", token="test", dedicated=True)
 
             assert client1._handler is not client2._handler
 
@@ -1618,14 +1622,14 @@ class TestMilvusClientIntegration:
 
     def test_global_endpoint_uses_global_strategy(self, sample_topology):
         """Test global cluster URIs use GlobalStrategy."""
-        with patch("pymilvus.client.connection_manager.fetch_topology") as mock_fetch, patch(
-            "pymilvus.client.grpc_handler.GrpcHandler"
-        ) as mock_handler_cls, patch("pymilvus.client.connection_manager.TopologyRefresher"):
+        with patch("pyplasmod.client.connection_manager.fetch_topology") as mock_fetch, patch(
+            "pyplasmod.client.grpc_handler.GrpcHandler"
+        ) as mock_handler_cls, patch("pyplasmod.client.connection_manager.TopologyRefresher"):
             mock_fetch.return_value = sample_topology
             mock_handler_cls.return_value = _make_sync_handler(
                 get_server_type=Mock(return_value="zilliz")
             )
-            client = MilvusClient(uri="https://global-cluster.zilliz.com:19530", token="test")
+            client = PlasmodClient(uri="https://global-cluster.zilliz.com:19530", token="test")
 
             mock_fetch.assert_called_once()
             assert mock_handler_cls.call_args.kwargs["uri"] == "https://primary:19530"
@@ -1634,15 +1638,15 @@ class TestMilvusClientIntegration:
 
     def test_stats_reflect_connections(self):
         """Test get_stats returns accurate pool information."""
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_sync_handler(
-                get_server_type=Mock(return_value="milvus")
+                get_server_type=Mock(return_value="plasmod")
             )
 
             mgr = ConnectionManager.get_instance()
             assert mgr.get_stats()["total_connections"] == 0
 
-            client = MilvusClient(uri="http://localhost:19530", token="test")
+            client = PlasmodClient(uri="http://localhost:19530", token="test")
 
             stats = mgr.get_stats()
             assert stats["total_connections"] == 1
@@ -1651,15 +1655,15 @@ class TestMilvusClientIntegration:
             client.close()
 
     def test_sync_client_double_close_is_safe(self):
-        """Test that calling close() twice on MilvusClient doesn't raise."""
+        """Test that calling close() twice on PlasmodClient doesn't raise."""
         with patch.object(ConnectionManager, "get_instance") as mock_get_instance:
             mock_manager = Mock()
             mock_handler = Mock()
-            mock_handler.get_server_type = Mock(return_value="milvus")
+            mock_handler.get_server_type = Mock(return_value="plasmod")
             mock_manager.get_or_create.return_value = mock_handler
             mock_get_instance.return_value = mock_manager
 
-            client = MilvusClient(uri="http://localhost:19530")
+            client = PlasmodClient(uri="http://localhost:19530")
             client.close()
             client.close()  # Should not raise
 
@@ -1675,7 +1679,7 @@ class TestReplicateViolationRecovery:
     """Tests for STREAMING_CODE_REPLICATE_VIOLATION handling."""
 
     def _make_replicate_error(self):
-        return MilvusException(
+        return PlasmodException(
             code=65535,
             message="code: STREAMING_CODE_REPLICATE_VIOLATION, "
             "cause: non-replicate message cannot be received in secondary role",
@@ -1692,8 +1696,8 @@ class TestReplicateViolationRecovery:
         new_topology = _make_topology(2, "in02", "https://in02.zilliz.com")
 
         with patch(
-            "pymilvus.client.connection_manager.fetch_topology", return_value=mock_topology
-        ), patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+            "pyplasmod.client.connection_manager.fetch_topology", return_value=mock_topology
+        ), patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler = _make_sync_handler()
             mock_handler_cls.return_value = mock_handler
 
@@ -1702,7 +1706,7 @@ class TestReplicateViolationRecovery:
             assert isinstance(managed.strategy, GlobalStrategy)
 
             with patch(
-                "pymilvus.client.connection_manager.fetch_topology",
+                "pyplasmod.client.connection_manager.fetch_topology",
                 return_value=new_topology,
             ):
                 result = mgr.handle_error(handler, self._make_replicate_error())
@@ -1719,7 +1723,7 @@ class TestReplicateViolationRecovery:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler = _make_sync_handler()
             mock_handler_cls.return_value = mock_handler
 
@@ -1731,18 +1735,18 @@ class TestReplicateViolationRecovery:
             assert result is True
             handler.reconnect.assert_called_once()
 
-    def test_unrelated_milvus_exception_not_retried(self):
-        """Test handle_error ignores MilvusExceptions without REPLICATE_VIOLATION."""
+    def test_unrelated_plasmod_exception_not_retried(self):
+        """Test handle_error ignores PlasmodExceptions without REPLICATE_VIOLATION."""
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler = _make_sync_handler()
             mock_handler_cls.return_value = mock_handler
 
             handler = mgr.get_or_create(config)
 
-            error = MilvusException(code=1, message="collection not found")
+            error = PlasmodException(code=1, message="collection not found")
             result = mgr.handle_error(handler, error)
             assert result is False
 
@@ -1756,15 +1760,15 @@ class TestReplicateViolationRecovery:
         mock_topology = _make_topology(1, "in01", "https://in01.zilliz.com")
 
         with patch(
-            "pymilvus.client.connection_manager.fetch_topology", return_value=mock_topology
-        ), patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+            "pyplasmod.client.connection_manager.fetch_topology", return_value=mock_topology
+        ), patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler = _make_sync_handler()
             mock_handler_cls.return_value = mock_handler
 
             handler = mgr.get_or_create(config)
 
             with patch(
-                "pymilvus.client.connection_manager.fetch_topology",
+                "pyplasmod.client.connection_manager.fetch_topology",
                 return_value=mock_topology,
             ):
                 result = mgr.handle_error(handler, self._make_replicate_error())
@@ -1784,15 +1788,15 @@ class TestReplicateViolationRecovery:
         new_topology = _make_topology(2, "in02", "https://in02.zilliz.com")
 
         with patch(
-            "pymilvus.client.connection_manager.fetch_topology", return_value=mock_topology
-        ), patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+            "pyplasmod.client.connection_manager.fetch_topology", return_value=mock_topology
+        ), patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler = _make_async_handler()
             mock_handler_cls.return_value = mock_handler
 
             handler = await mgr.get_or_create(config)
 
             with patch(
-                "pymilvus.client.connection_manager.fetch_topology",
+                "pyplasmod.client.connection_manager.fetch_topology",
                 return_value=new_topology,
             ):
                 result = await mgr.handle_error(handler, self._make_replicate_error())
@@ -1804,12 +1808,12 @@ class TestReplicateViolationRecovery:
             assert call_kwargs.kwargs.get("address") == "in02.zilliz.com:19530"
 
     @pytest.mark.asyncio
-    async def test_async_unrelated_milvus_exception_not_retried(self):
-        """Test async handle_error ignores MilvusExceptions without REPLICATE_VIOLATION."""
+    async def test_async_unrelated_plasmod_exception_not_retried(self):
+        """Test async handle_error ignores PlasmodExceptions without REPLICATE_VIOLATION."""
         mgr = AsyncConnectionManager.get_instance()
         handler = Mock()
 
-        error = MilvusException(code=1, message="collection not found")
+        error = PlasmodException(code=1, message="collection not found")
         assert await mgr.handle_error(handler, error) is False
 
 
@@ -1823,7 +1827,7 @@ class TestInPlaceRecovery:
 
     Before the fix, _recover() created a new handler object. This caused
     "Cannot invoke RPC on closed channel" because:
-    - MilvusClient._handler still referenced the old (closed) handler
+    - PlasmodClient._handler still referenced the old (closed) handler
     - retry_on_rpc_failure loops still used the old handler via args[0]
     """
 
@@ -1840,7 +1844,7 @@ class TestInPlaceRecovery:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -1855,14 +1859,14 @@ class TestInPlaceRecovery:
             handler.reconnect.assert_called_once()
 
     def test_client_handler_reference_valid_after_recovery(self):
-        """MilvusClient._handler remains usable after UNAVAILABLE recovery."""
+        """PlasmodClient._handler remains usable after UNAVAILABLE recovery."""
         mgr = ConnectionManager.get_instance()
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
-            handler = _make_sync_handler(get_server_type=Mock(return_value="milvus"))
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+            handler = _make_sync_handler(get_server_type=Mock(return_value="plasmod"))
             mock_handler_cls.return_value = handler
 
-            client = MilvusClient(uri="http://localhost:19530")
+            client = PlasmodClient(uri="http://localhost:19530")
             original_handler = client._handler
             assert original_handler is handler
 
@@ -1881,7 +1885,7 @@ class TestInPlaceRecovery:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -1905,15 +1909,15 @@ class TestInPlaceRecovery:
         new_topology = _make_topology(2, "in02", "https://new-primary.zilliz.com:19530")
 
         with patch(
-            "pymilvus.client.connection_manager.fetch_topology", return_value=old_topology
-        ), patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+            "pyplasmod.client.connection_manager.fetch_topology", return_value=old_topology
+        ), patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
             mgr.get_or_create(config)
 
             with patch(
-                "pymilvus.client.connection_manager.fetch_topology",
+                "pyplasmod.client.connection_manager.fetch_topology",
                 return_value=new_topology,
             ):
                 mgr.handle_error(handler, _MockRpcError())
@@ -1926,7 +1930,7 @@ class TestInPlaceRecovery:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -1950,8 +1954,8 @@ class TestInPlaceRecovery:
         mock_topology = _make_topology(1, "in01", "https://in01.zilliz.com")
 
         with patch(
-            "pymilvus.client.connection_manager.fetch_topology", return_value=mock_topology
-        ), patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+            "pyplasmod.client.connection_manager.fetch_topology", return_value=mock_topology
+        ), patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -1963,9 +1967,9 @@ class TestInPlaceRecovery:
             managed.strategy._topology = None
 
             with patch(
-                "pymilvus.client.connection_manager.fetch_topology",
+                "pyplasmod.client.connection_manager.fetch_topology",
                 side_effect=RuntimeError("network error"),
-            ), patch("pymilvus.client.connection_manager.logger") as mock_logger:
+            ), patch("pyplasmod.client.connection_manager.logger") as mock_logger:
                 mgr.handle_error(handler, _MockRpcError())
 
                 # Should warn about missing topology
@@ -1982,7 +1986,7 @@ class TestInPlaceRecovery:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -2002,7 +2006,7 @@ class TestInPlaceRecovery:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -2023,7 +2027,7 @@ class TestInPlaceRecovery:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -2071,7 +2075,7 @@ class TestInPlaceRecovery:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -2126,7 +2130,7 @@ class TestInPlaceRecovery:
         mgr = ConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             handler = _make_sync_handler()
             mock_handler_cls.return_value = handler
 
@@ -2160,7 +2164,7 @@ class TestInPlaceRecovery:
         mgr = AsyncConnectionManager.get_instance()
         config = ConnectionConfig.from_uri("http://localhost:19530", token="test")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             handler = _make_async_handler()
             mock_handler_cls.return_value = handler
 
@@ -2189,14 +2193,14 @@ class TestInPlaceRecovery:
 
 def _make_real_sync_handler(address="localhost:19530"):
     """Create a real GrpcHandler with mocked gRPC channel for reconnect testing."""
-    with patch("pymilvus.client.grpc_handler.grpc.insecure_channel") as mock_ch:
+    with patch("pyplasmod.client.grpc_handler.grpc.insecure_channel") as mock_ch:
         mock_ch.return_value = Mock()
         return GrpcHandler(uri=f"http://{address}", address=address)
 
 
 def _make_real_async_handler(address="localhost:19530"):
     """Create a real AsyncGrpcHandler with mocked gRPC channel for reconnect testing."""
-    with patch("pymilvus.client.async_grpc_handler.grpc.aio.insecure_channel") as mock_ch:
+    with patch("pyplasmod.client.async_grpc_handler.grpc.aio.insecure_channel") as mock_ch:
         mock_ch.return_value = AsyncMock()
         return AsyncGrpcHandler(uri=f"http://{address}", address=address)
 
@@ -2221,7 +2225,7 @@ class TestHandlerReconnect:
         handler = _make_real_sync_handler()
         old_channel = handler._channel
 
-        with patch("pymilvus.client.grpc_handler.grpc.insecure_channel") as mock_ch, patch.object(
+        with patch("pyplasmod.client.grpc_handler.grpc.insecure_channel") as mock_ch, patch.object(
             handler, "_wait_for_channel_ready"
         ):
             new_channel = Mock()
@@ -2237,7 +2241,7 @@ class TestHandlerReconnect:
         handler = _make_real_sync_handler()
         handler._channel.close = Mock(side_effect=RuntimeError("broken"))
 
-        with patch("pymilvus.client.grpc_handler.grpc.insecure_channel") as mock_ch, patch.object(
+        with patch("pyplasmod.client.grpc_handler.grpc.insecure_channel") as mock_ch, patch.object(
             handler, "_wait_for_channel_ready"
         ):
             new_channel = Mock()
@@ -2251,7 +2255,7 @@ class TestHandlerReconnect:
         handler = _make_real_sync_handler()
 
         with patch(
-            "pymilvus.client.grpc_handler.grpc.insecure_channel", return_value=Mock()
+            "pyplasmod.client.grpc_handler.grpc.insecure_channel", return_value=Mock()
         ), patch.object(handler, "_wait_for_channel_ready") as mock_wait:
             handler.reconnect(timeout=30)
 
@@ -2272,7 +2276,7 @@ class TestHandlerReconnect:
         old_channel = handler._async_channel
 
         with patch(
-            "pymilvus.client.async_grpc_handler.grpc.aio.insecure_channel"
+            "pyplasmod.client.async_grpc_handler.grpc.aio.insecure_channel"
         ) as mock_ch, patch.object(handler, "ensure_channel_ready", new_callable=AsyncMock):
             new_channel = AsyncMock()
             mock_ch.return_value = new_channel
@@ -2290,7 +2294,7 @@ class TestHandlerReconnect:
         handler._async_channel.close = AsyncMock(side_effect=RuntimeError("broken"))
 
         with patch(
-            "pymilvus.client.async_grpc_handler.grpc.aio.insecure_channel"
+            "pyplasmod.client.async_grpc_handler.grpc.aio.insecure_channel"
         ) as mock_ch, patch.object(handler, "ensure_channel_ready", new_callable=AsyncMock):
             new_channel = AsyncMock()
             mock_ch.return_value = new_channel
@@ -2304,7 +2308,7 @@ class TestHandlerReconnect:
         handler = _make_real_async_handler()
 
         with patch(
-            "pymilvus.client.async_grpc_handler.grpc.aio.insecure_channel", return_value=AsyncMock()
+            "pyplasmod.client.async_grpc_handler.grpc.aio.insecure_channel", return_value=AsyncMock()
         ), patch.object(handler, "ensure_channel_ready", new_callable=AsyncMock) as mock_ensure:
             await handler.reconnect(timeout=30)
 
@@ -2312,30 +2316,30 @@ class TestHandlerReconnect:
 
 
 # =============================================================================
-# TestMilvusClientChangedCode
+# TestPlasmodClientChangedCode
 # =============================================================================
 
 
-class TestMilvusClientChangedCode:
-    """Tests for changed code in MilvusClient (sync)."""
+class TestPlasmodClientChangedCode:
+    """Tests for changed code in PlasmodClient (sync)."""
 
     def test_user_password_token_construction(self):
         """Test that user/password are combined into token when no token given."""
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_sync_handler(
-                get_server_type=Mock(return_value="milvus")
+                get_server_type=Mock(return_value="plasmod")
             )
-            client = MilvusClient(uri="http://localhost:19530", user="admin", password="secret")
+            client = PlasmodClient(uri="http://localhost:19530", user="admin", password="secret")
             assert client._config.token == "admin:secret"
             client.close()
 
     def test_explicit_token_overrides_user_password(self):
         """Test that explicit token takes precedence over user/password."""
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_sync_handler(
-                get_server_type=Mock(return_value="milvus")
+                get_server_type=Mock(return_value="plasmod")
             )
-            client = MilvusClient(
+            client = PlasmodClient(
                 uri="http://localhost:19530",
                 token="my_token",
                 user="admin",
@@ -2346,32 +2350,32 @@ class TestMilvusClientChangedCode:
 
     def test_get_connection_returns_handler(self):
         """Test _get_connection returns the handler."""
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
-            mock_handler = _make_sync_handler(get_server_type=Mock(return_value="milvus"))
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+            mock_handler = _make_sync_handler(get_server_type=Mock(return_value="plasmod"))
             mock_handler_cls.return_value = mock_handler
-            client = MilvusClient(uri="http://localhost:19530")
+            client = PlasmodClient(uri="http://localhost:19530")
             assert client._get_connection() is mock_handler
             client.close()
 
     def test_get_connection_raises_when_closed(self):
-        """Test _get_connection raises MilvusException after close()."""
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
-            mock_handler = _make_sync_handler(get_server_type=Mock(return_value="milvus"))
+        """Test _get_connection raises PlasmodException after close()."""
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+            mock_handler = _make_sync_handler(get_server_type=Mock(return_value="plasmod"))
             mock_handler_cls.return_value = mock_handler
-            client = MilvusClient(uri="http://localhost:19530")
+            client = PlasmodClient(uri="http://localhost:19530")
             client.close()
 
-            with pytest.raises(MilvusException, match="should create connection first"):
+            with pytest.raises(PlasmodException, match="should create connection first"):
                 client._get_connection()
 
     def test_use_database_updates_config(self):
         """Test use_database updates _config.db_name."""
-        with patch("pymilvus.client.grpc_handler.GrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.grpc_handler.GrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_sync_handler(
-                get_server_type=Mock(return_value="milvus"),
+                get_server_type=Mock(return_value="plasmod"),
                 describe_database=Mock(return_value={}),
             )
-            client = MilvusClient(uri="http://localhost:19530")
+            client = PlasmodClient(uri="http://localhost:19530")
             assert client._config.db_name == ""
             client.use_database("mydb")
             assert client._config.db_name == "mydb"
@@ -2382,11 +2386,11 @@ class TestMilvusClientChangedCode:
         with patch.object(ConnectionManager, "get_instance") as mock_get_instance:
             mock_manager = Mock()
             mock_handler = Mock()
-            mock_handler.get_server_type = Mock(return_value="milvus")
+            mock_handler.get_server_type = Mock(return_value="plasmod")
             mock_manager.get_or_create.return_value = mock_handler
             mock_get_instance.return_value = mock_manager
 
-            client = MilvusClient(uri="http://localhost:19530", dedicated=True)
+            client = PlasmodClient(uri="http://localhost:19530", dedicated=True)
 
             call_kwargs = mock_manager.get_or_create.call_args
             assert call_kwargs.kwargs.get("dedicated") is True
@@ -2394,16 +2398,16 @@ class TestMilvusClientChangedCode:
 
 
 # =============================================================================
-# TestAsyncMilvusClientChangedCode
+# TestAsyncPlasmodClientChangedCode
 # =============================================================================
 
 
-class TestAsyncMilvusClientChangedCode:
-    """Tests for changed code in AsyncMilvusClient."""
+class TestAsyncPlasmodClientChangedCode:
+    """Tests for changed code in AsyncPlasmodClient."""
 
     def test_init_deferred_state(self):
         """Test __init__ sets deferred state without connecting."""
-        client = AsyncMilvusClient(uri="http://localhost:19530", token="test")
+        client = AsyncPlasmodClient(uri="http://localhost:19530", token="test")
         assert client._handler is None
         assert client._manager is None
         assert client._using is None
@@ -2414,12 +2418,12 @@ class TestAsyncMilvusClientChangedCode:
 
     def test_user_password_token_construction(self):
         """Test that user/password are combined into token when no token given."""
-        client = AsyncMilvusClient(uri="http://localhost:19530", user="admin", password="secret")
+        client = AsyncPlasmodClient(uri="http://localhost:19530", user="admin", password="secret")
         assert client._config.token == "admin:secret"
 
     def test_explicit_token_overrides_user_password(self):
         """Test that explicit token takes precedence over user/password."""
-        client = AsyncMilvusClient(
+        client = AsyncPlasmodClient(
             uri="http://localhost:19530",
             token="my_token",
             user="admin",
@@ -2429,16 +2433,16 @@ class TestAsyncMilvusClientChangedCode:
 
     def test_dedicated_kwarg_stored(self):
         """Test that dedicated kwarg is stored on client."""
-        client = AsyncMilvusClient(uri="http://localhost:19530", dedicated=True)
+        client = AsyncPlasmodClient(uri="http://localhost:19530", dedicated=True)
         assert client._dedicated is True
 
     @pytest.mark.asyncio
     async def test_connect_sets_handler(self):
         """Test _connect establishes connection and sets handler."""
-        client = AsyncMilvusClient(uri="http://localhost:19530")
+        client = AsyncPlasmodClient(uri="http://localhost:19530")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
-            mock_handler = _make_async_handler(get_server_type=Mock(return_value="milvus"))
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+            mock_handler = _make_async_handler(get_server_type=Mock(return_value="plasmod"))
             mock_handler_cls.return_value = mock_handler
 
             await client._connect()
@@ -2453,11 +2457,11 @@ class TestAsyncMilvusClientChangedCode:
     @pytest.mark.asyncio
     async def test_connect_idempotent(self):
         """Test _connect is a no-op when already connected."""
-        client = AsyncMilvusClient(uri="http://localhost:19530")
+        client = AsyncPlasmodClient(uri="http://localhost:19530")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_async_handler(
-                get_server_type=Mock(return_value="milvus")
+                get_server_type=Mock(return_value="plasmod")
             )
 
             await client._connect()
@@ -2471,12 +2475,12 @@ class TestAsyncMilvusClientChangedCode:
 
     @pytest.mark.asyncio
     async def test_context_manager(self):
-        """Test async with AsyncMilvusClient works."""
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
-            mock_handler = _make_async_handler(get_server_type=Mock(return_value="milvus"))
+        """Test async with AsyncPlasmodClient works."""
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+            mock_handler = _make_async_handler(get_server_type=Mock(return_value="plasmod"))
             mock_handler_cls.return_value = mock_handler
 
-            async with AsyncMilvusClient(uri="http://localhost:19530") as client:
+            async with AsyncPlasmodClient(uri="http://localhost:19530") as client:
                 assert client._handler is mock_handler
 
             assert client._closed is True
@@ -2485,10 +2489,10 @@ class TestAsyncMilvusClientChangedCode:
     @pytest.mark.asyncio
     async def test_get_connection_auto_connects(self):
         """Test _get_connection auto-connects when not yet connected."""
-        client = AsyncMilvusClient(uri="http://localhost:19530")
+        client = AsyncPlasmodClient(uri="http://localhost:19530")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
-            mock_handler = _make_async_handler(get_server_type=Mock(return_value="milvus"))
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+            mock_handler = _make_async_handler(get_server_type=Mock(return_value="plasmod"))
             mock_handler_cls.return_value = mock_handler
 
             conn = await client._get_connection()
@@ -2499,33 +2503,33 @@ class TestAsyncMilvusClientChangedCode:
 
     @pytest.mark.asyncio
     async def test_get_connection_raises_when_closed(self):
-        """Test _get_connection raises MilvusException when client is closed."""
-        client = AsyncMilvusClient(uri="http://localhost:19530")
+        """Test _get_connection raises PlasmodException when client is closed."""
+        client = AsyncPlasmodClient(uri="http://localhost:19530")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_async_handler(
-                get_server_type=Mock(return_value="milvus")
+                get_server_type=Mock(return_value="plasmod")
             )
 
             await client._connect()
             await client.close()
 
-            with pytest.raises(MilvusException, match="should create connection first"):
+            with pytest.raises(PlasmodException, match="should create connection first"):
                 await client._get_connection()
 
     def test_get_server_type_raises_when_not_connected(self):
         """Test get_server_type raises when client not connected."""
-        client = AsyncMilvusClient(uri="http://localhost:19530")
+        client = AsyncPlasmodClient(uri="http://localhost:19530")
 
-        with pytest.raises(MilvusException, match="Client not connected"):
+        with pytest.raises(PlasmodException, match="Client not connected"):
             client.get_server_type()
 
     @pytest.mark.asyncio
     async def test_get_server_type_returns_type(self):
         """Test get_server_type returns handler's server type when connected."""
-        client = AsyncMilvusClient(uri="http://localhost:19530")
+        client = AsyncPlasmodClient(uri="http://localhost:19530")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_async_handler(
                 get_server_type=Mock(return_value="zilliz")
             )
@@ -2538,11 +2542,11 @@ class TestAsyncMilvusClientChangedCode:
     @pytest.mark.asyncio
     async def test_close_sets_closed_flag(self):
         """Test close sets _closed=True and releases handler."""
-        client = AsyncMilvusClient(uri="http://localhost:19530")
+        client = AsyncPlasmodClient(uri="http://localhost:19530")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_async_handler(
-                get_server_type=Mock(return_value="milvus")
+                get_server_type=Mock(return_value="plasmod")
             )
 
             await client._connect()
@@ -2555,18 +2559,18 @@ class TestAsyncMilvusClientChangedCode:
     @pytest.mark.asyncio
     async def test_close_without_connect_is_safe(self):
         """Test close without connect doesn't raise."""
-        client = AsyncMilvusClient(uri="http://localhost:19530")
+        client = AsyncPlasmodClient(uri="http://localhost:19530")
         await client.close()  # Should not raise
         assert client._closed is True
 
     @pytest.mark.asyncio
     async def test_use_database_updates_config(self):
         """Test use_database updates _config.db_name."""
-        client = AsyncMilvusClient(uri="http://localhost:19530")
+        client = AsyncPlasmodClient(uri="http://localhost:19530")
 
-        with patch("pymilvus.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
+        with patch("pyplasmod.client.async_grpc_handler.AsyncGrpcHandler") as mock_handler_cls:
             mock_handler_cls.return_value = _make_async_handler(
-                get_server_type=Mock(return_value="milvus"),
+                get_server_type=Mock(return_value="plasmod"),
                 describe_database=AsyncMock(return_value={}),
             )
             await client._connect()
@@ -2579,11 +2583,11 @@ class TestAsyncMilvusClientChangedCode:
 
     @pytest.mark.asyncio
     async def test_uses_async_connection_manager(self):
-        """Test AsyncMilvusClient uses AsyncConnectionManager."""
+        """Test AsyncPlasmodClient uses AsyncConnectionManager."""
         with patch.object(AsyncConnectionManager, "get_instance") as mock_get_instance:
             mock_manager = Mock()
             mock_handler = Mock()
-            mock_handler.get_server_type = Mock(return_value="milvus")
+            mock_handler.get_server_type = Mock(return_value="plasmod")
 
             async def mock_get_or_create(*args, **kwargs):
                 return mock_handler
@@ -2592,7 +2596,7 @@ class TestAsyncMilvusClientChangedCode:
             mock_manager.release = AsyncMock()
             mock_get_instance.return_value = mock_manager
 
-            client = AsyncMilvusClient(uri="http://localhost:19530")
+            client = AsyncPlasmodClient(uri="http://localhost:19530")
             await client._connect()
 
             mock_get_instance.assert_called()

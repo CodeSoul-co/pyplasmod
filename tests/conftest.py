@@ -4,11 +4,11 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus import MilvusClient
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.client.grpc_handler import GrpcHandler
-from pymilvus.client.types import DataType
-from pymilvus.grpc_gen import common_pb2, schema_pb2
+from pyplasmod import PlasmodClient
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.grpc_handler import GrpcHandler
+from pyplasmod.client.types import DataType
+from pyplasmod.grpc_gen import common_pb2, schema_pb2
 
 logging.getLogger("faker").setLevel(logging.WARNING)
 sys.path.append(Path(__file__).absolute().parent.parent)
@@ -277,11 +277,11 @@ def mock_grpc_stub():
 def mock_grpc_handler(mock_grpc_channel, mock_grpc_stub):
     """Create a GrpcHandler with mocked gRPC channel and stub."""
     with patch(
-        "pymilvus.client.grpc_handler.grpc.insecure_channel", return_value=mock_grpc_channel
+        "pyplasmod.client.grpc_handler.grpc.insecure_channel", return_value=mock_grpc_channel
     ):
-        with patch("pymilvus.client.grpc_handler.grpc.channel_ready_future"):
+        with patch("pyplasmod.client.grpc_handler.grpc.channel_ready_future"):
             with patch(
-                "pymilvus.client.grpc_handler.milvus_pb2_grpc.MilvusServiceStub",
+                "pyplasmod.client.grpc_handler.plasmod_pb2_grpc.PlasmodServiceStub",
                 return_value=mock_grpc_stub,
             ):
 
@@ -425,15 +425,15 @@ def mock_async_grpc_handler(mock_async_channel, mock_async_stub):
 
 
 # ============================================================
-# MilvusClient Fixtures
+# PlasmodClient Fixtures
 # ============================================================
 
 
 @pytest.fixture
-def mock_milvus_client_handler():
-    """Create a mock handler for MilvusClient."""
+def mock_plasmod_client_handler():
+    """Create a mock handler for PlasmodClient."""
     handler = MagicMock()
-    handler.get_server_type.return_value = "milvus"
+    handler.get_server_type.return_value = "plasmod"
 
     # Collection operations
     handler.create_collection = MagicMock()
@@ -518,19 +518,19 @@ def mock_milvus_client_handler():
 
 
 @pytest.fixture
-def mock_milvus_client(mock_milvus_client_handler):
-    """Create a MilvusClient with mocked connection."""
-    with patch("pymilvus.milvus_client.milvus_client.create_connection", return_value="test"):
+def mock_plasmod_client(mock_plasmod_client_handler):
+    """Create a PlasmodClient with mocked connection."""
+    with patch("pyplasmod.plasmod_client.plasmod_client.create_connection", return_value="test"):
         with patch(
-            "pymilvus.orm.connections.Connections._fetch_handler",
-            return_value=mock_milvus_client_handler,
+            "pyplasmod.orm.connections.Connections._fetch_handler",
+            return_value=mock_plasmod_client_handler,
         ):
 
-            client = MilvusClient.__new__(MilvusClient)
+            client = PlasmodClient.__new__(PlasmodClient)
             client._using = "test"
             client._db_name = "default"
             client.is_self_hosted = True
-            yield client, mock_milvus_client_handler
+            yield client, mock_plasmod_client_handler
 
 
 # ============================================================

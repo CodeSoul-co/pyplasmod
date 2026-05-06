@@ -1,6 +1,6 @@
 import threading
 
-from pymilvus.client.cache import CacheRegion, GlobalCache, SchemaCache
+from pyplasmod.client.cache import CacheRegion, GlobalCache, SchemaCache
 
 
 class TestSchemaCache:

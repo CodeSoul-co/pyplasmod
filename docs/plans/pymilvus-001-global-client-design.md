@@ -1,4 +1,4 @@
-# Global Client Design for PyMilvus
+# Global Client Design for PyPlasmod
 
 - **Created:** 2026-01-28
 - **Updated:** 2026-01-28
@@ -6,7 +6,7 @@
 
 ## Overview
 
-This feature adds transparent support for Milvus global clusters (similar to Amazon Aurora Global Database). When a user connects to a global endpoint, PyMilvus automatically discovers the cluster topology and routes all operations to the primary cluster.
+This feature adds transparent support for Plasmod global clusters (similar to Amazon Aurora Global Database). When a user connects to a global endpoint, PyPlasmod automatically discovers the cluster topology and routes all operations to the primary cluster.
 
 **Key Principles:**
 - Completely transparent to users - no API changes required
@@ -18,10 +18,10 @@ This feature adds transparent support for Milvus global clusters (similar to Ama
 
 ```python
 # Regular connection - works as before
-client = MilvusClient(uri="https://in01-xxx.zilliz.com", token="...")
+client = PlasmodClient(uri="https://in01-xxx.zilliz.com", token="...")
 
 # Global connection - same API, automatic global handling
-client = MilvusClient(uri="https://glo-xxx.global-cluster.vectordb.zilliz.com", token="...")
+client = PlasmodClient(uri="https://glo-xxx.global-cluster.vectordb.zilliz.com", token="...")
 ```
 
 No new parameters, no new methods, no code changes required.
@@ -97,7 +97,7 @@ Capability values:
 ## Initialization Flow
 
 ```
-1. User calls MilvusClient(uri="glo-xxx.global-cluster...", token="...")
+1. User calls PlasmodClient(uri="glo-xxx.global-cluster...", token="...")
 2. Detect "global-cluster" in URI → use GlobalStub
 3. Fetch topology from REST API (with retry + backoff)
 4. Parse response, find primary cluster (capability & 0b10)
@@ -127,10 +127,10 @@ for attempt in range(max_retries):
 
 ### Error Handling
 
-All global cluster errors use `MilvusException`:
+All global cluster errors use `PlasmodException`:
 
-- Topology fetch fails after retries → raise `MilvusException`
-- No primary cluster in topology → raise `MilvusException`
+- Topology fetch fails after retries → raise `PlasmodException`
+- No primary cluster in topology → raise `PlasmodException`
 - Primary endpoint connection fails → raise standard connection error
 
 ## GlobalStub Structure
@@ -253,9 +253,9 @@ def _handle_global_connection_error(self, error: grpc.RpcError):
 
 | File | Change |
 |------|--------|
-| `pymilvus/client/grpc_handler.py` | Add global endpoint detection, integrate GlobalStub |
-| `pymilvus/client/global_stub.py` | **New file** - GlobalStub, TopologyRefresher, data models |
-| `pymilvus/decorators.py` | Integrate global connection error handling into `retry_on_rpc_failure` |
+| `pyplasmod/client/grpc_handler.py` | Add global endpoint detection, integrate GlobalStub |
+| `pyplasmod/client/global_stub.py` | **New file** - GlobalStub, TopologyRefresher, data models |
+| `pyplasmod/decorators.py` | Integrate global connection error handling into `retry_on_rpc_failure` |
 
 ### Dependencies
 
@@ -272,7 +272,7 @@ def _handle_global_connection_error(self, error: grpc.RpcError):
 
 ### No Changes Required
 
-- User-facing API (`MilvusClient`)
+- User-facing API (`PlasmodClient`)
 - Existing gRPC operations
 - Authentication flow
 

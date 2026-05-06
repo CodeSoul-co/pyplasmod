@@ -6,13 +6,13 @@ Coverage: Insert, delete, upsert, query, search, flush, compaction.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymilvus import FieldOp
-from pymilvus.client.abstract import AnnSearchRequest
-from pymilvus.client.async_grpc_handler import AsyncGrpcHandler
-from pymilvus.client.embedding_list import EmbeddingList
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import MilvusException
-from pymilvus.grpc_gen import schema_pb2
+from pyplasmod import FieldOp
+from pyplasmod.client.abstract import AnnSearchRequest
+from pyplasmod.client.async_grpc_handler import AsyncGrpcHandler
+from pyplasmod.client.embedding_list import EmbeddingList
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import PlasmodException
+from pyplasmod.grpc_gen import schema_pb2
 
 
 class TestAsyncGrpcHandlerDataOps:
@@ -43,8 +43,8 @@ class TestAsyncGrpcHandlerDataOps:
         mock_stub.Insert = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"), patch(
-            "pymilvus.client.async_grpc_handler.ts_utils.update_collection_ts"
+        with patch("pyplasmod.client.async_grpc_handler.check_status"), patch(
+            "pyplasmod.client.async_grpc_handler.ts_utils.update_collection_ts"
         ):
             result = await handler.insert_rows("test_coll", [{"id": 1, "vector": [0.1, 0.2]}])
             assert result is not None
@@ -71,9 +71,9 @@ class TestAsyncGrpcHandlerDataOps:
         mock_stub.Delete = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.ts_utils.update_collection_ts"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.ts_utils.update_collection_ts"):
             mock_prepare.delete_request.return_value = MagicMock()
             result = await handler.delete("test_coll", "id in [1]")
             assert result is not None
@@ -104,9 +104,9 @@ class TestAsyncGrpcHandlerDataOps:
         handler._async_stub = mock_stub
 
         with patch(
-            "pymilvus.client.async_grpc_handler.check_invalid_binary_vector", return_value=True
-        ), patch("pymilvus.client.async_grpc_handler.check_status"), patch(
-            "pymilvus.client.async_grpc_handler.ts_utils.update_collection_ts"
+            "pyplasmod.client.async_grpc_handler.check_invalid_binary_vector", return_value=True
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"), patch(
+            "pyplasmod.client.async_grpc_handler.ts_utils.update_collection_ts"
         ):
             result = await handler.upsert("test_coll", [[1, [0.1, 0.2]]])
             assert result is not None
@@ -136,8 +136,8 @@ class TestAsyncGrpcHandlerDataOps:
         mock_stub.Upsert = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"), patch(
-            "pymilvus.client.async_grpc_handler.ts_utils.update_collection_ts"
+        with patch("pyplasmod.client.async_grpc_handler.check_status"), patch(
+            "pyplasmod.client.async_grpc_handler.ts_utils.update_collection_ts"
         ):
             result = await handler.upsert_rows("test_coll", [{"id": 1, "vector": [0.1, 0.2]}])
             assert result is not None
@@ -158,9 +158,9 @@ class TestAsyncGrpcHandlerDataOps:
         mock_stub.GetPersistentSegmentInfo = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.get_persistent_segment_info_request.return_value = MagicMock()
             result = await handler.get_persistent_segment_infos("test_coll")
             assert result == []
@@ -193,22 +193,22 @@ class TestAsyncGrpcHandlerQuery:
         mock_stub.Query = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ), patch(
-            "pymilvus.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ), patch(
-            "pymilvus.client.async_grpc_handler.len_of", return_value=3
+            "pyplasmod.client.async_grpc_handler.len_of", return_value=3
         ), patch(
-            "pymilvus.client.async_grpc_handler.entity_helper.extract_dynamic_field_from_result",
+            "pyplasmod.client.async_grpc_handler.entity_helper.extract_dynamic_field_from_result",
             return_value=([], []),
         ), patch(
-            "pymilvus.client.async_grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
+            "pyplasmod.client.async_grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
             return_value=None,
         ), patch(
-            "pymilvus.client.async_grpc_handler.get_extra_info", return_value={}
+            "pyplasmod.client.async_grpc_handler.get_extra_info", return_value={}
         ), patch(
-            "pymilvus.client.async_grpc_handler.HybridExtraList"
+            "pyplasmod.client.async_grpc_handler.HybridExtraList"
         ) as mock_hybrid:
             mock_hybrid.return_value = MagicMock()
             mock_prepare.query_request.return_value = MagicMock()
@@ -245,20 +245,20 @@ class TestAsyncGrpcHandlerQuery:
         mock_stub.Query = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ), patch(
-            "pymilvus.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ), patch(
-            "pymilvus.client.async_grpc_handler.len_of", return_value=2
+            "pyplasmod.client.async_grpc_handler.len_of", return_value=2
         ), patch(
-            "pymilvus.client.async_grpc_handler.entity_helper.extract_dynamic_field_from_result",
+            "pyplasmod.client.async_grpc_handler.entity_helper.extract_dynamic_field_from_result",
             return_value=([], []),
         ), patch(
-            "pymilvus.client.async_grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
+            "pyplasmod.client.async_grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
             return_value=False,
         ), patch(
-            "pymilvus.client.async_grpc_handler.get_extra_info", return_value={}
+            "pyplasmod.client.async_grpc_handler.get_extra_info", return_value={}
         ):
             mock_prepare.query_request.return_value = MagicMock()
             result = await handler.query("test_coll", expr="id > 0", output_fields=["id"])
@@ -270,7 +270,7 @@ class TestAsyncGrpcHandlerQuery:
 
     @pytest.mark.asyncio
     async def test_query_element_indices_length_mismatch(self) -> None:
-        """Test that mismatched element_indices length raises MilvusException."""
+        """Test that mismatched element_indices length raises PlasmodException."""
         mock_channel = MagicMock()
         mock_channel._unary_unary_interceptors = []
         handler = AsyncGrpcHandler(channel=mock_channel)
@@ -296,23 +296,23 @@ class TestAsyncGrpcHandlerQuery:
         mock_stub.Query = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ), patch(
-            "pymilvus.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
+            "pyplasmod.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=True
         ), patch(
-            "pymilvus.client.async_grpc_handler.len_of", return_value=3
+            "pyplasmod.client.async_grpc_handler.len_of", return_value=3
         ), patch(
-            "pymilvus.client.async_grpc_handler.entity_helper.extract_dynamic_field_from_result",
+            "pyplasmod.client.async_grpc_handler.entity_helper.extract_dynamic_field_from_result",
             return_value=([], []),
         ), patch(
-            "pymilvus.client.async_grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
+            "pyplasmod.client.async_grpc_handler.entity_helper.extract_row_data_from_fields_data_v2",
             return_value=False,
         ), patch(
-            "pymilvus.client.async_grpc_handler.get_extra_info", return_value={}
+            "pyplasmod.client.async_grpc_handler.get_extra_info", return_value={}
         ):
             mock_prepare.query_request.return_value = MagicMock()
-            with pytest.raises(MilvusException, match="element_indices length"):
+            with pytest.raises(PlasmodException, match="element_indices length"):
                 await handler.query("test_coll", expr="id > 0", output_fields=["id"])
 
 
@@ -349,10 +349,10 @@ class TestAsyncGrpcHandlerSearch:
         embedding_list.add([0.1, 0.2, 0.3, 0.4])
         embedding_list.add([0.5, 0.6, 0.7, 0.8])
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"), patch(
-            "pymilvus.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=False
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"), patch(
+            "pyplasmod.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=False
         ):
             mock_prepare.search_requests_with_expr.return_value = MagicMock()
             await handler.search(
@@ -402,10 +402,10 @@ class TestAsyncGrpcHandlerSearch:
             limit=10,
         )
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"), patch(
-            "pymilvus.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=False
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"), patch(
+            "pyplasmod.client.async_grpc_handler.ts_utils.construct_guarantee_ts", return_value=False
         ):
             mock_prepare.search_requests_with_expr.return_value = MagicMock()
             mock_prepare.hybrid_search_request_with_ranker.return_value = MagicMock()
@@ -442,9 +442,9 @@ class TestAsyncGrpcHandlerFlush:
 
         handler._wait_for_flushed = AsyncMock()
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_pass_param"
-        ), patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_pass_param"
+        ), patch("pyplasmod.client.async_grpc_handler.check_status"):
             mock_prepare.flush_param.return_value = MagicMock()
             await handler.flush(["test_coll"])
             mock_stub.Flush.assert_called_once()
@@ -465,8 +465,8 @@ class TestAsyncGrpcHandlerFlush:
         mock_stub.GetFlushState = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.get_flush_state_request.return_value = MagicMock()
             result = await handler.get_flush_state([1, 2, 3], "test_coll", 123456)
@@ -488,7 +488,7 @@ class TestAsyncGrpcHandlerFlush:
         mock_stub.AllocTimestamp = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.check_status"):
             result = await handler.alloc_timestamp()
             assert result == 123456789
 
@@ -516,8 +516,8 @@ class TestAsyncGrpcHandlerCompaction:
         mock_stub.ManualCompaction = AsyncMock(return_value=mock_comp_resp)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.describe_collection_request.return_value = MagicMock()
             mock_prepare.manual_compaction.return_value = MagicMock()
@@ -542,7 +542,7 @@ class TestAsyncGrpcHandlerCompaction:
         mock_stub.GetCompactionState = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"):
+        with patch("pyplasmod.client.async_grpc_handler.check_status"):
             result = await handler.get_compaction_state(12345, timeout=30)
             assert result is not None
 
@@ -595,8 +595,8 @@ class TestAsyncGrpcHandlerCompaction:
         mock_stub.Upsert = AsyncMock(side_effect=capture)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.check_status"), patch(
-            "pymilvus.client.async_grpc_handler.ts_utils.update_collection_ts"
+        with patch("pyplasmod.client.async_grpc_handler.check_status"), patch(
+            "pyplasmod.client.async_grpc_handler.ts_utils.update_collection_ts"
         ):
             await handler.upsert_rows(
                 "coll",
@@ -626,8 +626,8 @@ class TestAsyncGrpcHandlerCompaction:
         mock_stub.RunAnalyzer = AsyncMock(return_value=mock_response)
         handler._async_stub = mock_stub
 
-        with patch("pymilvus.client.async_grpc_handler.Prepare") as mock_prepare, patch(
-            "pymilvus.client.async_grpc_handler.check_status"
+        with patch("pyplasmod.client.async_grpc_handler.Prepare") as mock_prepare, patch(
+            "pyplasmod.client.async_grpc_handler.check_status"
         ):
             mock_prepare.run_analyzer_request.return_value = MagicMock()
             result = await handler.run_analyzer("hello world")

@@ -1,11 +1,11 @@
-"""Tests for pymilvus/orm/db.py — database management functions."""
+"""Tests for pyplasmod/orm/db.py — database management functions."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pymilvus.orm import db
+from pyplasmod.orm import db
 
-CONNECTIONS_PREFIX = "pymilvus.orm.db.connections"
+CONNECTIONS_PREFIX = "pyplasmod.orm.db.connections"
 
 
 @pytest.fixture

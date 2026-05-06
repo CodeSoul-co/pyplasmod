@@ -1,14 +1,14 @@
 import numpy as np
 
-from pymilvus import (
+from pyplasmod import (
     CollectionSchema,
     DataType,
     FieldSchema,
     Hits,
-    MilvusClient,
+    PlasmodClient,
 )
 
-collection_name = "test_milvus_client_iterator"
+collection_name = "test_plasmod_client_iterator"
 prepare_new_data = True
 clean_exist = True
 
@@ -21,11 +21,11 @@ NUM_ENTITIES = 10000
 rng = np.random.default_rng(seed=19530)
 
 
-def test_query_iterator(milvus_client: MilvusClient):
+def test_query_iterator(plasmod_client: PlasmodClient):
     # test query iterator
     expr = f"10 <= {AGE} <= 25"
     output_fields = [USER_ID, AGE]
-    queryIt = milvus_client.query_iterator(collection_name, filter=expr, batch_size=50, output_fields=output_fields)
+    queryIt = plasmod_client.query_iterator(collection_name, filter=expr, batch_size=50, output_fields=output_fields)
     page_idx = 0
     while True:
         res = queryIt.next()
@@ -38,9 +38,9 @@ def test_query_iterator(milvus_client: MilvusClient):
         page_idx += 1
         print(f"page{page_idx}-------------------------")
 
-def test_search_iterator(milvus_client: MilvusClient):
+def test_search_iterator(plasmod_client: PlasmodClient):
     vector_to_search = rng.random((1, DIM), np.float32)
-    search_iterator = milvus_client.search_iterator(collection_name, data=vector_to_search, batch_size=100, anns_field=PICTURE)
+    search_iterator = plasmod_client.search_iterator(collection_name, data=vector_to_search, batch_size=100, anns_field=PICTURE)
 
     page_idx = 0
     while True:
@@ -54,7 +54,7 @@ def test_search_iterator(milvus_client: MilvusClient):
         page_idx += 1
         print(f"page{page_idx}-------------------------")
 
-def test_search_iterator_with_filter(milvus_client: MilvusClient):
+def test_search_iterator_with_filter(plasmod_client: PlasmodClient):
     vector_to_search = rng.random((1, DIM), np.float32)
     expr = f"10 <= {AGE} <= 25"
     valid_ids = [1, 12, 123, 1234]
@@ -70,7 +70,7 @@ def test_search_iterator_with_filter(milvus_client: MilvusClient):
                 results.append(hit)
         return results
 
-    search_iterator = milvus_client.search_iterator(
+    search_iterator = plasmod_client.search_iterator(
         collection_name=collection_name,
         data=vector_to_search,
         batch_size=100,
@@ -93,12 +93,12 @@ def test_search_iterator_with_filter(milvus_client: MilvusClient):
         print(f"page{page_idx}-------------------------")
 
 def main():
-    milvus_client = MilvusClient("http://localhost:19530")
-    if milvus_client.has_collection(collection_name) and clean_exist:
-        milvus_client.drop_collection(collection_name)
+    plasmod_client = PlasmodClient("http://localhost:19530")
+    if plasmod_client.has_collection(collection_name) and clean_exist:
+        plasmod_client.drop_collection(collection_name)
         print(f"dropped existed collection{collection_name}")
 
-    if not milvus_client.has_collection(collection_name):
+    if not plasmod_client.has_collection(collection_name):
         fields = [
             FieldSchema(name=USER_ID, dtype=DataType.INT64, is_primary=True, auto_id=False),
             FieldSchema(name=AGE, dtype=DataType.INT64),
@@ -106,7 +106,7 @@ def main():
             FieldSchema(name=PICTURE, dtype=DataType.FLOAT_VECTOR, dim=DIM)
         ]
         schema = CollectionSchema(fields)
-        milvus_client.create_collection(collection_name, dimension=DIM, schema=schema)
+        plasmod_client.create_collection(collection_name, dimension=DIM, schema=schema)
 
     if prepare_new_data:
         entities = []
@@ -118,11 +118,11 @@ def main():
                 PICTURE: rng.random((1, DIM))[0]
             }
             entities.append(entity)
-        milvus_client.insert(collection_name, entities)
-        milvus_client.flush(collection_name)
+        plasmod_client.insert(collection_name, entities)
+        plasmod_client.flush(collection_name)
         print(f"Finish flush collections:{collection_name}")
 
-    index_params = milvus_client.prepare_index_params()
+    index_params = plasmod_client.prepare_index_params()
 
     index_params.add_index(
         field_name=PICTURE,
@@ -130,11 +130,11 @@ def main():
         metric_type='L2',
         params={"nlist": 1024}
     )
-    milvus_client.create_index(collection_name, index_params)
-    milvus_client.load_collection(collection_name)
-    test_query_iterator(milvus_client=milvus_client)
-    test_search_iterator(milvus_client=milvus_client)
-    test_search_iterator_with_filter(milvus_client=milvus_client)
+    plasmod_client.create_index(collection_name, index_params)
+    plasmod_client.load_collection(collection_name)
+    test_query_iterator(plasmod_client=plasmod_client)
+    test_search_iterator(plasmod_client=plasmod_client)
+    test_search_iterator_with_filter(plasmod_client=plasmod_client)
 
 
 if __name__ == '__main__':

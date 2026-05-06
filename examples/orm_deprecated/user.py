@@ -1,4 +1,4 @@
-from pymilvus import utility, connections
+from pyplasmod import utility, connections
 
 _COLLECTION = "demo"
 
@@ -17,7 +17,7 @@ _NEW_PASSWORD = "new_password"
 
 
 def connect_without_auth(connection_name, host, port):
-    print(f"connect to milvus without auth")
+    print(f"connect to plasmod without auth")
     print(f"connection: {connection_name}, host: {host}, port: {port}\n")
     connections.connect(alias=connection_name,
                         host=host,
@@ -25,8 +25,8 @@ def connect_without_auth(connection_name, host, port):
                         )
 
 
-def connect_to_milvus(connection_name, host, port, user, password):
-    print(f"connect to milvus user and password")
+def connect_to_plasmod(connection_name, host, port, user, password):
+    print(f"connect to plasmod user and password")
     print(f"connection: {connection_name}, host: {host}, port: {port}\n")
     connections.connect(alias=connection_name,
                         host=host,
@@ -61,7 +61,7 @@ def test_connection(connection_name):
     has = utility.has_collection(_COLLECTION, using=connection_name)
     print(f"has collection {_COLLECTION}: {has}")
     users = utility.list_usernames(using=connection_name)
-    print(f"users in Milvus: {users}")
+    print(f"users in Plasmod: {users}")
     print(f"test for {connection_name} done\n")
 
 
@@ -69,15 +69,15 @@ def run():
     connect_without_auth(_ROOT, _HOST, _PORT)
     test_connection(_ROOT)
 
-    # after credential created, _ROOT was not able to call rpc of Milvus.
-    # we should use new connection to communicate with Milvus.
+    # after credential created, _ROOT was not able to call rpc of Plasmod.
+    # we should use new connection to communicate with Plasmod.
     create_user(_ROOT, _USER, _PASSWORD)
-    connect_to_milvus(_CONNECTION_NAME, _HOST, _PORT, _USER, _PASSWORD)
+    connect_to_plasmod(_CONNECTION_NAME, _HOST, _PORT, _USER, _PASSWORD)
     test_connection(_CONNECTION_NAME)
 
     create_user(_CONNECTION_NAME, _ANOTHER_USER, _ANOTHER_PASSWORD)
     update_password(_CONNECTION_NAME, _ANOTHER_USER, _ANOTHER_PASSWORD, _NEW_PASSWORD)
-    connect_to_milvus(_ANOTHER_CONNECTION_NAME, _HOST, _PORT, _ANOTHER_USER, _NEW_PASSWORD)
+    connect_to_plasmod(_ANOTHER_CONNECTION_NAME, _HOST, _PORT, _ANOTHER_USER, _NEW_PASSWORD)
     test_connection(_ANOTHER_CONNECTION_NAME)
 
     reset_password(_CONNECTION_NAME, _USER, _PASSWORD, _NEW_PASSWORD)

@@ -1,5 +1,5 @@
-from pymilvus import utility, connections, Collection, CollectionSchema, FieldSchema, DataType
-from pymilvus.orm.role import Role
+from pyplasmod import utility, connections, Collection, CollectionSchema, FieldSchema, DataType
+from pyplasmod.orm.role import Role
 
 import random
 
@@ -9,12 +9,12 @@ _DB_NAME = "foo_db"
 _HOST = '127.0.0.1'
 _PORT = '19530'
 _ROOT = "root"
-_ROOT_PASSWORD = "Milvus"
+_ROOT_PASSWORD = "Plasmod"
 _COLLECTION_NAME = "foocol2"
 
 
-def connect_to_milvus(connection=_CONNECTION, user=_ROOT, password=_ROOT_PASSWORD, db_name="default"):
-    print(f"connect to milvus\n")
+def connect_to_plasmod(connection=_CONNECTION, user=_ROOT, password=_ROOT_PASSWORD, db_name="default"):
+    print(f"connect to plasmod\n")
     connections.connect(alias=connection,
                         host=_HOST,
                         port=_PORT,
@@ -69,7 +69,7 @@ def select_all_role(connection=_CONNECTION):
 
 def has_collection(collection_name, connection=_CONNECTION):
     print(f"has collection, collection_name: {collection_name}")
-    has = utility.has_collection("hello_milvus", using=connection)
+    has = utility.has_collection("hello_plasmod", using=connection)
     print(has)
     print(f"has collection end")
 
@@ -195,7 +195,7 @@ def privilege_example():
     print(f"list grant")
     print(role.list_grant("Collection", object_name))
 
-    connect_to_milvus(connection=_FOO_CONNECTION, user=username, password=password, db_name=_DB_NAME)
+    connect_to_plasmod(connection=_FOO_CONNECTION, user=username, password=password, db_name=_DB_NAME)
     has_collection(_COLLECTION_NAME, connection=_FOO_CONNECTION)
     rbac_collection(connection=_FOO_CONNECTION)
     rbac_user(username, password, role_name, connection=_FOO_CONNECTION)
@@ -212,7 +212,7 @@ def privilege_example():
 
 
 def run():
-    connect_to_milvus()
+    connect_to_plasmod()
     role_example()
     associate_users_with_roles_example()
     privilege_example()

@@ -13,7 +13,7 @@ class TestSearchBench:
         [None, ["id"], ["id", "age"], ["id", "age", "score"], ["id", "age", "score", "name"]],
     )
     def test_search_float32_varying_output_fields(
-        self, benchmark, mocked_milvus_client, output_fields
+        self, benchmark, mocked_plasmod_client, output_fields
     ):
         schema = get_default_test_schema()
         query_vectors = [[0.1] * 128]
@@ -25,10 +25,10 @@ class TestSearchBench:
         def custom_search(request, timeout=None, metadata=None):
             return precomputed_results
 
-        setup_search_mock(mocked_milvus_client, custom_search)
+        setup_search_mock(mocked_plasmod_client, custom_search)
 
         result = benchmark(
-            mocked_milvus_client.search,
+            mocked_plasmod_client.search,
             collection_name="test_collection",
             data=query_vectors,
             limit=10,
@@ -39,7 +39,7 @@ class TestSearchBench:
         assert len(result[0]) == 10
 
     @pytest.mark.parametrize("top_k", [10, 100, 1000, 10000, 65536])
-    def test_search_float32_varying_topk(self, benchmark, mocked_milvus_client, top_k):
+    def test_search_float32_varying_topk(self, benchmark, mocked_plasmod_client, top_k):
         schema = get_default_test_schema()
         query_vectors = [[0.1] * 128]
 
@@ -50,10 +50,10 @@ class TestSearchBench:
         def custom_search(request, timeout=None, metadata=None):
             return precomputed_results
 
-        setup_search_mock(mocked_milvus_client, custom_search)
+        setup_search_mock(mocked_plasmod_client, custom_search)
 
         result = benchmark(
-            mocked_milvus_client.search,
+            mocked_plasmod_client.search,
             collection_name="test_collection",
             data=query_vectors,
             limit=top_k,
@@ -64,7 +64,7 @@ class TestSearchBench:
         assert len(result[0]) == top_k
 
     @pytest.mark.parametrize("num_queries", [1, 10, 100, 1000, 10000])
-    def test_search_float32_varying_num_queries(self, benchmark, mocked_milvus_client, num_queries):
+    def test_search_float32_varying_num_queries(self, benchmark, mocked_plasmod_client, num_queries):
         schema = get_default_test_schema()
         query_vectors = [[0.1] * 128] * num_queries
 
@@ -75,10 +75,10 @@ class TestSearchBench:
         def custom_search(request, timeout=None, metadata=None):
             return precomputed_results
 
-        setup_search_mock(mocked_milvus_client, custom_search)
+        setup_search_mock(mocked_plasmod_client, custom_search)
 
         result = benchmark(
-            mocked_milvus_client.search,
+            mocked_plasmod_client.search,
             collection_name="test_collection",
             data=query_vectors,
             limit=10,
@@ -88,7 +88,7 @@ class TestSearchBench:
         assert len(result) == num_queries
 
     @pytest.mark.parametrize("top_k", [100, 1000, 10000, 65536])
-    def test_search_iterate_all(self, benchmark, mocked_milvus_client, top_k: int) -> None:
+    def test_search_iterate_all(self, benchmark, mocked_plasmod_client, top_k: int) -> None:
         schema = get_default_test_schema()
         query_vectors = [[0.1] * 128]
 
@@ -99,10 +99,10 @@ class TestSearchBench:
         def custom_search(request, timeout=None, metadata=None):
             return precomputed_results
 
-        setup_search_mock(mocked_milvus_client, custom_search)
+        setup_search_mock(mocked_plasmod_client, custom_search)
 
         def run_and_iterate_all():
-            result = mocked_milvus_client.search(
+            result = mocked_plasmod_client.search(
                 collection_name="test_collection",
                 data=query_vectors,
                 limit=top_k,

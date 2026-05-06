@@ -6,8 +6,8 @@ from unittest.mock import patch
 import numpy as np
 import orjson
 import pytest
-from pymilvus.client import entity_helper
-from pymilvus.client.entity_helper import (
+from pyplasmod.client import entity_helper
+from pyplasmod.client.entity_helper import (
     convert_to_str_array,
     entity_to_array_arr,
     entity_to_field_data,
@@ -25,11 +25,11 @@ from pymilvus.client.entity_helper import (
     sparse_proto_to_rows,
     sparse_rows_to_proto,
 )
-from pymilvus.client.types import DataType
-from pymilvus.exceptions import DataNotMatchException, ParamError
-from pymilvus.grpc_gen import schema_pb2
-from pymilvus.grpc_gen import schema_pb2 as schema_types
-from pymilvus.settings import Config
+from pyplasmod.client.types import DataType
+from pyplasmod.exceptions import DataNotMatchException, ParamError
+from pyplasmod.grpc_gen import schema_pb2
+from pyplasmod.grpc_gen import schema_pb2 as schema_types
+from pyplasmod.settings import Config
 
 # Alias for backward compatibility
 convert_to_entity = extract_row_data_from_fields_data_v2
@@ -106,7 +106,7 @@ class TestEntityHelperExtended:
         result = convert_to_str_array([123, "test"], field_info, check=False)
         assert len(result) == 2
 
-    @patch("pymilvus.client.entity_helper.Config")
+    @patch("pyplasmod.client.entity_helper.Config")
     def test_convert_to_str_array_with_encoding(self, mock_config):
         """Test string array conversion with different encoding"""
         mock_config.EncodeProtocol = "latin-1"
@@ -1298,7 +1298,7 @@ class TestEmptyResultArrayField:
         # No data entries, no valid_data entries (empty result)
 
         entity_rows: List[Dict] = []
-        # Must not raise MilvusException("Unsupported data type: 0")
+        # Must not raise PlasmodException("Unsupported data type: 0")
         extract_row_data_from_fields_data_v2(fd, entity_rows)
 
     def test_extract_array_no_validity_empty_result(self):
@@ -1309,7 +1309,7 @@ class TestEmptyResultArrayField:
         # element_type = 0 (NONE), no data
 
         entity_rows: List[Dict] = []
-        # Must not raise MilvusException("Unsupported data type: 0")
+        # Must not raise PlasmodException("Unsupported data type: 0")
         extract_array_row_data_no_validity(fd, entity_rows, 0)
 
     def test_extract_array_with_validity_empty_result(self):
@@ -1320,5 +1320,5 @@ class TestEmptyResultArrayField:
         # element_type = 0 (NONE), no data, no valid_data
 
         entity_rows: List[Dict] = []
-        # Must not raise MilvusException("Unsupported data type: 0")
+        # Must not raise PlasmodException("Unsupported data type: 0")
         extract_array_row_data_with_validity(fd, entity_rows, 0)

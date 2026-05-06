@@ -2,7 +2,7 @@ import threading
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pymilvus.client.global_topology import (
+from pyplasmod.client.global_topology import (
     GLOBAL_CLUSTER_IDENTIFIER,
     ClusterCapability,
     ClusterInfo,
@@ -11,7 +11,7 @@ from pymilvus.client.global_topology import (
     fetch_topology,
     is_global_endpoint,
 )
-from pymilvus.exceptions import MilvusException
+from pyplasmod.exceptions import PlasmodException
 
 # ── Fixtures / helpers ────────────────────────────────────────────────────────
 
@@ -135,7 +135,7 @@ class TestFetchTopology:
     def test_fetches_topology_successfully(self):
         mock_response = _mock_response(version="123")
         with patch(
-            "pymilvus.client.global_topology.requests.get", return_value=mock_response
+            "pyplasmod.client.global_topology.requests.get", return_value=mock_response
         ) as mock_get:
             topology = fetch_topology(_GLOBAL_URL, _TOKEN)
             mock_get.assert_called_once()
@@ -151,9 +151,9 @@ class TestFetchTopology:
         mock_fail.status_code = 500
         mock_success = _mock_response(version="1")
         with patch(
-            "pymilvus.client.global_topology.requests.get",
+            "pyplasmod.client.global_topology.requests.get",
             side_effect=[mock_fail, mock_success],
-        ), patch("pymilvus.client.global_topology.time.sleep"):
+        ), patch("pyplasmod.client.global_topology.time.sleep"):
             topology = fetch_topology(_GLOBAL_URL, _TOKEN)
             assert topology.version == 1
 
@@ -162,23 +162,23 @@ class TestFetchTopology:
         mock_response.status_code = 500
         mock_response.text = "Internal Server Error"
         with patch(
-            "pymilvus.client.global_topology.requests.get", return_value=mock_response
-        ), patch("pymilvus.client.global_topology.time.sleep"):
-            with pytest.raises(MilvusException, match="Failed to fetch global topology"):
+            "pyplasmod.client.global_topology.requests.get", return_value=mock_response
+        ), patch("pyplasmod.client.global_topology.time.sleep"):
+            with pytest.raises(PlasmodException, match="Failed to fetch global topology"):
                 fetch_topology(_GLOBAL_URL, _TOKEN)
 
     def test_raises_on_api_error_code(self):
         mock_response = _mock_response(code=1, message="Invalid token")
         with patch(
-            "pymilvus.client.global_topology.requests.get", return_value=mock_response
-        ), patch("pymilvus.client.global_topology.time.sleep"):
-            with pytest.raises(MilvusException, match="Invalid token"):
+            "pyplasmod.client.global_topology.requests.get", return_value=mock_response
+        ), patch("pyplasmod.client.global_topology.time.sleep"):
+            with pytest.raises(PlasmodException, match="Invalid token"):
                 fetch_topology(_GLOBAL_URL, _TOKEN)
 
     def test_adds_https_prefix_when_missing(self):
         mock_response = _mock_response()
         with patch(
-            "pymilvus.client.global_topology.requests.get", return_value=mock_response
+            "pyplasmod.client.global_topology.requests.get", return_value=mock_response
         ) as mock_get:
             fetch_topology("glo-xxx.global-cluster.vectordb.zilliz.com", _TOKEN)
             call_args = mock_get.call_args
@@ -229,7 +229,7 @@ class TestTopologyRefresher:
             on_topology_change=on_topology_change,
         )
 
-        with patch("pymilvus.client.global_topology.fetch_topology", return_value=new_topology):
+        with patch("pyplasmod.client.global_topology.fetch_topology", return_value=new_topology):
             refresher.start()
             callback_called.wait(timeout=1.0)
             refresher.stop()
@@ -261,7 +261,7 @@ class TestTopologyRefresher:
             on_topology_change=on_topology_change,
         )
 
-        with patch("pymilvus.client.global_topology.fetch_topology", side_effect=counting_fetch):
+        with patch("pyplasmod.client.global_topology.fetch_topology", side_effect=counting_fetch):
             refresher.start()
             refresh_count.wait(timeout=2.0)
             refresher.stop()
@@ -290,7 +290,7 @@ class TestTopologyRefresher:
             on_topology_change=on_topology_change,
         )
 
-        with patch("pymilvus.client.global_topology.fetch_topology", return_value=new_topology):
+        with patch("pyplasmod.client.global_topology.fetch_topology", return_value=new_topology):
             refresher.start()
             refresher.trigger_refresh()
             callback_called.wait(timeout=1.0)
@@ -313,7 +313,7 @@ class TestTopologyRefresher:
             refresh_interval=0.05,
         )
 
-        with patch("pymilvus.client.global_topology.fetch_topology", side_effect=failing_fetch):
+        with patch("pyplasmod.client.global_topology.fetch_topology", side_effect=failing_fetch):
             refresher.start()
             fetch_attempted.wait(timeout=2.0)
             assert refresher.is_running()
