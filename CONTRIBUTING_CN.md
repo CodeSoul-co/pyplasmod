@@ -1,114 +1,70 @@
-# 成为 PyPlasmod 的贡献者吧！
+# 参与贡献 pyplasmod
 
-PyPlasmod 是 Plasmod 的 Python SDK，属于 Plasmod 社区的开源项目之一，是 Plasmod 向外辐射出来最受欢迎的项目。PyPlasmod 从诞生之初就一直伴随 Plasmod 的成长而成长，目前在 Github 上有 300 多颗星，贡献者有40 人 （9.10.2021）。
+> English version: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-很多对 Plasmod 感兴趣的人就是通过使用 PyPlasmod 来第一次接触 Plasmod。
+**pyplasmod** 是 [Plasmod](https://github.com/CodeSoul-co/Plasmod) 的 Python **HTTP** 客户端仓库，刻意保持精简：Tier A JSON 接口 + 二进制 RPC 帧（`PLIB` / `PLQW` / `PLQB`）。本仓库**不包含** gRPC 栈或与 Milvus 对齐的 ORM。
 
-PyPlasmod 拥有一个长期维护的 1.x 版本，兼容 Plasmod 1.x。目前活跃开发的主分支是 PyPlasmod 2.x 版本，兼容的是 Plasmod 2.x。
+服务端侧的契约说明（路由、字段、OpenAPI 子集）以官方文档为准：
 
-Plasmod 社区的所有项目都非常欢迎大家参与贡献、共建社区，而 PyPlasmod 不同于 Plasmod 社区其他项目的地方有：
+- [Plasmod `docs/sdk/README.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)
 
-- 纯 Python；
-- 支撑着 Plasmod 的 E2E 测试和 Benchmark 以及 Plasmod Bootcamp 项目；
-- 作为 Python 库，使用场景更多；
+欢迎提交：缺陷修复、文档、测试，以及在**与上述契约一致**前提下的功能扩展。
 
-真诚的欢迎大家来参与 PyPlasmod 项目，共建一个协作、开源、开放的社区。如果你已经非常熟悉 PyPlasmod 的代码和使用方式，非常欢迎大家来回馈社区，帮助更多的社区新人，将开源、协作、开放的精神传递下去。
+## 如何贡献
 
-## 贡献从这里开始
+1. 改动较大时，先在仓库提 [Issue](https://github.com/CodeSoul-co/pyplasmod/issues/new/choose) 讨论。
+2. Fork 后从 **`dev`** 分支（或维护者指定的分支）创建功能分支。
+3. PR 尽量聚焦，说明**改了什么**、**为什么**。
+4. 本地通过 **`make unittest`** 与 **`make lint`**（见下）。
 
-PyPlasmod 的 Github issue 列表中，打上了 [good-first-issue](https://github.com/plasmod-io/pyplasmod/labels/good%20first%20issue) 和 [help-wanted](https://github.com/plasmod-io/pyplasmod/labels/help%20wanted) 标签的都是入门级别的 issue。如果你还在熟悉项目，这些 issue 是极好的出发点。
+## 开发环境
 
-如果你想挑战一下，不妨看看拥有 [Hacktoberfest](https://github.com/plasmod-io/pyplasmod/labels/Hacktoberfest) 标签的 issue。
+环境要求：**Python 3.8+**。
 
-## 我可以贡献什么？
+```bash
+pip install -e ".[dev]"
+make unittest    # pytest，对 pyplasmod 做覆盖率
+make lint        # black --check + ruff
+```
 
-如果你发现任何问题，你可以：
+可选一键格式化：
 
-- 提 issue 指出问题是什么
-- 在 issue 中给出最小复现方法 （可选）
-- 在 issue 中给出解决方案 （可选）
-- 提 PR 修复这个 issue （可选）
+```bash
+make format      # 会先 pip install -e ".[dev]"，再 black + ruff --fix
+```
 
-如果你对已经存在的问题感兴趣，你可以：
+## 目录结构
 
-- 在标有 `question` 标签的 issue 内回答问题帮助他人
-- 在标有 `bug`、`improvement` 和 `enhancement` 标签的 issue 内帮助他人：
-  - 提问、复现、给出解决方案
-  - 提 PR 修复这个 issue
+| 路径 | 说明 |
+|------|------|
+| `pyplasmod/` | 包根目录（`http/` 客户端、二进制编解码、异常）。 |
+| `pyplasmod/http/` | `PlasmodHttpClient`、`PlasmodHttpError`、PLIB/PLQW/PLQB 工具函数。 |
+| `tests/` | 单元测试（`pytest`）。 |
+| `examples/` | 可运行示例（如 HTTP 快速上手）。 |
+| `docs/` | 可选设计备忘（`docs/plans/` 可能过时，以实现与服务端契约为准）。 |
+| `pyproject.toml` | 项目元数据、运行时依赖（`requests`）、开发依赖 `[project.optional-dependencies] dev`。 |
+| `Makefile` | `unittest`、`lint`、`format`、`install`。 |
+| `OWNERS` | 部分流程下的 reviewer / approver 提示（若组织仍在使用）。 |
 
-如果你想让 PyPlasmod 拥有新功能，你可以：
+## 代码风格
 
-- 提 issue 指出你想要的新功能以及原因
-- 在 issue 中指出这个功能的实现方案以及测试大纲 （可选）
-- 提 PR 实现这个新的功能 （可选）
+- 与现有代码风格一致；提交前可用 **`make format`**。
+- HTTP 路径与请求/响应形状尽量与服务端契约文档一致。
+- 行为变更请补充或更新测试。
 
-如果你对已经存在的 PR 感兴趣，你可以：
+## PR 说明
 
-- 参与代码 review，并给出合适意见
-- 指导社区新人走完 PR 的流程
+- 有关联 Issue 时请写上链接。
+- 避免在同一 PR 里夹杂无关的大范围重构。
 
-这里提到的问题、新功能、疑问不仅指 Python 代码，还包括各种文档（技术文档，API 参考手册，贡献文档等等）。
+### Commit message
 
-## PyPlasmod 代码结构
+建议使用清晰的中文或英文主题行；若团队采用 [Conventional Commits](https://www.conventionalcommits.org/)，便于浏览历史（例如 `fix(http): handle empty JSON body`）。
 
-`docs/`: PyPlasmod 的设计和规划文档目录，例如 `docs/plans`。
+## 可选自动化
 
-`examples/`: 包含一些可以直接运行的 python 脚本，通过例子介绍 PyPlasmod 每个接口的使用方法。
+若启用 `.github/workflows/auto-cherrypick.yml` 且配置了密钥，合并后的 PR 可通过 `backport-to-<branch>` 等标签做自动 backport。若未使用该工作流，可忽略本节。
 
-`pyplasmod/`：PyPlasmod 的源码目录。
+## 许可证
 
-`tests/`: 单元测试目录。
-
-`CONTRIBUTING.md`: 本文档。
-
-`LICENSE`: PyPlasmod 项目遵循的开源协议。
-
-`Makefile`: 方便 Github action 运行的脚本。
-
-`OWNERS`: 这个文件指定了当前目录的 reviewers 和 approvers。他们的人选是根据贡献者的活跃度和对当前代码贡献量综合敲定的。活跃的 contributors 会被列为 reviewers，承担起审核代码的责任。当一个 reviewer 审核了一段时间代码且在社区中一直处于活跃状态时，reviewer 会被列为 approver，负责对 PR 除了代码外的内容审核。如果你提了一个 PR 而不知道应该给谁审核，可以从这里面指定的贡献者挑选 reviewer 和 approver 来审核 PR。
-
-`README.md`: Readme 文档。
-
-`requirements.txt`: 开发 PyPlasmod 时依赖的第三方库。
-
-`setup.py`: PyPlasmod 的打包脚本
-
-## 贡献前必知
-
-### PyPlasmod 的 Github 工作流
-
-## 提 PR 前必知
-
-### 如何写 commit message ？
-
-### 签署 DCO
-
-## 合并 PR
-
-### reviewer 审阅 PR 的哪些地方
-
-### approver 审阅 PR 的哪些地方
-
-### 通过所有 Github Actions
-
-## Cherry-pick
-
-使用方法： 只需为你的 Pull Request 添加 backport-to-<branch-name> 格式的标签即可（例如：backport-to-2.6）。
-
-✅ 成功：机器人会自动创建一个新的 Backport PR。
-
-❌ 失败：如果存在代码冲突或修改了受限文件（如 proto_gen/），机器人会在 PR 中留言提醒。
-
-如果机器人因冲突执行失败，请手动进行 Backport 操作。
-
-## 恭喜你！你已经成为了 Plasmod 社区的贡献者！
-
-除了和代码、机器打交道，你还可以和 Plasmod 社区中的人交流。社区中每天都有很多新面孔加入，当他们遇到的困难正好是你所了解的地方，请尽情的帮助这些人。回想你初次接触 Plasmod 接受过的帮助，你也可以将这样的交流互助精神不断传递下去，我们一起共创一个协作、开源、开放、包容的社区。
-
-
-
-
-
-
-
-
+参与贡献即表示你同意将贡献内容以本仓库相同协议授权发布（**Apache License 2.0**，见根目录 `LICENSE`）。
