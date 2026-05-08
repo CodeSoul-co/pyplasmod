@@ -141,6 +141,28 @@ def test_agents_get_with_params():
         assert kwargs["params"] == {"limit": "10"}
 
 
+def test_traces_get_encodes_object_id_in_path():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    with patch.object(
+        client._session, "request", return_value=_ok_json_response({"object_id": "mem/x"})
+    ):
+        client.traces_get("mem/x")
+        args, kwargs = client._session.request.call_args
+        assert args[0] == "GET"
+        assert args[1].endswith("/v1/traces/mem%2Fx")
+
+
+def test_internal_memory_recall_posts_json():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    body = {"query": "q", "scope": "w", "top_k": 3}
+    with patch.object(client._session, "request", return_value=_ok_json_response({})):
+        client.internal_memory_recall(body)
+        args, kwargs = client._session.request.call_args
+        assert args[0] == "POST"
+        assert args[1].endswith("/v1/internal/memory/recall")
+        assert kwargs["json"] == body
+
+
 def test_rpc_query_warm_batch_raw_uses_raw_path():
     client = PlasmodHttpClient(base_url="http://example.invalid")
     plqb = encode_query_warm_batch("seg", 2, [[0.0, 1.0], [1.0, 0.0]])

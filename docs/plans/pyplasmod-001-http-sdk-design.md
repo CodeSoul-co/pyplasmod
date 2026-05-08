@@ -18,7 +18,7 @@
   - gRPC, Milvus-compatible ORM, or collection/schema management APIs.
   - Duplicating the full OpenAPI; link to Plasmod `docs/sdk/README.md` instead.
 
-**Implemented in client (evolving):** P0 `system_mode`, `ingest_document`, `rpc_query_warm_batch_raw`; P1 canonical CRUD `*_get` / `*_post` for agents, sessions, memory, states, artifacts, edges, policies, share-contracts.
+**Implemented in client (evolving):** P0 `system_mode`, `ingest_document`, `rpc_query_warm_batch_raw`; P1 canonical CRUD `*_get` / `*_post` for agents, sessions, memory, states, artifacts, edges, policies, share-contracts; P2 `traces_get` plus `internal_memory_*` for `/v1/internal/memory/*` (Agent bridge). `milvus_compat` remains out of scope for the slim client.
 
 ## Proposal
 

@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from urllib.parse import quote
 
 import requests
 
@@ -408,3 +409,58 @@ class PlasmodHttpClient:
 
     def share_contracts_post(self, body: Mapping[str, Any]) -> Any:
         return self.request_json("POST", "/v1/share-contracts", json_body=dict(body))
+
+    # --- P2: traces + Agent internal memory bridge -------------------------
+
+    def traces_get(self, object_id: str) -> Any:
+        """
+        GET ``/v1/traces/{object_id}`` — assembled proof trace (JSON).
+
+        ``object_id`` is URL-encoded as a single path segment (slashes etc.).
+        """
+        enc = quote(object_id, safe="")
+        return self.request_json("GET", f"/v1/traces/{enc}")
+
+    def internal_memory_recall(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/memory/recall``."""
+        return self.request_json("POST", "/v1/internal/memory/recall", json_body=dict(body))
+
+    def internal_memory_ingest(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/memory/ingest``."""
+        return self.request_json("POST", "/v1/internal/memory/ingest", json_body=dict(body))
+
+    def internal_memory_compress(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/memory/compress``."""
+        return self.request_json("POST", "/v1/internal/memory/compress", json_body=dict(body))
+
+    def internal_memory_summarize(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/memory/summarize``."""
+        return self.request_json("POST", "/v1/internal/memory/summarize", json_body=dict(body))
+
+    def internal_memory_decay(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/memory/decay``."""
+        return self.request_json("POST", "/v1/internal/memory/decay", json_body=dict(body))
+
+    def internal_memory_share(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/memory/share``."""
+        return self.request_json("POST", "/v1/internal/memory/share", json_body=dict(body))
+
+    def internal_memory_conflict_resolve(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/memory/conflict/resolve``."""
+        return self.request_json(
+            "POST",
+            "/v1/internal/memory/conflict/resolve",
+            json_body=dict(body),
+        )
+
+    def internal_memory_stale(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/memory/stale`` — mark memory stale (lifecycle)."""
+        return self.request_json("POST", "/v1/internal/memory/stale", json_body=dict(body))
+
+    def internal_memory_conflict_inject(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/memory/conflict/inject`` — test / MAS conflict synthesis."""
+        return self.request_json(
+            "POST",
+            "/v1/internal/memory/conflict/inject",
+            json_body=dict(body),
+        )
