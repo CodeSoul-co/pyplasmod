@@ -19,7 +19,7 @@ Authoritative Go: ``src/internal/transport/framing.go``.
 from __future__ import annotations
 
 import struct
-from typing import List, Optional, Sequence, Tuple
+from typing import Optional, Sequence
 
 _MAGIC_PLIB = b"PLIB"
 _MAGIC_PLQW = b"PLQW"
@@ -129,14 +129,14 @@ def encode_query_warm_batch(
     return bytes(out)
 
 
-def decode_query_warm_response(data: bytes) -> List[str]:
+def decode_query_warm_response(data: bytes) -> list[str]:
     """Decode binary response from ``query_warm``: ``n(u32)`` + repeated ``id_len(u16)+id``."""
     off = 0
     if len(data) < 4:
         raise ValueError("truncated query_warm response")
     (n,) = struct.unpack_from("<I", data, off)
     off += 4
-    out: List[str] = []
+    out: list[str] = []
     for _ in range(n):
         if off + 2 > len(data):
             raise ValueError("truncated query_warm id header")
@@ -151,7 +151,7 @@ def decode_query_warm_response(data: bytes) -> List[str]:
     return out
 
 
-def decode_query_warm_batch_response(data: bytes) -> Tuple[int, int, List[int], List[float]]:
+def decode_query_warm_batch_response(data: bytes) -> tuple[int, int, list[int], list[float]]:
     """Decode ``query_warm_batch`` response: header + int64 ids + float32 distances (row-major)."""
     if len(data) < 8:
         raise ValueError("truncated PLQB response header")
@@ -161,11 +161,11 @@ def decode_query_warm_batch_response(data: bytes) -> Tuple[int, int, List[int], 
     if len(data) < need:
         raise ValueError("truncated PLQB response body")
     off = 8
-    internal_ids: List[int] = []
+    internal_ids: list[int] = []
     for _ in range(count):
         internal_ids.append(struct.unpack_from("<q", data, off)[0])
         off += 8
-    dists: List[float] = []
+    dists: list[float] = []
     for _ in range(count):
         dists.append(struct.unpack_from("<f", data, off)[0])
         off += 4

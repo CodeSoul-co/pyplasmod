@@ -57,6 +57,8 @@ include = '\.pyi?$'
 lint.select = ["E", "F", "I", "B", "UP"]
 lint.ignore = [
     "E501",
+    # PEP 604 (X | None) requires Python 3.10+; package supports 3.8+
+    "UP045",
 ]
 show-fixes = true
 exclude = [

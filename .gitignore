@@ -10,3 +10,4 @@ __pycache__/
 coverage.xml
 .venv/
 venv/
+docs/SDK.md

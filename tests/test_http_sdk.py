@@ -15,9 +15,8 @@ import struct
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from pyplasmod import PlasmodClient
-from pyplasmod.http import (
+from pyplasmod import (
+    PlasmodClient,
     PlasmodHttpClient,
     PlasmodHttpError,
     decode_query_warm_batch_response,

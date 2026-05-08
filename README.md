@@ -24,6 +24,7 @@ make unittest
 
 - 路由与字段映射：<https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md>
 - 服务端 OpenAPI 子集与同文档附录 YAML 对齐。
+- **本仓库 SDK 能力与测试说明**：[docs/SDK.md](docs/SDK.md)
 
 ## 快速用法
 

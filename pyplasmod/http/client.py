@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
 import requests
 
@@ -33,7 +33,7 @@ from pyplasmod.http.errors import PlasmodHttpError
 def _merge_headers(
     base: Mapping[str, str],
     extra: Optional[Mapping[str, str]],
-) -> Dict[str, str]:
+) -> dict[str, str]:
     out = dict(base)
     if extra:
         out.update(extra)
@@ -89,7 +89,7 @@ class PlasmodHttpClient:
             path = "/" + path
         return f"{self.base_url}{path}"
 
-    def _admin_headers(self, path: str, headers: Optional[Mapping[str, str]]) -> Dict[str, str]:
+    def _admin_headers(self, path: str, headers: Optional[Mapping[str, str]]) -> dict[str, str]:
         h = _merge_headers({}, headers)
         if path.startswith("/v1/admin/") and self.admin_key:
             h.setdefault("X-Admin-Key", self.admin_key)
@@ -136,7 +136,7 @@ class PlasmodHttpClient:
         *,
         data: bytes,
         headers: Optional[MutableMapping[str, str]] = None,
-    ) -> Tuple[int, bytes, Any]:
+    ) -> tuple[int, bytes, Any]:
         """POST binary body; returns ``(status_code, response_body, response_headers)``."""
         hdrs: MutableMapping[str, str] = dict(headers or {})
         hdrs = self._admin_headers(path, hdrs)
@@ -199,7 +199,7 @@ class PlasmodHttpClient:
         segment_id: str = "warm.default",
         object_ids: Optional[Sequence[str]] = None,
     ) -> Any:
-        body: Dict[str, Any] = {"segment_id": segment_id, "vectors": [list(row) for row in vectors]}
+        body: dict[str, Any] = {"segment_id": segment_id, "vectors": [list(row) for row in vectors]}
         if object_ids is not None:
             body["object_ids"] = list(object_ids)
         return self.request_json("POST", "/v1/ingest/vectors", json_body=body)
@@ -284,7 +284,7 @@ class PlasmodHttpClient:
         segment_id: str,
         top_k: int,
         queries: Sequence[Sequence[float]],
-    ) -> Tuple[int, int, List[int], List[float]]:
+    ) -> tuple[int, int, list[int], list[float]]:
         payload = encode_query_warm_batch(segment_id, top_k, queries)
         status, raw, _ = self.request_bytes(
             "POST",
