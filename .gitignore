@@ -14,3 +14,4 @@ docs/SDK.md
 
 scripts
 tests/test_http_sdk.py
+examples/try.py

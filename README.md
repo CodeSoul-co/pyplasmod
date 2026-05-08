@@ -49,6 +49,31 @@ from pyplasmod.http import encode_ingest_batch, PlasmodHttpClient
 
 详见 `examples/http_quickstart.py`。
 
+**一行写入数据.fbin（推荐）** — 包内 API 或模块 CLI：
+
+```python
+from pyplasmod.data import upload
+upload("my_dataset", "w_demo", "/path/to/file.fbin", show_progress=True)
+```
+
+```bash
+python -m pyplasmod.data upload my_dataset w_demo /path/to/file.fbin --show-progress
+python -m pyplasmod.data query "hello" w_demo
+# 两参数等价于 query：
+python -m pyplasmod.data "hello" w_demo
+```
+
+查询（Python）：
+
+```python
+from pyplasmod import PlasmodClient
+from pyplasmod.data import build_query_body
+
+PlasmodClient().query(build_query_body("test", "w_demo"))
+```
+
+（`examples/ingest_fbin.py` 仅为薄封装示例。）
+
 ## 异常
 
 - **`PlasmodHttpError`**：HTTP 非成功响应（含 **`status_code`**、**`body`**、**`path`**）。
