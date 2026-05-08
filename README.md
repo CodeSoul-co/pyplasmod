@@ -1,6 +1,6 @@
 # pyplasmod
 
-面向 **[Plasmod](https://github.com/CodeSoul-co/Plasmod)** 的 **Python HTTP SDK**：实现服务端在 **`docs/sdk/README.md`** 中定义的 **Tier A JSON** 路由，以及 **`/v1/internal/rpc/*`** 的二进制帧编码/解码（PLIB / PLQW / PLQB）。
+面向 **[Plasmod](https://github.com/CodeSoul-co/Plasmod)** 的 **Python HTTP SDK**：对齐服务端 **`docs/sdk/README.md`** 中的 **Tier A JSON** 与 **`/v1/internal/rpc/*`** 二进制帧（PLIB / PLQW / PLQB）；产品能力与路由总览见 **Plasmod 根目录 README**（链接见下）。
 
 **Plasmod 是什么**  
 Plasmod 面向多智能体系统，将认知对象存储、事件驱动的物化与结构化证据检索整合在可运行的系统中。
@@ -22,9 +22,11 @@ make unittest
 
 ## 契约与文档
 
-- 路由与字段映射：<https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md>
-- 服务端 OpenAPI 子集与同文档附录 YAML 对齐。
-- **本仓库 SDK 能力与测试说明**：[docs/SDK.md](docs/SDK.md)
+本仓库 **不复制** Plasmod 长篇契约全文；请以服务端文档为准：
+
+- **产品与 HTTP 能力总览（README）**：[Plasmod README（GitHub）](https://github.com/CodeSoul-co/Plasmod/blob/main/README.md)  
+- **SDK / HTTP 契约（Tier A、二进制 RPC、OpenAPI 子集）**：[docs/sdk/README.md](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)
+- **本仓库已实现能力与测试说明**：[docs/SDK.md](docs/SDK.md)
 
 ## 快速用法
 

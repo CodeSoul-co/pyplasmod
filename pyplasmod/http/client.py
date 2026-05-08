@@ -101,7 +101,7 @@ class PlasmodHttpClient:
         path: str,
         *,
         json_body: Any = None,
-        params: Optional[Mapping[str, str]] = None,
+        params: Optional[Mapping[str, Any]] = None,
         headers: Optional[Mapping[str, str]] = None,
     ) -> Any:
         """Send a JSON request; return parsed JSON or ``None`` for empty body."""
@@ -115,7 +115,7 @@ class PlasmodHttpClient:
                 method.upper(),
                 url,
                 json=json_body,
-                params=dict(params) if params else None,
+                params=dict(params) if params is not None else None,
                 headers=hdrs,
                 timeout=self.timeout,
             )
@@ -189,6 +189,10 @@ class PlasmodHttpClient:
     def health(self) -> Any:
         return self.request_json("GET", "/healthz")
 
+    def system_mode(self) -> Any:
+        """GET ``/v1/system/mode`` — ``app_mode``, ``debug_enabled``."""
+        return self.request_json("GET", "/v1/system/mode")
+
     def ingest_event(self, event: Mapping[str, Any]) -> Any:
         return self.request_json("POST", "/v1/ingest/events", json_body=dict(event))
 
@@ -203,6 +207,16 @@ class PlasmodHttpClient:
         if object_ids is not None:
             body["object_ids"] = list(object_ids)
         return self.request_json("POST", "/v1/ingest/vectors", json_body=body)
+
+    def ingest_document(self, body: Mapping[str, Any]) -> Any:
+        """
+        POST ``/v1/ingest/document`` — chunk long text into episodic memory events.
+
+        Fields mirror gateway: ``agent_id``, ``session_id``, ``workspace_id``, ``title``,
+        ``text`` (required), ``chunk_size``, ``overlap``, ``importance``,
+        ``upload_batch_id``, ``segment_index``, ``segment_total``.
+        """
+        return self.request_json("POST", "/v1/ingest/document", json_body=dict(body))
 
     def query(self, body: Mapping[str, Any]) -> Any:
         return self.request_json("POST", "/v1/query", json_body=dict(body))
@@ -279,6 +293,28 @@ class PlasmodHttpClient:
             )
         return decode_query_warm_response(raw)
 
+    def _rpc_query_warm_batch_response(
+        self,
+        path: str,
+        payload: bytes,
+        *,
+        error_label: str,
+    ) -> tuple[int, int, list[int], list[float]]:
+        status, raw, _ = self.request_bytes(
+            "POST",
+            path,
+            data=payload,
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        if status != 200:
+            raise PlasmodHttpError(
+                status,
+                reason=error_label,
+                body=raw.decode("utf-8", errors="replace"),
+                path=path,
+            )
+        return decode_query_warm_batch_response(raw)
+
     def rpc_query_warm_batch(
         self,
         segment_id: str,
@@ -286,20 +322,28 @@ class PlasmodHttpClient:
         queries: Sequence[Sequence[float]],
     ) -> tuple[int, int, list[int], list[float]]:
         payload = encode_query_warm_batch(segment_id, top_k, queries)
-        status, raw, _ = self.request_bytes(
-            "POST",
+        return self._rpc_query_warm_batch_response(
             "/v1/internal/rpc/query_warm_batch",
-            data=payload,
-            headers={"Content-Type": "application/octet-stream"},
+            payload,
+            error_label="query_warm_batch failed",
         )
-        if status != 200:
-            raise PlasmodHttpError(
-                status,
-                reason="query_warm_batch failed",
-                body=raw.decode("utf-8", errors="replace"),
-                path="/v1/internal/rpc/query_warm_batch",
-            )
-        return decode_query_warm_batch_response(raw)
+
+    def rpc_query_warm_batch_raw(
+        self,
+        segment_id: str,
+        top_k: int,
+        queries: Sequence[Sequence[float]],
+    ) -> tuple[int, int, list[int], list[float]]:
+        """
+        POST ``/v1/internal/rpc/query_warm_batch_raw`` — same PLQB body as ``query_warm_batch``;
+        server uses ``SearchWarmSegmentBatchRaw`` (no plugin path).
+        """
+        payload = encode_query_warm_batch(segment_id, top_k, queries)
+        return self._rpc_query_warm_batch_response(
+            "/v1/internal/rpc/query_warm_batch_raw",
+            payload,
+            error_label="query_warm_batch_raw failed",
+        )
 
     def rpc_unload_segment(self, segment_id: str) -> Any:
         return self.request_json(
@@ -314,3 +358,53 @@ class PlasmodHttpClient:
             "/v1/internal/rpc/register_warm",
             json_body=dict(body),
         )
+
+    # --- Canonical CRUD (GET list / filter + POST create or replace) -------
+
+    def agents_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        return self.request_json("GET", "/v1/agents", params=params)
+
+    def agents_post(self, body: Mapping[str, Any]) -> Any:
+        return self.request_json("POST", "/v1/agents", json_body=dict(body))
+
+    def sessions_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        return self.request_json("GET", "/v1/sessions", params=params)
+
+    def sessions_post(self, body: Mapping[str, Any]) -> Any:
+        return self.request_json("POST", "/v1/sessions", json_body=dict(body))
+
+    def memory_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        return self.request_json("GET", "/v1/memory", params=params)
+
+    def memory_post(self, body: Mapping[str, Any]) -> Any:
+        return self.request_json("POST", "/v1/memory", json_body=dict(body))
+
+    def states_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        return self.request_json("GET", "/v1/states", params=params)
+
+    def states_post(self, body: Mapping[str, Any]) -> Any:
+        return self.request_json("POST", "/v1/states", json_body=dict(body))
+
+    def artifacts_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        return self.request_json("GET", "/v1/artifacts", params=params)
+
+    def artifacts_post(self, body: Mapping[str, Any]) -> Any:
+        return self.request_json("POST", "/v1/artifacts", json_body=dict(body))
+
+    def edges_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        return self.request_json("GET", "/v1/edges", params=params)
+
+    def edges_post(self, body: Mapping[str, Any]) -> Any:
+        return self.request_json("POST", "/v1/edges", json_body=dict(body))
+
+    def policies_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        return self.request_json("GET", "/v1/policies", params=params)
+
+    def policies_post(self, body: Mapping[str, Any]) -> Any:
+        return self.request_json("POST", "/v1/policies", json_body=dict(body))
+
+    def share_contracts_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        return self.request_json("GET", "/v1/share-contracts", params=params)
+
+    def share_contracts_post(self, body: Mapping[str, Any]) -> Any:
+        return self.request_json("POST", "/v1/share-contracts", json_body=dict(body))

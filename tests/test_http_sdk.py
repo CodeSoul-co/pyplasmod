@@ -113,6 +113,54 @@ def test_http_client_query_body():
         assert kwargs["json"] == body
 
 
+def test_system_mode_uses_get():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    with patch.object(
+        client._session, "request", return_value=_ok_json_response({"app_mode": "x"})
+    ):
+        client.system_mode()
+        args, kwargs = client._session.request.call_args
+        assert args[0] == "GET"
+        assert args[1].endswith("/v1/system/mode")
+
+
+def test_ingest_document_posts_json():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    body = {"text": "hello", "agent_id": "a", "session_id": "s", "workspace_id": "w"}
+    with patch.object(client._session, "request", return_value=_ok_json_response({"status": "ok"})):
+        client.ingest_document(body)
+        _, kwargs = client._session.request.call_args
+        assert kwargs["json"] == body
+
+
+def test_agents_get_with_params():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    with patch.object(client._session, "request", return_value=_ok_json_response([])):
+        client.agents_get(params={"limit": "10"})
+        _, kwargs = client._session.request.call_args
+        assert kwargs["params"] == {"limit": "10"}
+
+
+def test_rpc_query_warm_batch_raw_uses_raw_path():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    plqb = encode_query_warm_batch("seg", 2, [[0.0, 1.0], [1.0, 0.0]])
+    nq, topk = 2, 2
+    count = nq * topk
+    raw_resp = bytearray()
+    raw_resp += struct.pack("<II", nq, topk)
+    for i in range(count):
+        raw_resp += struct.pack("<q", i)
+    for i in range(count):
+        raw_resp += struct.pack("<f", float(i))
+    with patch.object(client, "request_bytes", return_value=(200, bytes(raw_resp), {})) as m:
+        client.rpc_query_warm_batch_raw("seg", 2, [[0.0, 1.0], [1.0, 0.0]])
+        m.assert_called_once()
+        args, kwargs = m.call_args
+        assert args[0] == "POST"
+        assert args[1] == "/v1/internal/rpc/query_warm_batch_raw"
+        assert kwargs["data"] == plqb
+
+
 def test_http_client_raises_on_error_status():
     client = PlasmodHttpClient(base_url="http://example.invalid")
     r = MagicMock()
