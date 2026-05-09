@@ -275,7 +275,9 @@ def upload(
     :param workspace_id: Plasmod ``workspace_id``.
     :param path: Path to ``.fbin`` (uint32 n, uint32 dim, n×dim float32 LE).
     :param client: Optional existing ``PlasmodHttpClient``; if omitted, one is created from ``base_url``.
-    :param base_url: Used only when ``client`` is ``None`` (default ``http://127.0.0.1:8080``).
+    :param base_url: Used only when ``client`` is ``None``. If omitted, uses the same env resolution
+        as :class:`~pyplasmod.http.client.PlasmodHttpClient` (``PLASMOD_BASE_URL`` / ``ANDB_BASE_URL``,
+        then ``http://127.0.0.1:8080``).
     :param limit: Max rows (``0`` = all).
     :param import_batch_id: Stored in each event payload; if empty after strip, a **new** UTC
         time-based id is generated **once per** ``upload()`` call (including two calls in the same
@@ -309,7 +311,9 @@ def upload(
     c = (
         client
         if client is not None
-        else PlasmodHttpClient(base_url=base_url or "http://127.0.0.1:8080")
+        else PlasmodHttpClient(
+            base_url=(base_url.strip() if isinstance(base_url, str) and base_url.strip() else None)
+        )
     )
     total = _fbin_total_rows(p, row_limit)
     pf = progress_file if progress_file is not None else sys.stderr

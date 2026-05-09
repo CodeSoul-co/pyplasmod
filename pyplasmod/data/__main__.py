@@ -89,7 +89,9 @@ def main() -> int:
             )
             print(f"[pyplasmod.data] done: {n} row(s)" + (" (dry-run)" if args.dry_run else ""))
         else:
-            c = PlasmodHttpClient(base_url=args.base_url or "http://127.0.0.1:8080")
+            c = PlasmodHttpClient(
+                base_url=(args.base_url.strip() if args.base_url and args.base_url.strip() else None)
+            )
             body = build_query_body(
                 args.query_text,
                 args.workspace_id,

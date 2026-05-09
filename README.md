@@ -34,6 +34,7 @@ make unittest
 from pyplasmod import PlasmodClient
 
 client = PlasmodClient(base_url="http://127.0.0.1:8080")
+# 或与 Plasmod 监听端口对齐：export PLASMOD_BASE_URL=http://127.0.0.1:9090 后可用 PlasmodClient()
 client.health()
 client.ingest_event({"event_id": "e1", "agent_id": "a", "session_id": "s", "event_type": "t", "payload": {}})
 client.query({"query_text": "hello", "top_k": 5, "relation_constraints": []})

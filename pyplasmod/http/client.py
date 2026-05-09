@@ -45,8 +45,10 @@ class PlasmodHttpClient:
     """
     Plasmod HTTP SDK client.
 
-    **Tier A:** ingest/query, core admin (warm prebuild, dataset delete/purge),
-    warm-segment register, canonical CRUD, traces, internal memory algorithm
+    **Tier A:** ingest/query, core admin (warm prebuild, dataset delete,
+    ``dataset_purge`` / ``admin_dataset_purge``, task status
+    ``dataset_purge_task`` / ``admin_dataset_purge_task``), warm-segment register,
+    canonical CRUD, traces, internal memory algorithm
     bridge, and ``/v1/internal/rpc/*`` binary helpers.
 
     **Tier B:** remaining ``Gateway.RegisterRoutes`` JSON surfaces (extra admin
@@ -55,17 +57,27 @@ class PlasmodHttpClient:
 
     Admin routes ``/v1/admin/*`` automatically receive ``X-Admin-Key`` when
     ``admin_key`` or env ``PLASMOD_ADMIN_API_KEY`` / ``ANDB_ADMIN_API_KEY`` is set.
+
+    When ``base_url`` is omitted, the client reads env ``PLASMOD_BASE_URL`` or
+    ``ANDB_BASE_URL``, then falls back to ``http://127.0.0.1:8080`` (so the Plasmod
+    process can listen on any host/port while callers only set the env).
     """
 
     def __init__(
         self,
-        base_url: str = "http://127.0.0.1:8080",
+        base_url: Optional[str] = None,
         *,
         timeout: Optional[float] = None,
         admin_key: Optional[str] = None,
         session: Optional[requests.Session] = None,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
+        if base_url is None:
+            base_url = (
+                os.environ.get("PLASMOD_BASE_URL")
+                or os.environ.get("ANDB_BASE_URL")
+                or "http://127.0.0.1:8080"
+            )
+        self.base_url = str(base_url).rstrip("/")
         env_timeout = os.environ.get("PLASMOD_HTTP_TIMEOUT") or os.environ.get(
             "ANDB_HTTP_TIMEOUT",
             "30",
@@ -245,6 +257,14 @@ class PlasmodHttpClient:
             "/v1/admin/dataset/purge/task",
             params={"task_id": task_id},
         )
+
+    def admin_dataset_purge(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/admin/dataset/purge`` — same as :meth:`dataset_purge`."""
+        return self.dataset_purge(body)
+
+    def admin_dataset_purge_task(self, task_id: str) -> Any:
+        """GET ``/v1/admin/dataset/purge/task`` — same as :meth:`dataset_purge_task`."""
+        return self.dataset_purge_task(task_id)
 
     def warm_segment_register(self, body: Mapping[str, Any]) -> Any:
         return self.request_json("POST", "/v1/internal/warm-segment/register", json_body=dict(body))

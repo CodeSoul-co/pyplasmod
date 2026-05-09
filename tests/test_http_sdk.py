@@ -87,6 +87,18 @@ def _ok_json_response(data):
     return r
 
 
+def test_plasmod_http_client_base_url_from_env(monkeypatch):
+    monkeypatch.setenv("PLASMOD_BASE_URL", "http://plasmod.env.test:9999")
+    c = PlasmodHttpClient()
+    assert c.base_url == "http://plasmod.env.test:9999"
+
+
+def test_plasmod_http_client_base_url_explicit_overrides_env(monkeypatch):
+    monkeypatch.setenv("PLASMOD_BASE_URL", "http://wrong:1")
+    c = PlasmodHttpClient(base_url="http://explicit:2")
+    assert c.base_url == "http://explicit:2"
+
+
 def test_http_client_health():
     client = PlasmodHttpClient(base_url="http://example.invalid")
     with patch.object(client._session, "request", return_value=_ok_json_response({"status": "ok"})):
@@ -271,6 +283,7 @@ def test_tier_b_internal_post_routes_paths():
             "internal_task_stage",
             {
                 "session_id": "s",
+                "agent_id": "a",
                 "stage": "outline",
                 "stage_index": 0,
                 "total_stages": 1,
@@ -314,6 +327,29 @@ def test_tier_b_internal_post_routes_paths():
             assert args[0] == "POST", method_name
             assert args[1].endswith(path), method_name
             assert kwargs["json"] == body
+
+
+def test_dataset_purge_and_admin_alias_post_same_path():
+    client = PlasmodHttpClient(base_url="http://example.invalid", admin_key="k")
+    body = {"workspace_id": "w", "dataset_name": "d", "dry_run": True}
+    for method_name in ("dataset_purge", "admin_dataset_purge"):
+        with patch.object(client._session, "request", return_value=_ok_json_response({})) as m:
+            getattr(client, method_name)(body)
+            args, kwargs = m.call_args
+            assert args[0] == "POST"
+            assert args[1].endswith("/v1/admin/dataset/purge")
+            assert kwargs["json"] == body
+
+
+def test_dataset_purge_task_and_admin_alias_get_same_path():
+    client = PlasmodHttpClient(base_url="http://example.invalid", admin_key="k")
+    for method_name in ("dataset_purge_task", "admin_dataset_purge_task"):
+        with patch.object(client._session, "request", return_value=_ok_json_response({})) as m:
+            getattr(client, method_name)("tid-1")
+            args, kwargs = m.call_args
+            assert args[0] == "GET"
+            assert args[1].endswith("/v1/admin/dataset/purge/task")
+            assert kwargs["params"] == {"task_id": "tid-1"}
 
 
 def test_tier_b_admin_post_routes_paths():

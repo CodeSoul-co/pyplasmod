@@ -16,3 +16,4 @@ scripts
 tests/test_http_sdk.py
 examples/try.py
 examples/try_output.txt
+gateway.go
