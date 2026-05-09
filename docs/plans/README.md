@@ -41,5 +41,6 @@ Every design document must start with:
 | 000 | [Template](pyplasmod-000-template.md) | — | — |
 | 001 | [HTTP SDK (Tier A + binary RPC)](pyplasmod-001-http-sdk-design.md) | @CodeSoul-co | 2026-05-06 |
 | 002 | [Gateway Tier B JSON shortcuts](pyplasmod-002-gateway-tier-b-shortcuts-design.md) | @CodeSoul-co | 2026-05-08 |
+| 003 | [SDK 使用指南（参数与样例）](pyplasmod-003-sdk-usage-guide.md) | 维护者 | 2026-05-06 |
 
 When adding a new design, increment the number, add a row to the table, and keep **Created** / **Updated** in the document body in sync with substantive edits.

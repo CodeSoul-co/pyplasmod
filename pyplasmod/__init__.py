@@ -10,7 +10,7 @@
 # or implied. See the License for the specific language governing permissions and limitations under
 # the License.
 
-"""Python SDK for Plasmod — HTTP Tier A + binary RPC (``docs/sdk/README.md``)."""
+"""Python SDK for Plasmod — HTTP Tier A + binary RPC (Plasmod ``docs/api``)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from pyplasmod.exceptions import (
     PlasmodException,
     PlasmodUnavailableException,
 )
+from pyplasmod.easy import EasyPlasmod
 from pyplasmod.http import (
     PlasmodHttpClient,
     PlasmodHttpError,
@@ -43,6 +44,7 @@ PlasmodClient = PlasmodHttpClient
 
 __all__ = [
     "ConnectError",
+    "EasyPlasmod",
     "ParamError",
     "PlasmodClient",
     "PlasmodException",

@@ -10,7 +10,7 @@
 # or implied. See the License for the specific language governing permissions and limitations under
 # the License.
 
-"""Exceptions for the Plasmod HTTP SDK (see Plasmod ``docs/sdk/README.md``)."""
+"""Exceptions for the Plasmod HTTP SDK (see Plasmod ``docs/api``)."""
 
 from __future__ import annotations
 

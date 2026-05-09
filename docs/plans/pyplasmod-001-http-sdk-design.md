@@ -6,7 +6,7 @@
 
 ## Context
 
-`pyplasmod` is a small Python client for [Plasmod](https://github.com/CodeSoul-co/Plasmod) over **HTTP only**. The server contract (routes, JSON fields, binary frame layouts) is defined in the Plasmod repository under `docs/sdk/README.md` and must remain the source of truth. This design records how the Python package maps to that contract.
+`pyplasmod` is a small Python client for [Plasmod](https://github.com/CodeSoul-co/Plasmod) over **HTTP only**. The server contract (routes, JSON fields) is documented under Plasmod [`docs/api`](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api) (see [`overview.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/api/overview.md)); binary RPC frame layouts live in server source (for example `src/internal/transport/framing.go`). Those remain the source of truth. This design records how the Python package maps to that contract.
 
 ## Goals / Non-goals
 
@@ -16,7 +16,7 @@
   - Keep the install surface minimal: runtime dependency on `requests` only.
 - **Non-goals:**
   - gRPC, Milvus-compatible ORM, or collection/schema management APIs.
-  - Duplicating the full OpenAPI; link to Plasmod `docs/sdk/README.md` instead.
+  - Duplicating the full OpenAPI; link to Plasmod `docs/api` instead.
 
 **Implemented in client (evolving):** P0 `system_mode`, `ingest_document`, `rpc_query_warm_batch_raw`; P1 canonical CRUD `*_get` / `*_post` for agents, sessions, memory, states, artifacts, edges, policies, share-contracts; P2 `traces_get` plus `internal_memory_*` for `/v1/internal/memory/*` (Agent bridge). `milvus_compat` remains out of scope for the slim client.
 

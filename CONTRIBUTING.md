@@ -6,7 +6,7 @@
 
 The authoritative API contract lives in the server repo:
 
-- [Plasmod `docs/sdk/README.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)
+- [Plasmod HTTP API docs (`docs/api`)](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api) — start with [`overview.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/api/overview.md)
 
 Contributions are welcome: bug fixes, docs, tests, and careful extensions that stay aligned with that contract.
 

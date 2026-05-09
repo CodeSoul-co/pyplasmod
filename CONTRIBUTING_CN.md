@@ -6,7 +6,7 @@
 
 服务端侧的契约说明（路由、字段、OpenAPI 子集）以官方文档为准：
 
-- [Plasmod `docs/sdk/README.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)
+- [Plasmod HTTP API 文档（`docs/api`）](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api) — 入口见 [`overview.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/api/overview.md)
 
 欢迎提交：缺陷修复、文档、测试，以及在**与上述契约一致**前提下的功能扩展。
 
