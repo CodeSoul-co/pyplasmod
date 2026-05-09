@@ -20,6 +20,7 @@ Plasmod 面向多智能体系统，将认知对象存储、事件驱动的物化
 | `p.http.dataset_delete(body)` | `POST /v1/admin/dataset/delete` | `body`：`workspace_id`、`dataset_name` 等（以服务端为准） | 按数据集**软删** |
 | `p.http.dataset_purge(body)` | `POST /v1/admin/dataset/purge` | `body`：`workspace_id`、`dataset_name`；建议先 `dry_run: True` | **硬清理**匹配数据 |
 | `p.http.dataset_purge_task(task_id)` | `GET /v1/admin/dataset/purge/task` | 查询参数 `task_id` | 查询异步 purge 任务状态 |
+| `plasmod_help(topic=None)` | — | `topic`：`easy` / `client` / `upload` / `querybody` / `env` / `errors` / `binary`；省略则打印索引 | 包内主题帮助；完整签名见 `help(...)`；命令行：`python -m pyplasmod [topic]` |
 
 `PlasmodClient()`（即 `PlasmodHttpClient`）与 `p.http` 上还有其它方法；完整列表见 [docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)。
 
@@ -200,6 +201,7 @@ print(p.http.dataset_purge_task("任务返回的 task_id"))
 
 ## 7. 进阶说明（可选读）
 
+- **主题帮助**：`from pyplasmod import plasmod_help; plasmod_help()` 打印索引；`plasmod_help("easy")` 等查看单主题；与内置 `help(EasyPlasmod)`、`help(PlasmodHttpClient)` 配合。命令行：`python -m pyplasmod` 或 `python -m pyplasmod easy`。
 - **`EasyPlasmod`**：封装了健康检查、检索、上传、列 memory 等常用路径；**其它所有 HTTP 能力**（更多 admin、内部接口等）都在 **`p.http`** 上，类型为 **`PlasmodHttpClient`**，与 `from pyplasmod import PlasmodClient` 相同。
 - **完整方法列表、参数表、异常类型**：见仓库内 **[docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)**（偏开发与排障）。
 - **示例脚本**：`examples/http_quickstart.py`、`examples/ingest_fbin.py`；联调全流程可参考 `examples/try.py`（需本地环境变量指向你的数据路径）。

@@ -39,6 +39,12 @@ class EasyPlasmod:
         admin_key: Optional[str] = None,
         session: Optional[Any] = None,
     ) -> None:
+        """
+        :param base_url: 服务根 URL；默认读 ``PLASMOD_BASE_URL`` / ``ANDB_BASE_URL``，再 ``http://127.0.0.1:8080``。
+        :param timeout: HTTP 超时秒数；默认读 ``PLASMOD_HTTP_TIMEOUT`` / ``ANDB_HTTP_TIMEOUT``，再 ``30``。
+        :param admin_key: Admin API Key；默认读 ``PLASMOD_ADMIN_API_KEY`` / ``ANDB_ADMIN_API_KEY``。访问 ``/v1/admin/*`` 时自动加 ``X-Admin-Key``。
+        :param session: 可选传入已有 ``requests.Session`` 以复用连接。
+        """
         self.http = PlasmodHttpClient(
             base_url=base_url,
             timeout=timeout,
@@ -56,22 +62,27 @@ class EasyPlasmod:
         self.close()
 
     def health(self) -> Any:
+        """``GET /healthz`` — 服务存活探针。"""
         return self.http.health()
 
     def system_mode(self) -> Any:
+        """``GET /v1/system/mode`` — 系统模式等。"""
         return self.http.system_mode()
 
     def query(self, body: Mapping[str, Any]) -> Any:
+        """``POST /v1/query`` — *body* 为查询 JSON（常用 :func:`pyplasmod.data.build_query_body` 生成）。"""
         return self.http.query(body)
 
     def search(self, query_text: str, workspace_id: str, **kwargs: Any) -> Any:
-        """``build_query_body`` + ``POST /v1/query``."""
+        """``build_query_body`` + ``POST /v1/query``；*kwargs* 传给 :func:`pyplasmod.data.build_query_body`。"""
         return self.http.query(build_query_body(query_text, workspace_id, **kwargs))
 
     def ingest_event(self, event: Mapping[str, Any]) -> Any:
+        """``POST /v1/ingest/events`` — 单条事件 *event* 字典，字段须与服务端一致。"""
         return self.http.ingest_event(event)
 
     def ingest_document(self, body: Mapping[str, Any]) -> Any:
+        """``POST /v1/ingest/document`` — *body* 至少含 ``text``，常含 ``workspace_id`` / ``agent_id`` / ``session_id`` / ``title``。"""
         return self.http.ingest_document(body)
 
     def upload_fbin(
@@ -81,7 +92,7 @@ class EasyPlasmod:
         path: Union[str, Path],
         **kwargs: Any,
     ) -> int:
-        """``.fbin`` → :func:`pyplasmod.data.upload` using this instance's HTTP client."""
+        """``.fbin`` → :func:`pyplasmod.data.upload`（固定 ``client=self.http``）；*kwargs* 同 ``upload``。"""
         return int(data_upload(dataset, workspace_id, path, client=self.http, **kwargs))
 
     def memories(self, workspace_id: str, **params: Any) -> Any:

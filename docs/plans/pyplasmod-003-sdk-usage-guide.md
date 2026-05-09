@@ -19,6 +19,7 @@ pip install -e ".[dev]"
 - **Python**：3.8+
 - **运行时依赖**：`requests`
 - **服务端**：本机或远端已启动 Plasmod/ANDB HTTP 网关（默认监听示例见 Plasmod `docs/api/overview.md`）。
+- **主题帮助**：`from pyplasmod import plasmod_help; plasmod_help()` 打印索引；`plasmod_help("easy")` 等查看单主题；命令行 `python -m pyplasmod [主题]`。完整签名仍以内置 `help(对象)` 为准。
 
 ---
 
