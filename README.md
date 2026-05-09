@@ -57,9 +57,9 @@ export PLASMOD_ADMIN_API_KEY=你的密钥    # 或 ANDB_ADMIN_API_KEY
 ```python
 from pyplasmod import EasyPlasmod
 
-with EasyPlasmod() as p:
-    print(p.health())          # GET /healthz
-    # print(p.system_mode())   # 可选：系统模式
+p = EasyPlasmod()
+print(p.health())          # GET /healthz
+# print(p.system_mode())   # 可选：系统模式
 ```
 
 ---
@@ -74,16 +74,16 @@ with EasyPlasmod() as p:
 from pyplasmod import EasyPlasmod
 from pyplasmod.data import upload
 
-with EasyPlasmod(admin_key="你的AdminKey或留空") as p:
-    n = upload(
-        "我的数据集名",           # 逻辑名，会写进事件里，查询时可按数据集过滤
-        "w_demo",                 # workspace_id，按你环境修改
-        "/path/to/vectors.fbin",
-        client=p.http,
-        limit=0,                  # 0 = 全部行；调试可设 limit=100
-        show_progress=True,
-    )
-    print("已写入行数:", n)
+p = EasyPlasmod(admin_key="你的AdminKey或留空")
+n = upload(
+    "我的数据集名",           # 逻辑名，会写进事件里，查询时可按数据集过滤
+    "w_demo",                 # workspace_id，按你环境修改
+    "/path/to/vectors.fbin",
+    client=p.http,
+    limit=0,                  # 0 = 全部行；调试可设 limit=100
+    show_progress=True,
+)
+print("已写入行数:", n)
 ```
 
 **命令行（会按环境变量自己建连接）：**
@@ -101,9 +101,9 @@ python -m pyplasmod.data upload 我的数据集名 w_demo /path/to/vectors.fbin 
 ```python
 from pyplasmod import EasyPlasmod
 
-with EasyPlasmod() as p:
-    r = p.search("你的问题", "w_demo", top_k=10)
-    print(r)
+p = EasyPlasmod()
+r = p.search("你的问题", "w_demo", top_k=10)
+print(r)
 ```
 
 **按「上传时用的数据集名」过滤**（与 `upload(..., dataset=...)` 一致），并让会话与上传默认规则对齐时，用 `build_query_body`：
@@ -112,16 +112,16 @@ with EasyPlasmod() as p:
 from pyplasmod import EasyPlasmod
 from pyplasmod.data import build_query_body
 
-with EasyPlasmod() as p:
-    body = build_query_body(
-        "你的问题",
-        "w_demo",
-        top_k=20,
-        dataset_name="我的数据集名",
-        ingest_fbin_path="/path/to/vectors.fbin",  # 与上传时同一文件名即可对齐 session
-    )
-    r = p.query(body)
-    print(r)
+p = EasyPlasmod()
+body = build_query_body(
+    "你的问题",
+    "w_demo",
+    top_k=20,
+    dataset_name="我的数据集名",
+    ingest_fbin_path="/path/to/vectors.fbin",  # 与上传时同一文件名即可对齐 session
+)
+r = p.query(body)
+print(r)
 ```
 
 返回结构以服务端为准；常见用法里 **`r.get("objects")` 或 `r.get("hits")`** 即为候选结果列表（键名随版本可能不同，以实际 JSON 为准）。
@@ -138,10 +138,10 @@ with EasyPlasmod() as p:
 from pyplasmod import EasyPlasmod
 from pyplasmod.data import build_query_body
 
-with EasyPlasmod() as p:
-    r = p.query(build_query_body(".", "w_demo", top_k=5000))  # "." 仅作占位 query_text
-    objs = r.get("objects") or []
-    print("本查询返回条数:", len(objs))
+p = EasyPlasmod()
+r = p.query(build_query_body(".", "w_demo", top_k=5000))  # "." 仅作占位 query_text
+objs = r.get("objects") or []
+print("本查询返回条数:", len(objs))
 ```
 
 **B. 列当前 workspace 下的 memory 行数**
@@ -149,9 +149,9 @@ with EasyPlasmod() as p:
 ```python
 from pyplasmod import EasyPlasmod
 
-with EasyPlasmod() as p:
-    rows = p.memories("w_demo")  # 内部 GET /v1/memory?workspace_id=...
-    print("memory 条数:", len(rows or []))
+p = EasyPlasmod()
+rows = p.memories("w_demo")  # 内部 GET /v1/memory?workspace_id=...
+print("memory 条数:", len(rows or []))
 ```
 
 ---
@@ -165,35 +165,40 @@ with EasyPlasmod() as p:
 ```python
 from pyplasmod import EasyPlasmod
 
-with EasyPlasmod(admin_key="你的AdminKey") as p:
-    print(p.http.dataset_delete({
-        "workspace_id": "w_demo",
-        "dataset_name": "我的数据集名",
-    }))
+p = EasyPlasmod(admin_key="你的AdminKey")
+print(p.http.dataset_delete({
+    "workspace_id": "w_demo",
+    "dataset_name": "我的数据集名",
+}))
 ```
 
 **硬清理（purge）**：会按 body 里条件删除匹配数据；务必先用 **`dry_run: True`** 看一眼影响，再改为 `False` 执行。
 
 ```python
-with EasyPlasmod(admin_key="你的AdminKey") as p:
-    # 演练，不落真实删除
-    print(p.http.dataset_purge({
-        "workspace_id": "w_demo",
-        "dataset_name": "我的数据集名",
-        "dry_run": True,
-    }))
-    # 若服务端默认只清 inactive，需要清「仍活跃」数据时，可能要加 only_if_inactive 等字段，以网关为准，例如：
-    # print(p.http.dataset_purge({
-    #     "workspace_id": "w_demo",
-    #     "dataset_name": "我的数据集名",
-    #     "only_if_inactive": False,
-    #     "dry_run": False,
-    # }))
+from pyplasmod import EasyPlasmod
+
+p = EasyPlasmod(admin_key="你的AdminKey")
+# 演练，不落真实删除
+print(p.http.dataset_purge({
+    "workspace_id": "w_demo",
+    "dataset_name": "我的数据集名",
+    "dry_run": True,
+}))
+# 若服务端默认只清 inactive，需要清「仍活跃」数据时，可能要加 only_if_inactive 等字段，以网关为准，例如：
+# print(p.http.dataset_purge({
+#     "workspace_id": "w_demo",
+#     "dataset_name": "我的数据集名",
+#     "only_if_inactive": False,
+#     "dry_run": False,
+# }))
 ```
 
 **异步 purge 任务状态**（若服务端返回了 `task_id`）：
 
 ```python
+from pyplasmod import EasyPlasmod
+
+p = EasyPlasmod(admin_key="你的AdminKey")
 print(p.http.dataset_purge_task("任务返回的 task_id"))
 ```
 
