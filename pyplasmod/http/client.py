@@ -10,7 +10,7 @@
 # or implied. See the License for the specific language governing permissions and limitations under
 # the License.
 
-"""HTTP client for Plasmod (Tier A JSON + binary RPC helpers)."""
+"""HTTP client for Plasmod (Tier A + Tier B JSON + binary RPC helpers)."""
 
 from __future__ import annotations
 
@@ -43,7 +43,15 @@ def _merge_headers(
 
 class PlasmodHttpClient:
     """
-    Plasmod HTTP SDK client (JSON ingest/query/admin + optional binary RPC).
+    Plasmod HTTP SDK client.
+
+    **Tier A:** ingest/query, core admin (warm prebuild, dataset delete/purge),
+    warm-segment register, canonical CRUD, traces, internal memory algorithm
+    bridge, and ``/v1/internal/rpc/*`` binary helpers.
+
+    **Tier B:** remaining ``Gateway.RegisterRoutes`` JSON surfaces (extra admin
+    read/write, internal task/plan/MAS, tool-state, agent list, session context,
+    eval ground-truth, test-only ``/v1/debug/echo``).
 
     Admin routes ``/v1/admin/*`` automatically receive ``X-Admin-Key`` when
     ``admin_key`` or env ``PLASMOD_ADMIN_API_KEY`` / ``ANDB_ADMIN_API_KEY`` is set.
@@ -464,3 +472,165 @@ class PlasmodHttpClient:
             "/v1/internal/memory/conflict/inject",
             json_body=dict(body),
         )
+
+    # --- Tier B: remaining ``Gateway.RegisterRoutes`` JSON surfaces ---------
+
+    def admin_topology_get(self) -> Any:
+        """GET ``/v1/admin/topology`` — runtime topology JSON."""
+        return self.request_json("GET", "/v1/admin/topology")
+
+    def admin_storage_get(self) -> Any:
+        """GET ``/v1/admin/storage`` — resolved storage backend snapshot."""
+        return self.request_json("GET", "/v1/admin/storage")
+
+    def admin_config_effective_get(self) -> Any:
+        """GET ``/v1/admin/config/effective`` — effective algorithm-related config."""
+        return self.request_json("GET", "/v1/admin/config/effective")
+
+    def admin_s3_export(self, body: Optional[Mapping[str, Any]] = None) -> Any:
+        """POST ``/v1/admin/s3/export`` — dev S3 round-trip sample (optional JSON body)."""
+        return self.request_json(
+            "POST",
+            "/v1/admin/s3/export",
+            json_body=None if body is None else dict(body),
+        )
+
+    def admin_s3_snapshot_export(self, body: Optional[Mapping[str, Any]] = None) -> Any:
+        """POST ``/v1/admin/s3/snapshot-export``."""
+        return self.request_json(
+            "POST",
+            "/v1/admin/s3/snapshot-export",
+            json_body=None if body is None else dict(body),
+        )
+
+    def admin_s3_cold_purge(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/admin/s3/cold-purge`` — requires ``confirm`` per gateway."""
+        return self.request_json("POST", "/v1/admin/s3/cold-purge", json_body=dict(body))
+
+    def admin_data_wipe(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/admin/data/wipe`` — destructive; ``confirm`` must match server token."""
+        return self.request_json("POST", "/v1/admin/data/wipe", json_body=dict(body))
+
+    def admin_rollback(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/admin/rollback`` — reactivate / deactivate a single memory."""
+        return self.request_json("POST", "/v1/admin/rollback", json_body=dict(body))
+
+    def admin_replay(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/admin/replay`` — WAL replay preview or apply (see Plasmod gateway)."""
+        return self.request_json("POST", "/v1/admin/replay", json_body=dict(body))
+
+    def admin_consistency_mode_get(self) -> Any:
+        """GET ``/v1/admin/consistency-mode``."""
+        return self.request_json("GET", "/v1/admin/consistency-mode")
+
+    def admin_consistency_mode_post(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/admin/consistency-mode`` — set ``mode`` JSON field."""
+        return self.request_json("POST", "/v1/admin/consistency-mode", json_body=dict(body))
+
+    def admin_metrics_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        """GET ``/v1/admin/metrics`` — optional ``storage=true`` query param."""
+        return self.request_json("GET", "/v1/admin/metrics", params=params)
+
+    def admin_governance_mode_get(self) -> Any:
+        """GET ``/v1/admin/governance-mode``."""
+        return self.request_json("GET", "/v1/admin/governance-mode")
+
+    def admin_governance_mode_post(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/admin/governance-mode`` — ``{"enabled": bool}`` toggles enforcement."""
+        return self.request_json("POST", "/v1/admin/governance-mode", json_body=dict(body))
+
+    def admin_runtime_mode_get(self) -> Any:
+        """GET ``/v1/admin/runtime-mode``."""
+        return self.request_json("GET", "/v1/admin/runtime-mode")
+
+    def admin_runtime_mode_post(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/admin/runtime-mode`` — vector_only / minimal / governance flags."""
+        return self.request_json("POST", "/v1/admin/runtime-mode", json_body=dict(body))
+
+    def admin_algorithm_profile_mode_get(self) -> Any:
+        """GET ``/v1/admin/memory/providers/mode`` — memory backend profile mode."""
+        return self.request_json("GET", "/v1/admin/memory/providers/mode")
+
+    def admin_algorithm_profile_mode_post(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/admin/memory/providers/mode``."""
+        return self.request_json("POST", "/v1/admin/memory/providers/mode", json_body=dict(body))
+
+    def admin_algorithm_profile_health_get(self) -> Any:
+        """GET ``/v1/admin/memory/providers/health``."""
+        return self.request_json("GET", "/v1/admin/memory/providers/health")
+
+    def internal_task_start(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/task/start``."""
+        return self.request_json("POST", "/v1/internal/task/start", json_body=dict(body))
+
+    def internal_task_complete(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/task/complete``."""
+        return self.request_json("POST", "/v1/internal/task/complete", json_body=dict(body))
+
+    def internal_task_tokens(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/task/tokens``."""
+        return self.request_json("POST", "/v1/internal/task/tokens", json_body=dict(body))
+
+    def internal_task_claim(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/task/claim``."""
+        return self.request_json("POST", "/v1/internal/task/claim", json_body=dict(body))
+
+    def internal_task_stage(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/task/stage`` — multi-stage report progress."""
+        return self.request_json("POST", "/v1/internal/task/stage", json_body=dict(body))
+
+    def internal_plan_step(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/plan/step``."""
+        return self.request_json("POST", "/v1/internal/plan/step", json_body=dict(body))
+
+    def internal_plan_repair(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/plan/repair``."""
+        return self.request_json("POST", "/v1/internal/plan/repair", json_body=dict(body))
+
+    def internal_mas_answer_consistency(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/mas/answer-consistency``."""
+        return self.request_json(
+            "POST",
+            "/v1/internal/mas/answer-consistency",
+            json_body=dict(body),
+        )
+
+    def internal_mas_aggregate(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/mas/aggregate``."""
+        return self.request_json("POST", "/v1/internal/mas/aggregate", json_body=dict(body))
+
+    def internal_tool_state_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        """GET ``/v1/internal/tool-state`` — optional ``agent_id`` / ``session_id`` query params."""
+        return self.request_json(
+            "GET",
+            "/v1/internal/tool-state",
+            params=dict(params) if params is not None else None,
+        )
+
+    def internal_agent_handoff(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/agent/handoff``."""
+        return self.request_json("POST", "/v1/internal/agent/handoff", json_body=dict(body))
+
+    def agent_list_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        """GET ``/v1/agent/list`` — optional ``role``, ``workspace_id``, ``tenant_id`` filters."""
+        return self.request_json("GET", "/v1/agent/list", params=params)
+
+    def internal_session_context_get(self, params: Mapping[str, Any]) -> Any:
+        """GET ``/v1/internal/session/context`` — requires ``session_id``; optional ``agent_id``, ``last_n``."""
+        return self.request_json("GET", "/v1/internal/session/context", params=dict(params))
+
+    def internal_eval_ground_truth_get(self, params: Optional[Mapping[str, Any]] = None) -> Any:
+        """GET ``/v1/internal/eval/ground-truth`` — optional ``task_id``; omit to list all."""
+        return self.request_json("GET", "/v1/internal/eval/ground-truth", params=params)
+
+    def internal_eval_ground_truth_post(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/internal/eval/ground-truth`` — register expected answer for eval harness."""
+        return self.request_json(
+            "POST",
+            "/v1/internal/eval/ground-truth",
+            json_body=dict(body),
+        )
+
+    def debug_echo(self, body: Mapping[str, Any]) -> Any:
+        """POST ``/v1/debug/echo`` — only registered when Plasmod runs in test mode."""
+        return self.request_json("POST", "/v1/debug/echo", json_body=dict(body))
