@@ -64,7 +64,7 @@ print(p.health())          # GET /healthz
 
 ---
 
-## 3. 上传数据（`.fbin` 向量文件）
+## 3. 上传数据（暂时`.fbin` 向量文件）
 
 `.fbin` 格式：文件头 8 字节为 `uint32` 行数、`uint32` 维度，后面按行存放 **little-endian float32** 向量；向量维度须与服务端配置一致。
 
