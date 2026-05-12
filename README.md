@@ -63,7 +63,6 @@ make unittest
 |------|------|
 | SDK 与路由说明（Plasmod 仓库） | [docs/sdk/README.md](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md) |
 | 本仓库用法与排障（长文档） | [docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md) |
-| 与向量库概念的对照（可选读） | [docs/integrations/milvus_plasmod_mapping.md](docs/integrations/milvus_plasmod_mapping.md) |
 
 ## 许可证
 
