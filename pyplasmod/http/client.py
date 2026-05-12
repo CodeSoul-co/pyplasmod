@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Iterator, List, Mapping, MutableMapping, Optional, Sequence
 from urllib.parse import quote
 
 import requests
@@ -39,6 +39,35 @@ from pyplasmod.http.binary import (
 from pyplasmod.http.errors import PlasmodHttpError
 
 
+def _iter_wal_sse_json_events(response: requests.Response) -> Iterator[dict[str, Any]]:
+    """
+    Parse Plasmod WAL SSE from ``handleWALStream`` (``event: wal`` + ``data:`` JSON lines).
+    Comment heartbeats (``: ...``) are skipped.
+    """
+    event_type: Optional[str] = None
+    data_parts: list[str] = []
+    for line in response.iter_lines(decode_unicode=True):
+        if line is None:
+            continue
+        line_str = line if isinstance(line, str) else line.decode("utf-8", errors="replace")
+        if line_str == "":
+            if event_type == "wal" and data_parts:
+                payload = "\n".join(data_parts)
+                try:
+                    yield json.loads(payload)
+                except ValueError:
+                    yield {"_parse_error": True, "_raw": payload}
+            event_type = None
+            data_parts = []
+            continue
+        if line_str.startswith(":"):
+            continue
+        if line_str.startswith("event:"):
+            event_type = line_str[6:].strip()
+        elif line_str.startswith("data:"):
+            data_parts.append(line_str[5:].lstrip())
+
+
 def _merge_headers(
     base: Mapping[str, str],
     extra: Optional[Mapping[str, str]],
@@ -53,14 +82,18 @@ class PlasmodHttpClient:
     """
     Plasmod HTTP SDK client.
 
-    **Tier A:** ingest/query, core admin (warm prebuild, dataset delete,
+    **Tier A:** ingest/query, ``POST /v1/query/batch`` (warm batch ANN), core admin
+    (warm prebuild, dataset delete,
     ``dataset_purge`` / ``admin_dataset_purge``, task status
-    ``dataset_purge_task`` / ``admin_dataset_purge_task``), warm-segment register,
+    ``dataset_purge_task`` / ``admin_dataset_purge_task``,
+    ``admin_memory_delete_by_source`` / ``admin_memory_purge_by_source``), warm-segment register,
     canonical CRUD, traces, internal memory algorithm
     bridge, and ``/v1/internal/rpc/*`` binary helpers.
 
     **Batch helpers:** ``ingest_batch``, ``add_vectors``, ``ingest_events``, and
     ``batch_query`` split large inputs using :mod:`pyplasmod.batch`.
+
+    **Transport:** ``GET /v1/wal/stream`` (SSE) via :meth:`iter_wal_stream_events`.
 
     **Tier B:** remaining ``Gateway.RegisterRoutes`` JSON surfaces (extra admin
     read/write, internal task/plan/MAS, tool-state, agent list, session context,
@@ -252,6 +285,131 @@ class PlasmodHttpClient:
 
     def query(self, body: Mapping[str, Any]) -> Any:
         return self.request_json("POST", "/v1/query", json_body=dict(body))
+
+    def query_batch(self, body: Mapping[str, Any]) -> Any:
+        """
+        POST ``/v1/query/batch`` — warm-segment batch ANN over a vector matrix.
+
+        JSON body matches Plasmod ``VectorWarmBatchQueryRequest``:
+
+        - ``warm_segment_id`` (required), ``vectors`` (rows, same dim),
+        - ``top_k`` (optional, default server 10),
+        - ``agent_mode``: ``\"single_agent\"`` or ``\"multi_agent\"`` (required),
+        - optional ``source_ids``, ``row_lineage``, ``search_raw``.
+
+        Response shape: ``status``, ``rows``, ``by_source``, etc.
+        """
+        payload = dict(body)
+        if "vectors" in payload:
+            payload["vectors"] = [list(map(float, row)) for row in payload["vectors"]]
+        return self.request_json("POST", "/v1/query/batch", json_body=payload)
+
+    def admin_memory_delete_by_source(self, body: Mapping[str, Any]) -> Any:
+        """
+        POST ``/v1/admin/memory/delete-by-source`` — soft-delete memories whose
+        ``source_event_ids`` matches ``reference_id`` / ``event_id`` / ``memory_id``.
+
+        Body requires ``workspace_id`` and one of ``reference_id``, ``event_id``, ``memory_id``.
+        Optional ``dry_run``.
+        """
+        return self.request_json(
+            "POST",
+            "/v1/admin/memory/delete-by-source",
+            json_body=dict(body),
+        )
+
+    def admin_memory_purge_by_source(self, body: Mapping[str, Any]) -> Any:
+        """
+        POST ``/v1/admin/memory/purge-by-source`` — hard-delete / async purge by source ref.
+
+        Body requires ``workspace_id`` and one of ``reference_id``, ``event_id``, ``memory_id``.
+        Optional: ``dry_run``, ``only_if_inactive``, ``include_memory_ids``, ``async``,
+        ``idempotency_key`` (see Plasmod ``handleMemoryPurgeBySource``).
+        """
+        return self.request_json(
+            "POST",
+            "/v1/admin/memory/purge-by-source",
+            json_body=dict(body),
+        )
+
+    def iter_wal_stream_events(
+        self,
+        *,
+        from_lsn: int = 0,
+        heartbeat: Optional[str] = None,
+        headers: Optional[Mapping[str, str]] = None,
+    ) -> Iterator[dict[str, Any]]:
+        """
+        GET ``/v1/wal/stream`` — Server-Sent Events (``text/event-stream``).
+
+        Yields decoded JSON objects from each ``event: wal`` frame (typically
+        ``{\"lsn\": int, \"event\": ...}``). Heartbeat comment lines are ignored.
+
+        Query params: ``from_lsn`` (optional), ``heartbeat`` (optional Go duration
+        string, e.g. ``\"30s\"``).
+
+        Uses streaming read with ``timeout=(connect_timeout, None)`` so long-lived
+        tails are not cut by the default read timeout. The HTTP connection is
+        closed when the iterator is exhausted or garbage-collected after ``close()``
+        on the underlying response (consume or break out of the loop and ``close``).
+
+        Yields:
+            dict: Parsed ``data`` payload per WAL event.
+
+        Raises:
+            PlasmodHttpError: If the HTTP status is not successful before streaming.
+        """
+        path = "/v1/wal/stream"
+        params: dict[str, str] = {}
+        if from_lsn > 0:
+            params["from_lsn"] = str(from_lsn)
+        if heartbeat is not None and str(heartbeat).strip() != "":
+            params["heartbeat"] = str(heartbeat)
+
+        hdrs = self._admin_headers(path, headers)
+        hdrs.setdefault("Accept", "text/event-stream")
+        url = self._url(path)
+        try:
+            resp = self._session.get(
+                url,
+                params=params or None,
+                headers=hdrs,
+                stream=True,
+                timeout=(self.timeout, None),
+            )
+        except requests.RequestException as exc:
+            raise PlasmodHttpError(
+                0,
+                reason=str(exc),
+                body="",
+                path=path,
+            ) from exc
+
+        if not resp.ok:
+            body_text = ""
+            try:
+                body_text = resp.text or ""
+            except Exception:
+                body_text = ""
+            try:
+                resp.close()
+            except Exception:
+                pass
+            raise PlasmodHttpError(
+                resp.status_code,
+                reason=resp.reason or "",
+                body=body_text,
+                path=path,
+                response_headers=resp.headers,
+            )
+
+        try:
+            yield from _iter_wal_sse_json_events(resp)
+        finally:
+            try:
+                resp.close()
+            except Exception:
+                pass
 
     def warm_prebuild(self) -> Any:
         return self.request_json("POST", "/v1/admin/warm/prebuild")

@@ -410,3 +410,88 @@ def test_http_client_raises_on_error_status():
             client.health()
         assert ei.value.status_code == 400
         assert "bad" in ei.value.body
+
+
+def test_query_batch_json():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    with patch.object(client._session, "request", return_value=_ok_json_response({"status": "ok"})) as m:
+        out = client.query_batch(
+            {
+                "warm_segment_id": "warm.default",
+                "agent_mode": "single_agent",
+                "top_k": 2,
+                "vectors": [[1, 2], [3, 4]],
+            }
+        )
+        assert out == {"status": "ok"}
+        assert m.call_args[0][0] == "POST"
+        assert m.call_args[0][1].endswith("/v1/query/batch")
+        body = m.call_args[1]["json"]
+        assert body["vectors"] == [[1.0, 2.0], [3.0, 4.0]]
+
+
+def test_admin_memory_delete_and_purge():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    with patch.object(client._session, "request", return_value=_ok_json_response({"deleted": 1})) as m:
+        client.admin_memory_delete_by_source(
+            {"workspace_id": "ws1", "event_id": "evt_x", "dry_run": True}
+        )
+        assert m.call_args[0][1].endswith("/v1/admin/memory/delete-by-source")
+    with patch.object(client._session, "request", return_value=_ok_json_response({"purged": 0})) as m:
+        client.admin_memory_purge_by_source(
+            {"workspace_id": "ws1", "reference_id": "ref_y", "only_if_inactive": False}
+        )
+        assert m.call_args[0][1].endswith("/v1/admin/memory/purge-by-source")
+
+
+def test_iter_wal_stream_events_sse_parse():
+    from pyplasmod.http.client import _iter_wal_sse_json_events
+
+    r = MagicMock()
+    r.iter_lines.return_value = iter(
+        [
+            "event: wal",
+            'data: {"lsn": 7, "event": {"k": 1}}',
+            "",
+            ": keep-alive",
+            "",
+        ]
+    )
+    events = list(_iter_wal_sse_json_events(r))
+    assert len(events) == 1
+    assert events[0]["lsn"] == 7
+    assert events[0]["event"]["k"] == 1
+
+
+def test_iter_wal_stream_events_http_error():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    r = MagicMock()
+    r.ok = False
+    r.status_code = 503
+    r.text = "unavailable"
+    r.reason = "Service Unavailable"
+    r.headers = {}
+    r.close = MagicMock()
+    with patch.object(client._session, "get", return_value=r):
+        gen = client.iter_wal_stream_events()
+        with pytest.raises(PlasmodHttpError) as ei:
+            next(gen)
+        assert ei.value.status_code == 503
+        r.close.assert_called()
+
+
+def test_iter_wal_stream_events_get_params():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    r = MagicMock()
+    r.ok = True
+    r.status_code = 200
+    r.headers = {}
+    r.iter_lines.return_value = iter([])
+    r.close = MagicMock()
+    with patch.object(client._session, "get", return_value=r) as m:
+        list(client.iter_wal_stream_events(from_lsn=100, heartbeat="20s"))
+    kwargs = m.call_args[1]
+    assert kwargs["stream"] is True
+    assert kwargs["params"] == {"from_lsn": "100", "heartbeat": "20s"}
+    assert kwargs["headers"]["Accept"] == "text/event-stream"
+    r.close.assert_called()

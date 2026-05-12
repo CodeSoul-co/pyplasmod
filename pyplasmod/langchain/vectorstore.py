@@ -366,11 +366,15 @@ class PlasmodVectorStore(VectorStore if LANGCHAIN_AVAILABLE else object):  # typ
         _check_langchain_installed()
         from langchain_core.documents import Document
 
-        # Build Plasmod query
+        # Build Plasmod query (see Plasmod ``schemas.QueryRequest``: ``embedding_vector``, optional ``warm_segment_id``).
         query_body: Dict[str, Any] = {
-            "query_vector": embedding,
+            "query_text": "",
+            "embedding_vector": list(embedding),
             "top_k": k,
         }
+
+        if self._segment_id:
+            query_body["warm_segment_id"] = self._segment_id
 
         if self._workspace_id:
             query_body["workspace_id"] = self._workspace_id

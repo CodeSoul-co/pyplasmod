@@ -252,8 +252,9 @@ class TestPlasmodVectorStore:
 
         mock_client.query.assert_called_once()
         call_args = mock_client.query.call_args[0][0]
-        assert call_args["query_vector"] == query_vector
+        assert call_args["embedding_vector"] == query_vector
         assert call_args["top_k"] == 10
+        assert call_args.get("warm_segment_id") == "warm.default"
 
     def test_similarity_search_fallback_to_rpc(self, mock_client, mock_embeddings):
         """Should fallback to rpc_query_warm if JSON query fails."""
