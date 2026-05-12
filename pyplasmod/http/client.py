@@ -23,11 +23,11 @@ import requests
 
 from pyplasmod.batch import (
     DEFAULT_BATCH_SIZE,
-    MAX_BATCH_VECTORS,
     BatchResult,
     iter_batches,
     validate_batch_size,
 )
+from pyplasmod.exceptions import PlasmodException
 
 from pyplasmod.http.binary import (
     decode_query_warm_batch_response,
@@ -58,6 +58,9 @@ class PlasmodHttpClient:
     ``dataset_purge_task`` / ``admin_dataset_purge_task``), warm-segment register,
     canonical CRUD, traces, internal memory algorithm
     bridge, and ``/v1/internal/rpc/*`` binary helpers.
+
+    **Batch helpers:** ``ingest_batch``, ``add_vectors``, ``ingest_events``, and
+    ``batch_query`` split large inputs using :mod:`pyplasmod.batch`.
 
     **Tier B:** remaining ``Gateway.RegisterRoutes`` JSON surfaces (extra admin
     read/write, internal task/plan/MAS, tool-state, agent list, session context,
@@ -747,8 +750,6 @@ class PlasmodHttpClient:
                 result.errors.append(error_info)
 
                 if raise_on_error:
-                    from pyplasmod.exceptions import PlasmodException
-
                     raise PlasmodException(
                         f"Batch {batch_idx} failed (items {batch_start}-{batch_end}): {e}"
                     ) from e
@@ -840,8 +841,6 @@ class PlasmodHttpClient:
                     result.errors.append(error_info)
 
                     if raise_on_error:
-                        from pyplasmod.exceptions import PlasmodException
-
                         raise PlasmodException(
                             f"Event {batch_start + event_idx} failed: {e}"
                         ) from e
