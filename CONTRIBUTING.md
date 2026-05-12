@@ -67,4 +67,4 @@ If `.github/workflows/auto-cherrypick.yml` is enabled and secrets are configured
 
 ## License
 
-By contributing, you agree your contributions are under the same license as this project (**Apache License 2.0**—see `LICENSE`).
+By contributing, you agree your contributions are under the same license as this project (**MIT License**—see `LICENSE`).

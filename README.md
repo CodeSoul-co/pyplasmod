@@ -232,4 +232,4 @@ make unittest
 
 ## 许可证
 
-Apache 2.0（见仓库根目录 `LICENSE`）。
+MIT（见仓库根目录 `LICENSE`）。

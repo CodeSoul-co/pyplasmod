@@ -67,4 +67,4 @@ make format      # 会先 pip install -e ".[dev]"，再 black + ruff --fix
 
 ## 许可证
 
-参与贡献即表示你同意将贡献内容以本仓库相同协议授权发布（**Apache License 2.0**，见根目录 `LICENSE`）。
+参与贡献即表示你同意将贡献内容以本仓库相同协议授权发布（**MIT License**，见根目录 `LICENSE`）。
