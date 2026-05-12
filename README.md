@@ -34,6 +34,8 @@ Plasmod 面向多智能体系统，将认知对象存储、事件驱动的物化
 pip install pyplasmod
 ```
 
+可选安装 LangChain 适配（`PlasmodVectorStore` 等）：`pip install pyplasmod[langchain]`。
+
 **指向你的 Plasmod 地址**（不设则默认 `http://127.0.0.1:8080`）：
 
 ```bash
@@ -219,6 +221,14 @@ make unittest
 ```
 
 ---
+
+## 8. 契约、迁移、批量与 LangChain
+
+- **路由与字段映射**：[Plasmod `docs/sdk/README.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)；OpenAPI 以服务端导出为准。
+- **Milvus 迁移对照**：[docs/integrations/milvus_plasmod_mapping.md](docs/integrations/milvus_plasmod_mapping.md)。
+- **底层 `PlasmodClient`（即 `PlasmodHttpClient`）**：`health`、`ingest_event`、`query` 等；**批量向量 / 事件**见 `ingest_batch`、`ingest_events`、`add_vectors`，示例 **`examples/batch_ingest.py`**。
+- **LangChain**：安装 `pyplasmod[langchain]` 后见 **`examples/langchain_quickstart.py`**；二进制帧工具见 **`from pyplasmod.http import encode_ingest_batch`** 等。
+- **异常**：`PlasmodHttpError`、`ConnectError`、`PlasmodException`；详见 [docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)。
 
 ## 许可证
 

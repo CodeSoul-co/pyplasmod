@@ -16,10 +16,18 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, List, Mapping, MutableMapping, Optional, Sequence
 from urllib.parse import quote
 
 import requests
+
+from pyplasmod.batch import (
+    DEFAULT_BATCH_SIZE,
+    MAX_BATCH_VECTORS,
+    BatchResult,
+    iter_batches,
+    validate_batch_size,
+)
 
 from pyplasmod.http.binary import (
     decode_query_warm_batch_response,
@@ -654,3 +662,216 @@ class PlasmodHttpClient:
     def debug_echo(self, body: Mapping[str, Any]) -> Any:
         """POST ``/v1/debug/echo`` — only registered when Plasmod runs in test mode."""
         return self.request_json("POST", "/v1/debug/echo", json_body=dict(body))
+
+    # --- Batch ingestion with automatic splitting -----------------------------------
+
+    def ingest_batch(
+        self,
+        segment_id: str,
+        vectors: Sequence[Sequence[float]],
+        object_ids: Optional[Sequence[str]] = None,
+        *,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+        wire_version: int = 1,
+        raise_on_error: bool = True,
+    ) -> BatchResult:
+        """
+        Ingest vectors in batches, automatically splitting large inputs.
+
+        This method wraps ``rpc_ingest_batch`` and splits the input into smaller
+        batches to avoid memory issues when ingesting large amounts of data.
+
+        Args:
+            segment_id: Target segment identifier.
+            vectors: Sequence of vectors to ingest.
+            object_ids: Optional sequence of object IDs (must match vectors length).
+            batch_size: Maximum number of vectors per batch. Defaults to 500.
+            wire_version: Binary wire protocol version (1 or 2).
+            raise_on_error: If True, raise exception on first batch failure.
+                           If False, collect errors and continue.
+
+        Returns:
+            BatchResult containing total_count, accepted_count, failed_count,
+            batch_count, memory_ids, and errors.
+
+        Raises:
+            PlasmodException: If raise_on_error is True and any batch fails.
+            ValueError: If batch_size < 1 or object_ids length doesn't match vectors.
+        """
+        batch_size = validate_batch_size(batch_size)
+        n = len(vectors)
+
+        if n == 0:
+            return BatchResult(total_count=0, batch_count=0)
+
+        if object_ids is not None and len(object_ids) != n:
+            raise ValueError("object_ids length must match vectors length")
+
+        result = BatchResult(total_count=n)
+
+        for batch_idx, batch_vectors in enumerate(iter_batches(vectors, batch_size)):
+            batch_start = batch_idx * batch_size
+            batch_end = batch_start + len(batch_vectors)
+
+            batch_ids: Optional[List[str]] = None
+            if object_ids is not None:
+                batch_ids = list(object_ids[batch_start:batch_end])
+
+            try:
+                resp = self.rpc_ingest_batch(
+                    segment_id,
+                    batch_vectors,
+                    batch_ids,
+                    wire_version=wire_version,
+                )
+                result.batch_count += 1
+                result.accepted_count += len(batch_vectors)
+
+                # Extract memory_ids from response if available
+                if isinstance(resp, dict):
+                    if "memory_ids" in resp:
+                        result.memory_ids.extend(resp["memory_ids"])
+                    elif "object_ids" in resp:
+                        result.memory_ids.extend(resp["object_ids"])
+
+            except Exception as e:
+                result.batch_count += 1
+                result.failed_count += len(batch_vectors)
+                error_info = {
+                    "batch_index": batch_idx,
+                    "batch_start": batch_start,
+                    "batch_end": batch_end,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+                result.errors.append(error_info)
+
+                if raise_on_error:
+                    from pyplasmod.exceptions import PlasmodException
+
+                    raise PlasmodException(
+                        f"Batch {batch_idx} failed (items {batch_start}-{batch_end}): {e}"
+                    ) from e
+
+        return result
+
+    def add_vectors(
+        self,
+        vectors: Sequence[Sequence[float]],
+        *,
+        segment_id: str = "warm.default",
+        object_ids: Optional[Sequence[str]] = None,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+        raise_on_error: bool = True,
+    ) -> BatchResult:
+        """
+        Add vectors to a segment with automatic batching.
+
+        This is a convenience wrapper around ``ingest_batch`` that provides
+        a simpler interface for adding vectors.
+
+        Args:
+            vectors: Sequence of vectors to add.
+            segment_id: Target segment identifier. Defaults to "warm.default".
+            object_ids: Optional sequence of object IDs.
+            batch_size: Maximum number of vectors per batch.
+            raise_on_error: If True, raise exception on first batch failure.
+
+        Returns:
+            BatchResult with ingestion statistics.
+        """
+        return self.ingest_batch(
+            segment_id,
+            vectors,
+            object_ids,
+            batch_size=batch_size,
+            raise_on_error=raise_on_error,
+        )
+
+    def ingest_events(
+        self,
+        events: Sequence[Mapping[str, Any]],
+        *,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+        raise_on_error: bool = True,
+    ) -> BatchResult:
+        """
+        Ingest multiple events in batches.
+
+        Args:
+            events: Sequence of event dictionaries to ingest.
+            batch_size: Maximum number of events per batch.
+            raise_on_error: If True, raise exception on first event failure.
+
+        Returns:
+            BatchResult with ingestion statistics.
+        """
+        batch_size = validate_batch_size(batch_size)
+        n = len(events)
+
+        if n == 0:
+            return BatchResult(total_count=0, batch_count=0)
+
+        result = BatchResult(total_count=n)
+
+        for batch_idx, batch_events in enumerate(iter_batches(events, batch_size)):
+            batch_start = batch_idx * batch_size
+
+            for event_idx, event in enumerate(batch_events):
+                try:
+                    resp = self.ingest_event(event)
+                    result.accepted_count += 1
+
+                    # Extract memory_id from response if available
+                    if isinstance(resp, dict):
+                        if "memory_id" in resp:
+                            result.memory_ids.append(resp["memory_id"])
+                        elif "event_id" in resp:
+                            result.memory_ids.append(resp["event_id"])
+
+                except Exception as e:
+                    result.failed_count += 1
+                    error_info = {
+                        "batch_index": batch_idx,
+                        "event_index": batch_start + event_idx,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    }
+                    result.errors.append(error_info)
+
+                    if raise_on_error:
+                        from pyplasmod.exceptions import PlasmodException
+
+                        raise PlasmodException(
+                            f"Event {batch_start + event_idx} failed: {e}"
+                        ) from e
+
+            result.batch_count += 1
+
+        return result
+
+    def batch_query(
+        self,
+        queries: Sequence[Mapping[str, Any]],
+        *,
+        batch_size: int = DEFAULT_BATCH_SIZE,
+    ) -> List[Any]:
+        """
+        Execute multiple queries in batches.
+
+        Args:
+            queries: Sequence of query dictionaries.
+            batch_size: Maximum number of queries per batch.
+
+        Returns:
+            List of query results in the same order as input queries.
+        """
+        batch_size = validate_batch_size(batch_size)
+        results: List[Any] = []
+
+        for batch_queries in iter_batches(queries, batch_size):
+            for query in batch_queries:
+                resp = self.query(query)
+                results.append(resp)
+
+        return results

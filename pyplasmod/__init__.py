@@ -20,6 +20,13 @@ from __future__ import annotations
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
+from pyplasmod.batch import (
+    DEFAULT_BATCH_SIZE,
+    MAX_BATCH_VECTORS,
+    BatchResult,
+    iter_batches,
+    validate_batch_size,
+)
 from pyplasmod.exceptions import (
     ConnectError,
     ParamError,
@@ -47,8 +54,11 @@ except PackageNotFoundError:
 PlasmodClient = PlasmodHttpClient
 
 __all__ = [
+    "BatchResult",
     "ConnectError",
+    "DEFAULT_BATCH_SIZE",
     "EasyPlasmod",
+    "MAX_BATCH_VECTORS",
     "ParamError",
     "plasmod_help",
     "plasmod_topics",
@@ -63,4 +73,15 @@ __all__ = [
     "encode_ingest_batch",
     "encode_query_warm",
     "encode_query_warm_batch",
+    "iter_batches",
+    "validate_batch_size",
 ]
+
+
+def __getattr__(name: str):
+    """Lazy import for optional LangChain integration."""
+    if name == "PlasmodVectorStore":
+        from pyplasmod.langchain import PlasmodVectorStore
+
+        return PlasmodVectorStore
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

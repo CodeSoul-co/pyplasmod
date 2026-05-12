@@ -46,6 +46,12 @@ dev = [
     "ruff>=0.12.9,<1",
     "black",
 ]
+langchain = [
+    "langchain-core>=0.1.0",
+]
+all = [
+    "langchain-core>=0.1.0",
+]
 
 [tool.setuptools_scm]
 
