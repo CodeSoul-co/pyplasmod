@@ -1,46 +1,46 @@
-# Design Documents
+# pyplasmod 设计文档
 
-Design documents for PyPlasmod features and architectural changes.
+本目录收录 **pyplasmod** 的架构说明与用户指南，供集成开发者与贡献者查阅。日常上手请从仓库根目录 [README.md](../../README.md) 开始。
 
-## Naming Convention
+## 文档索引
+
+| 编号 | 标题 | 受众 | 说明 |
+|------|------|------|------|
+| 000 | [模板](pyplasmod-000-template.md) | 贡献者 | 新建设计文档时的结构模板 |
+| 001 | [HTTP SDK 架构说明](pyplasmod-001-http-sdk-design.md) | 开发者 | 模块划分、Tier A/B/RPC、配置与错误模型 |
+| 002 | [Tier B HTTP 快捷方法说明](pyplasmod-002-gateway-tier-b-shortcuts-design.md) | 高级集成 | 扩展 Admin / internal JSON API 命名与路由索引 |
+| 003 | [SDK 用户指南](pyplasmod-003-sdk-usage-guide.md) | 所有用户 | 参数填法、场景样例、排错 |
+
+另请参阅：[docs/SDK.md](../SDK.md)（实现细节与 API 速查）。
+
+## 命名规范
 
 ```
 pyplasmod-<NNN>-<short-name>-design.md
 ```
 
-| Part | Description | Example |
-|------|-------------|---------|
-| `pyplasmod` | Project prefix | `pyplasmod` |
-| `<NNN>` | Sequential number, zero-padded to 3 digits | `001`, `002` |
-| `<short-name>` | Kebab-case summary | `http-sdk` |
-| `-design.md` | Suffix | `-design.md` |
+| 部分 | 说明 | 示例 |
+|------|------|------|
+| `pyplasmod` | 项目前缀 | `pyplasmod` |
+| `<NNN>` | 三位序号 | `001`、`002` |
+| `<short-name>` | 短横线主题 | `http-sdk` |
+| 后缀 | 设计类文档 | `-design.md` |
 
-Examples:
+用户指南可使用 `-usage-guide.md` 后缀（如 003）。
 
-- `pyplasmod-001-http-sdk-design.md`
-- `pyplasmod-002-<feature>-design.md`
-
-Use [`pyplasmod-000-template.md`](pyplasmod-000-template.md) as a starting point for new documents.
-
-## Required Header
-
-Every design document must start with:
+## 文档头（必填）
 
 ```markdown
-# [Title]
+# 标题
 
-- **Created:** YYYY-MM-DD
-- **Updated:** YYYY-MM-DD
-- **Author(s):** @github-handle
+| 元数据 | 值 |
+|--------|-----|
+| **文档编号** | pyplasmod-NNN |
+| **状态** | 已实现 / 草案 / 已废弃 |
+| **创建** | YYYY-MM-DD |
+| **更新** | YYYY-MM-DD |
+| **维护方** | … |
+| **读者** | … |
 ```
 
-## Index
-
-| Number | Title | Author | Created |
-|--------|-------|--------|---------|
-| 000 | [Template](pyplasmod-000-template.md) | — | — |
-| 001 | [HTTP SDK (Tier A + binary RPC)](pyplasmod-001-http-sdk-design.md) | @CodeSoul-co | 2026-05-06 |
-| 002 | [Gateway Tier B JSON shortcuts](pyplasmod-002-gateway-tier-b-shortcuts-design.md) | @CodeSoul-co | 2026-05-08 |
-| 003 | [SDK 使用指南（参数与样例）](pyplasmod-003-sdk-usage-guide.md) | 维护者 | 2026-05-06 |
-
-When adding a new design, increment the number, add a row to the table, and keep **Created** / **Updated** in the document body in sync with substantive edits.
+新增文档时：递增编号、更新上表、在正文末尾维护「修订记录」。
