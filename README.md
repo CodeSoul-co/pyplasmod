@@ -231,7 +231,6 @@ print(p.http.dataset_purge_task("<task_id>"))
 | `examples/ingest_fbin.py` | `.fbin` 入库示例 |
 | `examples/batch_ingest.py` | 批量向量 / 事件 |
 | `examples/langchain_quickstart.py` | LangChain 集成（需安装可选依赖） |
-| `examples/try.py` | 较完整联调脚本（依赖本地数据路径与环境变量） |
 
 - **路由与字段映射**：[Plasmod `docs/sdk/README.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)  
 - **Milvus 迁移对照**：[docs/integrations/milvus_plasmod_mapping.md](docs/integrations/milvus_plasmod_mapping.md)  
