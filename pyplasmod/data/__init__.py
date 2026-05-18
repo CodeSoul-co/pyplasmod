@@ -255,6 +255,10 @@ def upload(
     """
     Upload a ``.fbin`` vector file to a running Plasmod via ``ingest_event`` (one row → one event).
 
+    **File type:** only ``.fbin`` (case-insensitive suffix) is implemented. Other suffixes raise
+    ``ValueError`` with a short \"not supported yet\" message so callers can branch without reading
+    the file body.
+
     Positional arguments match the common call shape::
 
         from pyplasmod.data import upload
@@ -292,8 +296,12 @@ def upload(
     p = Path(path).expanduser().resolve()
     if not p.is_file():
         raise FileNotFoundError(str(p))
-    if p.suffix.lower() != ".fbin":
-        raise ValueError(f"expected .fbin file, got {p.suffix!r}")
+    suf = p.suffix.lower()
+    if suf != ".fbin":
+        raise ValueError(
+            f"暂时无法处理：当前 upload 仅支持 .fbin 向量文件；收到后缀 {p.suffix!r}（{p.name!r}）。"
+            "其他格式后续再支持。"
+        )
 
     batch_id = import_batch_id.strip() or _default_import_batch_id()
     sid = session_id.strip() or f"ingest_{dataset}_{p.name}"

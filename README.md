@@ -1,219 +1,35 @@
 # pyplasmod
 
-面向 **[Plasmod](https://github.com/CodeSoul-co/Plasmod)** 的 Python **HTTP** 客户端：在本地或你自己的服务地址上，完成**上传向量、检索、按数据集删除/清理、健康检查、看大概条数**等常见操作。服务端需已启动；字段细节以 Plasmod **[HTTP API 文档](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api)** 为准。
+**pyplasmod** 是面向 **[Plasmod](https://github.com/CodeSoul-co/Plasmod)** 的 Python **HTTP 客户端库**：通过标准 HTTP（及部分二进制 RPC）访问已部署的 Plasmod 网关，完成向量入库、检索、Memory 列举、数据集运维与健康检查等操作。
 
-**Plasmod 是什么**  
-Plasmod 面向多智能体系统，将认知对象存储、事件驱动的物化与结构化证据检索整合在可运行的系统中。
+**Plasmod** 面向多智能体场景，将认知对象存储、事件驱动的物化与结构化证据检索集成在可运行系统中。  
+请求路径、字段与语义以 Plasmod 官方 **[HTTP API 文档](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api)** 为准；本 README 仅说明本仓库提供的封装与典型用法。
 
-
-| 方法 | 路径 | 参数 | 描述 |
-|------|------|------|------|
-| `p.health()` | `GET /healthz` | 无 | 服务是否存活 |
-| `p.system_mode()` | `GET /v1/system/mode` | 无 | 读取系统模式等 |
-| `p.search(query_text, workspace_id, **kwargs)` | `POST /v1/query` | 查询句、`workspace_id`；`kwargs` 传给 `build_query_body`（如 `top_k`、`dataset_name`） | 一步完成「拼查询体 + 检索」 |
-| `p.query(body)` | `POST /v1/query` | `body`：查询 JSON（可用 `build_query_body(...)` 生成） | 完全自控查询字段 |
-| `build_query_body(...)` | — | `query_text`、`workspace_id`；可选 `dataset_name`、`ingest_fbin_path`、`top_k` 等 | **只拼 dict、不发起 HTTP**；再交给 `p.query` |
-| `upload(dataset, workspace_id, path, **kwargs)` | `POST /v1/ingest/events`（每行一次） | 逻辑数据集名、`workspace_id`、`.fbin` 路径；常用 `client=p.http`、`limit`、`show_progress` | 向量文件按行入库 |
-| `p.upload_fbin(dataset, workspace_id, path, **kwargs)` | 同上 | 同上（内部固定使用 `p.http`） | 与 `upload` 等价，写法更短 |
-| `p.ingest_document(body)` | `POST /v1/ingest/document` | `body`：至少含 `text`；通常还有 `workspace_id`、`agent_id`、`session_id`、`title` 等 | 长文档分块写入 |
-| `p.memories(workspace_id, **params)` | `GET /v1/memory` | `workspace_id` 写入 query；其余合并到 `params` | 列出该 workspace 下 memory，便于估计条数 |
-| `p.http.dataset_delete(body)` | `POST /v1/admin/dataset/delete` | `body`：`workspace_id`、`dataset_name` 等（以服务端为准） | 按数据集**软删** |
-| `p.http.dataset_purge(body)` | `POST /v1/admin/dataset/purge` | `body`：`workspace_id`、`dataset_name`；建议先 `dry_run: True` | **硬清理**匹配数据 |
-| `p.http.dataset_purge_task(task_id)` | `GET /v1/admin/dataset/purge/task` | 查询参数 `task_id` | 查询异步 purge 任务状态 |
-| `plasmod_help(topic=None)` | — | `topic`：`easy` / `client` / `upload` / `querybody` / `env` / `errors` / `binary`；省略则打印索引 | 包内主题帮助；完整签名见 `help(...)`；命令行：`python -m pyplasmod [topic]` |
-
-`PlasmodClient()`（即 `PlasmodHttpClient`）与 `p.http` 上还有其它方法；完整列表见 [docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)。
+包内主题索引：`from pyplasmod import plasmod_help; plasmod_help()`；命令行：`python -m pyplasmod [topic]`。
 
 ---
 
-## 1. 安装与环境
+## 前置条件
 
-**Python 3.8+**
+1. **已部署并启动 Plasmod 网关**（监听地址须与本客户端配置的 `base_url` 一致，常见为 `http://127.0.0.1:8080`）。  
+2. **Python 3.8 及以上**。  
+3. 使用 **`.fbin` 向量文件** 时：文件格式须符合 SDK 约定（见 **第 2 节「上传数据」**）；向量维度须与网关侧配置一致。
+
+---
+
+## 安装
 
 ```bash
 pip install pyplasmod
 ```
 
-可选安装 LangChain 适配（`PlasmodVectorStore` 等）：`pip install pyplasmod[langchain]`。
-
-**指向你的 Plasmod 地址**（不设则默认 `http://127.0.0.1:8080`）：
+可选依赖（LangChain 向量库适配 `PlasmodVectorStore` 等）：
 
 ```bash
-export PLASMOD_BASE_URL=http://127.0.0.1:8080   # 或 ANDB_BASE_URL
+pip install pyplasmod[langchain]
 ```
 
-**管理类接口**（删除数据集、purge 等走 `/v1/admin/*`）需要 Admin Key，任选其一：
-
-```bash
-export PLASMOD_ADMIN_API_KEY=你的密钥    # 或 ANDB_ADMIN_API_KEY
-```
-
-也可以在代码里传入 `admin_key="..."`（见下文）。
-
----
-
-## 2. 健康检查
-
-确认服务能连上：
-
-```python
-from pyplasmod import EasyPlasmod
-
-p = EasyPlasmod()
-print(p.health())          # GET /healthz
-# print(p.system_mode())   # 可选：系统模式
-```
-
----
-
-## 3. 上传数据（暂时`.fbin` 向量文件）
-
-`.fbin` 格式：文件头 8 字节为 `uint32` 行数、`uint32` 维度，后面按行存放 **little-endian float32** 向量；向量维度须与服务端配置一致。
-
-**Python（推荐共用同一个客户端，便于后续查询带同一 base_url）：**
-
-```python
-from pyplasmod import EasyPlasmod
-from pyplasmod.data import upload
-
-p = EasyPlasmod(admin_key="你的AdminKey或留空")
-n = upload(
-    "我的数据集名",           # 逻辑名，会写进事件里，查询时可按数据集过滤
-    "w_demo",                 # workspace_id，按你环境修改
-    "/path/to/vectors.fbin",
-    client=p.http,
-    limit=0,                  # 0 = 全部行；调试可设 limit=100
-    show_progress=True,
-)
-print("已写入行数:", n)
-```
-
-**命令行（会按环境变量自己建连接）：**
-
-```bash
-python -m pyplasmod.data upload 我的数据集名 w_demo /path/to/vectors.fbin --show-progress
-```
-
----
-
-## 4. 查询（自然语言检索）
-
-**最简单**（内部会拼好查询体并 `POST /v1/query`）：
-
-```python
-from pyplasmod import EasyPlasmod
-
-p = EasyPlasmod()
-r = p.search("你的问题", "w_demo", top_k=10)
-print(r)
-```
-
-**按「上传时用的数据集名」过滤**（与 `upload(..., dataset=...)` 一致），并让会话与上传默认规则对齐时，用 `build_query_body`：
-
-```python
-from pyplasmod import EasyPlasmod
-from pyplasmod.data import build_query_body
-
-p = EasyPlasmod()
-body = build_query_body(
-    "你的问题",
-    "w_demo",
-    top_k=20,
-    dataset_name="我的数据集名",
-    ingest_fbin_path="/path/to/vectors.fbin",  # 与上传时同一文件名即可对齐 session
-)
-r = p.query(body)
-print(r)
-```
-
-返回结构以服务端为准；常见用法里 **`r.get("objects")` 或 `r.get("hits")`** 即为候选结果列表（键名随版本可能不同，以实际 JSON 为准）。
-
----
-
-## 5. 查「大概多少条」
-
-没有单独「COUNT」接口时，可以用下面两种方式之一（数值为近似/当前页，**`top_k` 要够大**才接得住总量）：
-
-**A. 用检索结果条数（偏业务对象）**
-
-```python
-from pyplasmod import EasyPlasmod
-from pyplasmod.data import build_query_body
-
-p = EasyPlasmod()
-r = p.query(build_query_body(".", "w_demo", top_k=5000))  # "." 仅作占位 query_text
-objs = r.get("objects") or []
-print("本查询返回条数:", len(objs))
-```
-
-**B. 列当前 workspace 下的 memory 行数**
-
-```python
-from pyplasmod import EasyPlasmod
-
-p = EasyPlasmod()
-rows = p.memories("w_demo")  # 内部 GET /v1/memory?workspace_id=...
-print("memory 条数:", len(rows or []))
-```
-
----
-
-## 6. 按数据集删除（软删）与清理（硬删 / purge）
-
-这些属于 **管理接口**，必须配置好 **`PLASMOD_ADMIN_API_KEY`**（或构造时传入 `admin_key`）。
-
-**软删某个数据集**（具体语义以服务端为准，一般为标记不活跃等）：
-
-```python
-from pyplasmod import EasyPlasmod
-
-p = EasyPlasmod(admin_key="你的AdminKey")
-print(p.http.dataset_delete({
-    "workspace_id": "w_demo",
-    "dataset_name": "我的数据集名",
-}))
-```
-
-**硬清理（purge）**：会按 body 里条件删除匹配数据；务必先用 **`dry_run: True`** 看一眼影响，再改为 `False` 执行。
-
-```python
-from pyplasmod import EasyPlasmod
-
-p = EasyPlasmod(admin_key="你的AdminKey")
-# 演练，不落真实删除
-print(p.http.dataset_purge({
-    "workspace_id": "w_demo",
-    "dataset_name": "我的数据集名",
-    "dry_run": True,
-}))
-# 若服务端默认只清 inactive，需要清「仍活跃」数据时，可能要加 only_if_inactive 等字段，以网关为准，例如：
-# print(p.http.dataset_purge({
-#     "workspace_id": "w_demo",
-#     "dataset_name": "我的数据集名",
-#     "only_if_inactive": False,
-#     "dry_run": False,
-# }))
-```
-
-**异步 purge 任务状态**（若服务端返回了 `task_id`）：
-
-```python
-from pyplasmod import EasyPlasmod
-
-p = EasyPlasmod(admin_key="你的AdminKey")
-print(p.http.dataset_purge_task("任务返回的 task_id"))
-```
-
----
-
-## 7. 进阶说明（可选读）
-
-- **主题帮助**：`from pyplasmod import plasmod_help; plasmod_help()` 打印索引；`plasmod_help("easy")` 等查看单主题；与内置 `help(EasyPlasmod)`、`help(PlasmodHttpClient)` 配合。命令行：`python -m pyplasmod` 或 `python -m pyplasmod easy`。
-- **`EasyPlasmod`**：封装了健康检查、检索、上传、列 memory 等常用路径；**其它所有 HTTP 能力**（更多 admin、内部接口等）都在 **`p.http`** 上，类型为 **`PlasmodHttpClient`**，与 `from pyplasmod import PlasmodClient` 相同。
-- **完整方法列表、参数表、异常类型**：见仓库内 **[docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)**（偏开发与排障）。
-- **示例脚本**：`examples/http_quickstart.py`、`examples/ingest_fbin.py`；联调全流程可参考 `examples/try.py`（需本地环境变量指向你的数据路径）。
-
-开发安装与跑测试：
+从本仓库进行可编辑安装与开发测试：
 
 ```bash
 pip install -e ".[dev]"
@@ -222,13 +38,207 @@ make unittest
 
 ---
 
-## 8. 契约、迁移、批量与 LangChain
+## 环境变量与客户端配置
 
-- **路由与字段映射**：[Plasmod `docs/sdk/README.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)；OpenAPI 以服务端导出为准。
-- **Milvus 迁移对照**：[docs/integrations/milvus_plasmod_mapping.md](docs/integrations/milvus_plasmod_mapping.md)。
-- **底层 `PlasmodClient`（即 `PlasmodHttpClient`）**：`health`、`ingest_event`、`query` 等；**批量向量 / 事件**见 `ingest_batch`、`ingest_events`、`add_vectors`，示例 **`examples/batch_ingest.py`**。
-- **LangChain**：安装 `pyplasmod[langchain]` 后见 **`examples/langchain_quickstart.py`**；二进制帧工具见 **`from pyplasmod.http import encode_ingest_batch`** 等。
-- **异常**：`PlasmodHttpError`、`ConnectError`、`PlasmodException`；详见 [docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)。
+下列环境变量由 `PlasmodHttpClient` / `EasyPlasmod` 在构造时读取（构造参数可覆盖环境变量）。
+
+| 环境变量 | 作用 |
+|----------|------|
+| `PLASMOD_BASE_URL` 或 `ANDB_BASE_URL` | 网关根 URL；未设置时默认为 `http://127.0.0.1:8080`。 |
+| `PLASMOD_HTTP_TIMEOUT` 或 `ANDB_HTTP_TIMEOUT` | HTTP 超时（秒）；未设置时默认为 `30`。 |
+| `PLASMOD_ADMIN_API_KEY` 或 `ANDB_ADMIN_API_KEY` | 访问 `/v1/admin/*` 时在请求头中加入 `X-Admin-Key`。 |
+
+与上述 `PLASMOD_ADMIN_API_KEY` 等价地，亦可在代码中传入 `EasyPlasmod(..., admin_key="...")` 或 `PlasmodHttpClient(..., admin_key="...")`。是否强制校验 Admin Key 由网关部署决定。
+
+```bash
+export PLASMOD_BASE_URL=http://127.0.0.1:8080
+# export PLASMOD_ADMIN_API_KEY=...   # 仅在需要调用管理接口时配置
+```
+
+---
+
+## 常用 API 与 HTTP 路径对照
+
+下表中的 **`p`** 均表示 **`EasyPlasmod`** 的实例。`upload` 与 `build_query_body` 定义在 **`pyplasmod.data`** 中，须单独 `import`（见第 2、3 节示例）。
+
+| 方法 | HTTP | 说明 |
+|------|------|------|
+| `p.health()` | `GET /healthz` | 存活探针 |
+| `p.system_mode()` | `GET /v1/system/mode` | 系统模式等 |
+| `p.search(query_text, workspace_id, **kwargs)` | `POST /v1/query` | 内部调用 `build_query_body` 后发起查询；`kwargs` 传入 `build_query_body` 的可选参数（如 `top_k`、`dataset_name`） |
+| `p.query(body)` | `POST /v1/query` | 使用完整查询 JSON；`body` 可由 `build_query_body(...)` 生成 |
+| `build_query_body(...)` | — | 仅构造 `dict`，**不**发起 HTTP；结果交给 `p.query` |
+| `upload(dataset, workspace_id, path, **kwargs)` | `POST /v1/ingest/events`（每行一次） | `.fbin` 按行入库；建议传入 `client=p.http` 以复用连接 |
+| `p.upload_fbin(...)` | 同上 | 与 `upload` 等价，内部固定使用 `p.http` |
+| `p.ingest_document(body)` | `POST /v1/ingest/document` | 长文档分块写入；`body` 至少包含 `text`，通常包含 `workspace_id`、`agent_id`、`session_id`、`title` |
+| `p.memories(workspace_id, **params)` | `GET /v1/memory` | 列举指定 `workspace_id` 下的 Memory |
+| `p.http.dataset_delete(body)` | `POST /v1/admin/dataset/delete` | 数据集软删除（`body` 字段以服务端为准） |
+| `p.http.dataset_purge(body)` | `POST /v1/admin/dataset/purge` | 数据集硬清理；执行前应使用 `dry_run: True` 评估影响 |
+| `p.http.dataset_purge_task(task_id)` | `GET /v1/admin/dataset/purge/task` | 查询异步 purge 任务状态 |
+
+其余 HTTP 与 RPC 接口均位于 **`PlasmodHttpClient`** 实例上。`EasyPlasmod` 通过属性 **`http`** 暴露该实例。类型别名 **`PlasmodClient`** 与 **`PlasmodHttpClient`** 指向同一类。完整方法名列表见 [docs/SDK.md](docs/SDK.md)。
+
+---
+
+## 1. 健康检查
+
+用于确认网络可达且网关进程正常：
+
+```python
+from pyplasmod import EasyPlasmod
+
+with EasyPlasmod() as p:
+    print(p.health())
+    # print(p.system_mode())
+```
+
+---
+
+## 2. 上传数据（`.fbin` 向量文件）
+
+**文件格式**：前 8 字节为 little-endian `uint32` 行数、`uint32` 维度；随后为按行排列的 **little-endian `float32`** 向量。当前 `upload` **仅支持** 后缀名为 `.fbin` 的文件；其他后缀将抛出 `ValueError` 并提示暂不支持。
+
+**推荐**：与后续查询共用同一 `EasyPlasmod` 实例，以保证 `base_url` 与连接配置一致。
+
+```python
+from pyplasmod import EasyPlasmod
+from pyplasmod.data import upload
+
+p = EasyPlasmod(admin_key=None)  # 若网关要求管理密钥，请传入有效 admin_key 或配置环境变量
+n = upload(
+    "my_dataset",
+    "w_demo",
+    "/path/to/vectors.fbin",
+    client=p.http,
+    limit=0,
+    show_progress=True,
+)
+print("ingested rows:", n)
+```
+
+命令行等价入口：
+
+```bash
+python -m pyplasmod.data upload my_dataset w_demo /path/to/vectors.fbin --show-progress
+```
+
+---
+
+## 3. 查询（自然语言检索）
+
+**简易用法**（内部完成 `build_query_body` 与 `POST /v1/query`）：
+
+```python
+from pyplasmod import EasyPlasmod
+
+p = EasyPlasmod()
+r = p.search("示例问题", "w_demo", top_k=10)
+print(r)
+```
+
+**与 `upload` 使用相同逻辑数据集名、并对齐会话规则**时，使用 `build_query_body` 显式传入 `dataset_name` 与 `ingest_fbin_path`（路径与上传时使用的 `.fbin` 一致即可，通常需包含相同文件名）：
+
+```python
+from pyplasmod import EasyPlasmod
+from pyplasmod.data import build_query_body
+
+p = EasyPlasmod()
+body = build_query_body(
+    "示例问题",
+    "w_demo",
+    top_k=20,
+    dataset_name="my_dataset",
+    ingest_fbin_path="/path/to/vectors.fbin",
+)
+r = p.query(body)
+print(r)
+```
+
+响应 JSON 的结构由服务端版本决定。常见字段包括 **`objects`** 或 **`hits`** 等；请以实际返回为准。
+
+---
+
+## 4. 估算条数（近似）
+
+Plasmod 未必提供独立 COUNT 接口。可采用下列方式之一获得**近似或当前页范围内**的数量（需将 `top_k` 或 Memory 列表的 `limit` 设为足够大）。
+
+**方式 A：根据查询结果中的列表长度**
+
+```python
+from pyplasmod import EasyPlasmod
+from pyplasmod.data import build_query_body
+
+p = EasyPlasmod()
+r = p.query(build_query_body(".", "w_demo", top_k=5000))
+objs = r.get("objects") or []
+print("objects in response:", len(objs))
+```
+
+**方式 B：根据 Memory 列表接口返回长度**
+
+```python
+from pyplasmod import EasyPlasmod
+
+p = EasyPlasmod()
+rows = p.memories("w_demo")
+print("memories in response:", len(rows or []))
+```
+
+---
+
+## 5. 数据集删除与清理（管理接口）
+
+以下接口属于 **`/v1/admin/*`**。若网关启用密钥校验，须配置 `PLASMOD_ADMIN_API_KEY` 或构造时传入 `admin_key`。
+
+**软删除数据集**（语义以服务端为准）：
+
+```python
+from pyplasmod import EasyPlasmod
+
+p = EasyPlasmod(admin_key="...")
+print(p.http.dataset_delete({"workspace_id": "w_demo", "dataset_name": "my_dataset"}))
+```
+
+**硬清理（purge）**：须先使用 **`dry_run: True`** 评估影响，确认后再执行实际删除。
+
+```python
+from pyplasmod import EasyPlasmod
+
+p = EasyPlasmod(admin_key="...")
+print(
+    p.http.dataset_purge(
+        {"workspace_id": "w_demo", "dataset_name": "my_dataset", "dry_run": True}
+    )
+)
+```
+
+**异步 purge 任务查询**（当服务端返回 `task_id` 时）：
+
+```python
+from pyplasmod import EasyPlasmod
+
+p = EasyPlasmod(admin_key="...")
+print(p.http.dataset_purge_task("<task_id>"))
+```
+
+---
+
+## 6. 示例脚本与扩展阅读
+
+| 路径 | 内容 |
+|------|------|
+| `examples/http_quickstart.py` | HTTP 快速示例 |
+| `examples/ingest_fbin.py` | `.fbin` 入库示例 |
+| `examples/batch_ingest.py` | 批量向量 / 事件 |
+| `examples/langchain_quickstart.py` | LangChain 集成（需安装可选依赖） |
+| `examples/try.py` | 较完整联调脚本（依赖本地数据路径与环境变量） |
+
+- **路由与字段映射**：[Plasmod `docs/sdk/README.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)  
+- **Milvus 迁移对照**：[docs/integrations/milvus_plasmod_mapping.md](docs/integrations/milvus_plasmod_mapping.md)  
+- **二进制帧工具**：`from pyplasmod.http import encode_ingest_batch` 等（多数场景可直接使用 `PlasmodHttpClient.rpc_*`）  
+- **异常类型**：`PlasmodHttpError`、`PlasmodException` 等，详见 [docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)
+
+---
 
 ## 许可证
 

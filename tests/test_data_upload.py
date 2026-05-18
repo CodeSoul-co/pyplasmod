@@ -15,6 +15,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
 from pyplasmod.data import build_query_body, upload
 from pyplasmod.http.client import PlasmodHttpClient
 
@@ -39,6 +41,14 @@ def test_upload_dry_run_non_empty():
         p = Path(td) / "one.fbin"
         _write_fbin(p, 3, 2)
         assert upload("ds", "w", p, dry_run=True) == 1
+
+
+def test_upload_rejects_non_fbin_suffix():
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "data.csv"
+        p.write_text("a,b\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="暂时无法处理"):
+            upload("ds", "w", p, dry_run=True)
 
 
 def test_build_query_body_and_client_query():

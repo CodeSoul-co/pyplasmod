@@ -18,3 +18,4 @@ examples/try.py
 examples/try_output.txt
 gateway.go
 examples/test.py
+examples/output.txt
