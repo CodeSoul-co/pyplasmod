@@ -34,6 +34,14 @@ from pyplasmod.exceptions import (
     PlasmodUnavailableException,
 )
 from pyplasmod.easy import EasyPlasmod
+from pyplasmod.embedding import (
+    EmbedderConfig,
+    EmbeddingRuntimeInfo,
+    GatewayEmbedding,
+    PlasmodEmbedding,
+    format_capability_table,
+    open_embedding,
+)
 from pyplasmod.package_help import plasmod_help, plasmod_topics
 from pyplasmod.http import (
     PlasmodHttpClient,
@@ -58,7 +66,12 @@ __all__ = [
     "ConnectError",
     "DEFAULT_BATCH_SIZE",
     "EasyPlasmod",
+    "EmbedderConfig",
+    "EmbeddingRuntimeInfo",
+    "GatewayEmbedding",
     "MAX_BATCH_VECTORS",
+    "PlasmodEmbedding",
+    "open_embedding",
     "ParamError",
     "plasmod_help",
     "plasmod_topics",
@@ -73,6 +86,7 @@ __all__ = [
     "encode_ingest_batch",
     "encode_query_warm",
     "encode_query_warm_batch",
+    "format_capability_table",
     "iter_batches",
     "validate_batch_size",
 ]

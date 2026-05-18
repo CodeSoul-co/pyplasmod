@@ -58,8 +58,9 @@ flowchart TB
 
 | 模块 | 文件 | 职责 |
 |------|------|------|
-| 包入口 | `pyplasmod/__init__.py` | 导出 `EasyPlasmod`、`PlasmodClient`、`plasmod_help`、编解码函数、`BatchResult` 等；`PlasmodVectorStore` 懒加载 |
-| 精简门面 | `pyplasmod/easy.py` | `EasyPlasmod`：包装常用 JSON 调用，`.http` 暴露完整客户端 |
+| 包入口 | `pyplasmod/__init__.py` | 导出 `EasyPlasmod`、`PlasmodEmbedding`、`PlasmodClient`、`plasmod_help`、编解码函数等；`PlasmodVectorStore` 懒加载 |
+| 精简门面 | `pyplasmod/easy.py` | `EasyPlasmod`：包装常用 JSON 调用，`.embedding` / `embed_*` 网关嵌入，`.http` 暴露完整客户端 |
+| 网关嵌入 | `pyplasmod/embedding/` | `PlasmodEmbedding`（推荐）、`EmbedderConfig` CPU/GPU 预设、`GatewayEmbedding`；见 [EMBEDDING.md](EMBEDDING.md) |
 | HTTP 客户端 | `pyplasmod/http/client.py` | `PlasmodHttpClient`：`request_json` / `request_bytes`、Tier A/B 方法、`rpc_*`、批量 `ingest_batch` |
 | 二进制帧 | `pyplasmod/http/binary.py` | `encode_ingest_batch`（PLIB）、`encode_query_warm`（PLQW）、`encode_query_warm_batch`（PLQB）及解码 |
 | HTTP 错误 | `pyplasmod/http/errors.py` | `PlasmodHttpError` |
@@ -78,9 +79,10 @@ flowchart TB
 | 符号 | 类型 | 何时使用 |
 |------|------|----------|
 | `EasyPlasmod` | 门面类 | 应用集成默认选型：`health`、`search`、`query`、`upload_fbin`、`ingest_document`、`memories` |
+| `PlasmodEmbedding` | 嵌入门面 | 网关侧文本嵌入 + CPU/GPU 部署预设 + `runtime()` 探针；`with PlasmodEmbedding.connect()` |
 | `PlasmodClient` / `PlasmodHttpClient` | 同一完整客户端 | Admin、RPC、CRUD、internal、WAL SSE、批量向量 |
 | `upload` / `build_query_body` | 模块级函数 | 脚本或管道：可 `client=None` 临时建连，或 `client=p.http` 复用 |
-| `PlasmodVectorStore` | LangChain 适配器 | `pip install pyplasmod[langchain]` 后 `from pyplasmod import PlasmodVectorStore` |
+| `PlasmodVectorStore` | LangChain 适配器 | 客户端本地 embed + `rpc_ingest_batch`；与网关嵌入路径不同 |
 
 `EasyPlasmod` **不复制**完整 API，而是通过 **`self.http: PlasmodHttpClient`** 委托：
 
@@ -180,11 +182,63 @@ class EasyPlasmod:
 
 `query_scope` 与 `workspace_id` 均设为传入的 `workspace_id`。`extra={...}` 在末尾 merge，可覆盖任意字段。
 
+可选 `embedding_vector`：传入预计算向量时，网关 **不再** 调用 embedder（维度须与 `PLASMOD_EMBEDDER_DIM` 一致）。
+
 **重要**：网关按结构化过滤（如 `dataset_name`）时，查询侧的 `session_id` / `agent_id` 须与入库一致，否则可能查不到刚导入的数据。
 
 ---
 
-## 8. 二进制 RPC（PLIB / PLQW / PLQB）
+## 8. 网关嵌入（`pyplasmod.embedding`）
+
+用户指南：[EMBEDDING.md](EMBEDDING.md)。Plasmod **无** `POST /v1/embed`；嵌入在 ingest/query 路径内完成。
+
+### 8.1 推荐：`PlasmodEmbedding`
+
+```python
+from pyplasmod import PlasmodEmbedding
+
+with PlasmodEmbedding.connect() as emb:
+    emb.ingest("文本", workspace_id="w_demo")
+    emb.search("检索", workspace_id="w_demo", top_k=5)
+    emb.runtime()  # EmbeddingRuntimeInfo: family, dim
+```
+
+`EasyPlasmod.embedding` 为同一门面（懒加载）；`embed_ingest` / `embed_search` 为简写。
+
+### 8.2 CPU / GPU 部署预设
+
+| 方法 | 设备 |
+|------|------|
+| `use_cpu("onnx", model_path=..., apply=True)` | CPU |
+| `use_gpu("onnx", model_path=..., apply=True)` | CUDA |
+| `use_onnx_cpu` / `use_onnx_gpu` | 显式 ONNX |
+| `use_gguf_cpu` / `use_gguf_gpu` | GGUF + llama.cpp |
+| `use_gpu("tensorrt", ...)` | TensorRT（仅 CUDA） |
+
+`apply=True` → `EmbedderConfig.apply_to_environ()`，须在 **启动 Plasmod 进程前** 执行。
+
+`capabilities()` / `format_capability_table()` 打印 provider × {cpu, cuda, metal} 矩阵。
+
+### 8.3 运行时探针
+
+`POST /v1/query` 响应 `provenance` 可含：
+
+- `embedding_runtime_family=...`
+- `embedding_runtime_dim=N`
+
+`PlasmodHttpClient.fetch_embedding_runtime()`、`PlasmodEmbedding.runtime()` 解析上述字段。**不包含** `device`（device 仅来自服务端 `PLASMOD_EMBEDDER_DEVICE`）。
+
+### 8.4 模块分层
+
+| 层 | 类型 | 说明 |
+|----|------|------|
+| 用户 | `PlasmodEmbedding` | `ingest` / `search` / `use_*` / `runtime` |
+| 配置 | `EmbedderConfig` | 环境变量 ↔ 预设 |
+| HTTP | `GatewayEmbedding` | 直接包装 `PlasmodHttpClient` |
+
+---
+
+## 9. 二进制 RPC（PLIB / PLQW / PLQB）
 
 实现于 `pyplasmod/http/binary.py`，与 Go `framing.go` 一致。
 
@@ -200,7 +254,7 @@ class EasyPlasmod:
 
 ---
 
-## 9. 批量与 JSON 向量入库
+## 10. 批量与 JSON 向量入库
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -213,7 +267,7 @@ class EasyPlasmod:
 
 ---
 
-## 10. 错误模型
+## 11. 错误模型
 
 | 类型 | 何时抛出 |
 |------|----------|
@@ -238,7 +292,7 @@ except PlasmodHttpError as e:
 
 ---
 
-## 11. LangChain 集成（实现概要）
+## 12. LangChain 集成（实现概要）
 
 `PlasmodVectorStore`（`pyplasmod/langchain/vectorstore.py`）：
 
@@ -251,7 +305,7 @@ except PlasmodHttpError as e:
 
 ---
 
-## 12. 包内帮助系统
+## 13. 包内帮助系统
 
 `plasmod_help(topic=None)`（`pyplasmod/package_help.py`）：
 
@@ -264,20 +318,24 @@ except PlasmodHttpError as e:
 | `errors` | `PlasmodHttpError` |
 | `binary` | `pyplasmod.http.binary` 模块 |
 | `env` | 环境变量说明 |
+| `embedding` | `PlasmodEmbedding` / CPU·GPU 预设 |
 
 别名：`plasmodclient`→`client`，`fbin`/`ingest`→`upload` 等。CLI：`python -m pyplasmod [topic]`（`pyplasmod/__main__.py`）。
 
 ---
 
-## 13. API 索引（按模块）
+## 14. API 索引（按模块）
 
 下面按模块整理 **函数/方法名 + 用途**。私有方法（`_url`、`_finish_json` 等）不列。路径与请求体字段以 Plasmod 网关为准。
 
-### 13.1 根包 `from pyplasmod import …`
+### 14.1 根包 `from pyplasmod import …`
 
 | 符号 | 用途 |
 |------|------|
-| **`EasyPlasmod`** | 精简入口类（见 §13.2） |
+| **`EasyPlasmod`** | 精简入口类（见 §14.2） |
+| **`PlasmodEmbedding`** | 网关嵌入门面（见 §8、`embedding/facade.py`） |
+| **`open_embedding`** | `PlasmodEmbedding.connect` 别名 |
+| **`EmbedderConfig`**、`**EmbeddingRuntimeInfo**` | CPU/GPU 配置与运行时探针 |
 | **`PlasmodClient`** | `PlasmodHttpClient` 别名 |
 | **`PlasmodHttpError`** | 非 2xx HTTP 时抛出 |
 | **`PlasmodException`**、`ConnectError`、`ParamError`、`PlasmodUnavailableException` | SDK 分类异常 |
@@ -289,7 +347,7 @@ except PlasmodHttpError as e:
 | **`__version__`** | 包版本 |
 | **`PlasmodVectorStore`** | LangChain 适配器（懒加载） |
 
-### 13.2 `EasyPlasmod` 实例方法
+### 14.2 `EasyPlasmod` 实例方法
 
 | 方法 | HTTP | 用途 |
 |------|------|------|
@@ -303,9 +361,22 @@ except PlasmodHttpError as e:
 | **`ingest_document(body)`** | `POST /v1/ingest/document` | 长文档分块 |
 | **`upload_fbin(...)`** | `POST /v1/ingest/events`（逐行） | 封装 `data.upload` |
 | **`memories(workspace_id, **params)`** | `GET /v1/memory` | 列举 Memory |
+| **`embedding`** | — | **`PlasmodEmbedding`**（懒加载） |
+| **`embed_ingest` / `embed_search`** | ingest / query | `embedding.ingest` / `search` 简写 |
+| **`embedding_runtime(**kw)`** | query 探针 | `embedding.runtime` |
 | **`http`** | — | 完整 **`PlasmodHttpClient`** |
 
-### 13.3 `pyplasmod.data`
+### 14.3 `pyplasmod.embedding`
+
+| 符号 | 用途 |
+|------|------|
+| **`PlasmodEmbedding`** | 推荐门面：`connect`、`ingest`、`search`、`use_cpu`/`use_gpu`、`runtime` |
+| **`open_embedding()`** | 工厂 |
+| **`EmbedderConfig`** | `onnx_cpu`/`onnx_cuda`/… 预设、`to_environ` / `from_environ` |
+| **`GatewayEmbedding`** | 低级 HTTP 包装 |
+| **`format_capability_table()`** | CPU/GPU 能力表 |
+
+### 14.4 `pyplasmod.data`
 
 | 函数 | 用途 |
 |------|------|
@@ -314,7 +385,7 @@ except PlasmodHttpError as e:
 
 CLI：`python -m pyplasmod.data upload|query ...`
 
-### 13.4 `PlasmodHttpClient` — 通用 HTTP
+### 14.5 `PlasmodHttpClient` — 通用 HTTP
 
 | 方法 | HTTP | 用途 |
 |------|------|------|
@@ -338,7 +409,7 @@ CLI：`python -m pyplasmod.data upload|query ...`
 | **`rpc_query_warm`** | `POST .../query_warm` | PLQW |
 | **`rpc_query_warm_batch`** / **`rpc_query_warm_batch_raw`** | `POST .../query_warm_batch*` | PLQB |
 
-### 13.5 Admin / 数据集 / 记忆运维
+### 14.6 Admin / 数据集 / 记忆运维
 
 | 方法 | 用途 |
 |------|------|
@@ -357,7 +428,7 @@ CLI：`python -m pyplasmod.data upload|query ...`
 | **`admin_governance_mode_*`**、`**admin_runtime_mode_*`** | 治理 / 运行时 |
 | **`admin_algorithm_profile_*`** | 算法 profile |
 
-### 13.6 资源 CRUD（JSON）
+### 14.7 资源 CRUD（JSON）
 
 | 方法 | 用途 |
 |------|------|
@@ -368,7 +439,7 @@ CLI：`python -m pyplasmod.data upload|query ...`
 | **`traces_get(object_id)`** | 追踪 / 证明链 |
 | **`agent_list_get`** | Agent 列表 |
 
-### 13.7 internal memory / task / MAS
+### 14.8 internal memory / task / MAS
 
 | 方法 | 用途 |
 |------|------|
@@ -382,14 +453,14 @@ CLI：`python -m pyplasmod.data upload|query ...`
 | **`internal_eval_ground_truth_*`** | 评测 |
 | **`debug_echo(body)`** | 测试模式调试 |
 
-### 13.8 `pyplasmod.langchain`
+### 14.9 `pyplasmod.langchain`
 
 | 类 / 方法 | 用途 |
 |-----------|------|
 | **`PlasmodVectorStore`** | LangChain `VectorStore` 实现 |
 | **`delete`**、**`max_marginal_relevance_search`** | 未实现 |
 
-### 13.9 命令行
+### 14.10 命令行
 
 | 入口 | 用途 |
 |------|------|
@@ -398,11 +469,12 @@ CLI：`python -m pyplasmod.data upload|query ...`
 
 ---
 
-## 14. 相关文档
+## 15. 相关文档
 
 | 文档 | 说明 |
 |------|------|
 | [README.md](../README.md) | 安装、快速开始、场景示例 |
+| [EMBEDDING.md](EMBEDDING.md) | 网关嵌入与 CPU/GPU（`PlasmodEmbedding`） |
 | [plans/pyplasmod-001-http-sdk-design.md](plans/pyplasmod-001-http-sdk-design.md) | HTTP SDK 架构说明 |
 | [plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md](plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md) | Tier B 扩展 API |
 | [plans/pyplasmod-003-sdk-usage-guide.md](plans/pyplasmod-003-sdk-usage-guide.md) | 用户指南（参数、样例、排错） |

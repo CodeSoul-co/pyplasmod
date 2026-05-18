@@ -6,7 +6,7 @@
 请求路径、字段与语义以 Plasmod 官方 **[HTTP API 文档](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api)** 为准；本 README 仅说明本仓库提供的封装与典型用法。
 
 包内主题索引：`from pyplasmod import plasmod_help; plasmod_help()`；命令行：`python -m pyplasmod [topic]`。  
-SDK 架构与实现细节见 **[docs/SDK.md](docs/SDK.md)**。
+SDK 架构与实现细节见 **[docs/SDK.md](docs/SDK.md)**；网关嵌入（CPU/GPU）见 **[docs/EMBEDDING.md](docs/EMBEDDING.md)**。
 
 ---
 
@@ -96,9 +96,10 @@ docker compose up -d
 | 入口 | 适用场景 |
 |------|----------|
 | **`EasyPlasmod`** | 日常集成：健康检查、`search`/`query`、`.fbin` 上传、`ingest_document`、`memories` |
+| **`PlasmodEmbedding`** | **网关侧嵌入**（CPU/GPU 预设、`ingest`/`search`、运行时探针）；也可用 `p.embedding` |
 | **`PlasmodClient`**（= `PlasmodHttpClient`） | 需要完整 HTTP/RPC：admin 运维、`ingest_vectors`、二进制 `rpc_*`、内部 task/MAS、WAL SSE 等 |
 | **`pyplasmod.data.upload` / `build_query_body`** | 与 HTTP 解耦的辅助函数；可传入 `client=` 复用连接 |
-| **`PlasmodVectorStore`** | LangChain 集成（`pip install pyplasmod[langchain]`） |
+| **`PlasmodVectorStore`** | LangChain 集成（`pip install pyplasmod[langchain]`）；嵌入在**客户端**完成 |
 
 关系：`EasyPlasmod` 内部持有一个 **`PlasmodHttpClient`**，通过 **`p.http`** 访问完整能力。多数示例用 `with EasyPlasmod() as p:` 自动关闭连接。
 
@@ -124,6 +125,7 @@ with PlasmodClient(base_url="http://127.0.0.1:8080", admin_key="...") as c:
 | **`session_id` / `agent_id`** | 会话与智能体标识；**查询时的值须与入库时一致**，否则可能查不到刚写入的数据 |
 | **Memory** | 网关物化后的记忆对象；`p.memories(workspace_id)` 列举 |
 | **`.fbin`** | SDK 支持的 bulk 向量文件格式（见 §2） |
+| **网关嵌入** | 无 `/v1/embed`；文本在 ingest/query 时由服务端 ONNX/GGUF/TF-IDF 等生成向量；CPU/GPU 由 `PLASMOD_EMBEDDER_DEVICE` 控制 |
 
 `upload` 默认 `session_id = ingest_{dataset}_{文件名}`；`build_query_body` 在传入相同 `dataset_name` 与 `ingest_fbin_path` 时会自动对齐该 session。
 
@@ -133,7 +135,8 @@ with PlasmodClient(base_url="http://127.0.0.1:8080", admin_key="...") as c:
 from pyplasmod import plasmod_help, plasmod_topics
 
 plasmod_help()              # 打印主题索引
-print(plasmod_topics())     # ['binary', 'client', 'easy', 'env', 'errors', 'querybody', 'upload', ...]
+print(plasmod_topics())     # [..., 'embedding', 'env', ...]
+plasmod_help("embedding")   # PlasmodEmbedding / CPU·GPU
 plasmod_help("easy")        # EasyPlasmod 说明 + 内置 help() 全文
 plasmod_help("env")         # 仅环境变量
 ```
@@ -182,6 +185,17 @@ make unittest
 | `PLASMOD_HTTP_TIMEOUT` 或 `ANDB_HTTP_TIMEOUT` | HTTP 超时（秒）；未设置时默认为 `30`。 |
 | `PLASMOD_ADMIN_API_KEY` 或 `ANDB_ADMIN_API_KEY` | 访问 `/v1/admin/*` 时在请求头中加入 `X-Admin-Key`。 |
 
+**网关嵌入（Plasmod 进程，非 pyplasmod 客户端）** — 由 `PlasmodEmbedding.use_cpu` / `use_gpu` 或 `EmbedderConfig` 写入：
+
+| 环境变量 | 作用 |
+|----------|------|
+| `PLASMOD_EMBEDDER` | `tfidf` \| `onnx` \| `gguf` \| `tensorrt` \| `openai` \| … |
+| `PLASMOD_EMBEDDER_DEVICE` | `cpu` \| `cuda` \| `metal`（本地 ONNX/GGUF 双路径） |
+| `PLASMOD_EMBEDDER_DIM` | 向量维度 |
+| `PLASMOD_EMBEDDER_MODEL_PATH` | 本地模型路径 |
+
+详见 **[docs/EMBEDDING.md](docs/EMBEDDING.md)** 与 [`.env.example`](.env.example)。
+
 与上述 `PLASMOD_ADMIN_API_KEY` 等价地，亦可在代码中传入 `EasyPlasmod(..., admin_key="...")` 或 `PlasmodHttpClient(..., admin_key="...")`。是否强制校验 Admin Key 由网关部署决定。
 
 ```bash
@@ -206,6 +220,10 @@ export PLASMOD_BASE_URL=http://127.0.0.1:8080
 | `p.upload_fbin(...)` | 同上 | 与 `upload` 等价，内部固定使用 `p.http` |
 | `p.ingest_document(body)` | `POST /v1/ingest/document` | 长文档分块写入；`body` 至少包含 `text`，通常包含 `workspace_id`、`agent_id`、`session_id`、`title` |
 | `p.memories(workspace_id, **params)` | `GET /v1/memory` | 列举指定 `workspace_id` 下的 Memory |
+| `p.embedding.ingest(text, workspace_id)` | `POST /v1/ingest/events` | 文本入库，**服务端**嵌入（CPU/GPU 由网关 env 决定） |
+| `p.embed_search(query, workspace_id, **kw)` | `POST /v1/query` | 同上，语义检索简写 |
+| `p.embedding.runtime(...)` | `POST /v1/query`（探针） | 从 `provenance` 解析 `embedding_runtime_family` / `dim` |
+| `PlasmodEmbedding.use_onnx_cpu/gpu(..., apply=True)` | —（写 `os.environ`） | 启动 Plasmod **前** 配置 CPU/GPU 预设 |
 | `p.http.dataset_delete(body)` | `POST /v1/admin/dataset/delete` | 数据集软删除（`body` 字段以服务端为准） |
 | `p.http.dataset_purge(body)` | `POST /v1/admin/dataset/purge` | 数据集硬清理；执行前应使用 `dry_run: True` 评估影响 |
 | `p.http.dataset_purge_task(task_id)` | `GET /v1/admin/dataset/purge/task` | 查询异步 purge 任务状态 |
@@ -308,6 +326,20 @@ with EasyPlasmod() as p:
 
 `ingest_document` **不要求**本地准备 `.fbin` 或 `embedding_vector`（嵌入由网关侧完成）。适合 RAG 语料、说明文档、对话纪要等纯文本场景。
 
+也可用嵌入门面一次完成（等价于网关侧嵌入 + 后续 `search`）：
+
+```python
+from pyplasmod import EasyPlasmod
+
+with EasyPlasmod() as p:
+    p.embedding.ingest_document(
+        "长文档正文……",
+        workspace_id="w_demo",
+        title="手册",
+        session_id="doc_session",
+    )
+```
+
 ### 2.2 单条短文本（`ingest_event`）
 
 需要写入**单条**结构化事件（可带自定义 `payload`、可选向量）时，使用 `POST /v1/ingest/events`：
@@ -397,6 +429,46 @@ print(r)
 
 ---
 
+## 3.1 网关嵌入与 CPU / GPU（`PlasmodEmbedding`）
+
+Plasmod **没有** 单独的 embed HTTP 接口；向量在 **ingest / query** 时由网关内的 embedder 生成。pyplasmod 用 **`PlasmodEmbedding`** 封装该流程，并映射 Plasmod 的 **CPU / GPU 双路径**（ONNX、GGUF、TensorRT 等）。
+
+**最小用法**（文本入库 + 检索 + 查看网关实际 embedder）：
+
+```python
+from pyplasmod import PlasmodEmbedding
+
+with PlasmodEmbedding.connect() as emb:
+    emb.ingest("要入库的句子", workspace_id="w_demo")
+    print(emb.search("检索词", workspace_id="w_demo", top_k=5))
+    print(emb.runtime())  # family / dim（来自 query provenance）
+```
+
+**与 `EasyPlasmod` 相同能力**：
+
+```python
+from pyplasmod import EasyPlasmod
+
+with EasyPlasmod() as p:
+    p.embed_ingest("要入库的句子", workspace_id="w_demo")
+    print(p.embed_search("检索词", workspace_id="w_demo"))
+```
+
+**部署前选择 CPU 或 GPU**（写入环境变量后启动 Plasmod）：
+
+```python
+from pyplasmod import PlasmodEmbedding
+
+emb = PlasmodEmbedding.connect()
+emb.use_onnx_cpu(model_path="/models/model.onnx", dim=384, apply=True)   # CPU
+# emb.use_onnx_gpu(model_path="/models/model.onnx", dim=384, apply=True)  # CUDA
+print(emb.capabilities())  # 各 provider 的 cpu/cuda/metal 能力表
+```
+
+专题文档：**[docs/EMBEDDING.md](docs/EMBEDDING.md)**。架构细节见 [docs/SDK.md](docs/SDK.md) §8。
+
+---
+
 ## 4. 估算条数（近似）
 
 Plasmod 未必提供独立 COUNT 接口。可采用下列方式之一获得**近似或当前页范围内**的数量（需将 `top_k` 或 Memory 列表的 `limit` 设为足够大）。
@@ -470,7 +542,9 @@ print(p.http.dataset_purge_task("<task_id>"))
 | `examples/ingest_fbin.py` | `.fbin` 入库示例 |
 | `examples/batch_ingest.py` | 批量向量 / 事件 |
 | `examples/langchain_quickstart.py` | LangChain 集成（需 `pip install pyplasmod[langchain]`） |
+| `examples/embedding_cpu_gpu.py` | 网关嵌入与 CPU/GPU 预设、`PlasmodEmbedding` |
 
+- **网关嵌入（CPU/GPU）**：[docs/EMBEDDING.md](docs/EMBEDDING.md)  
 - **SDK 架构与实现**：[docs/SDK.md](docs/SDK.md)  
 - **SDK 用户指南**（参数、样例、排错）：[docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)  
 - **HTTP SDK 架构说明**：[docs/plans/pyplasmod-001-http-sdk-design.md](docs/plans/pyplasmod-001-http-sdk-design.md)  

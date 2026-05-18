@@ -24,11 +24,18 @@ def _topic_entries() -> list[tuple[str, str, Optional[object], str]]:
     """name, one-line blurb, object for ``help()`` or None, how to open ``help`` in REPL."""
     from pyplasmod.data import build_query_body, upload
     from pyplasmod.easy import EasyPlasmod
+    from pyplasmod.embedding import PlasmodEmbedding
     from pyplasmod.http.client import PlasmodHttpClient
     from pyplasmod.http.errors import PlasmodHttpError
 
     binary = importlib.import_module("pyplasmod.http.binary")
     return [
+        (
+            "embedding",
+            "网关侧嵌入：PlasmodEmbedding（ingest/search/runtime、use_cpu/use_gpu）。",
+            PlasmodEmbedding,
+            "from pyplasmod import PlasmodEmbedding; help(PlasmodEmbedding)",
+        ),
         (
             "easy",
             "精简入口：健康检查、search/query、ingest、upload_fbin、memories；完整 HTTP 用 .http。",
@@ -81,6 +88,15 @@ def _print_env(*, file: TextIO) -> None:
       PLASMOD_BASE_URL / ANDB_BASE_URL   服务根 URL，默认 http://127.0.0.1:8080
       PLASMOD_HTTP_TIMEOUT / ANDB_HTTP_TIMEOUT   秒，默认 30
       PLASMOD_ADMIN_API_KEY / ANDB_ADMIN_API_KEY   访问 /v1/admin/* 时自动加 X-Admin-Key
+
+    环境变量（Plasmod 网关进程 — 嵌入 CPU/GPU）
+      PLASMOD_EMBEDDER              tfidf | onnx | gguf | tensorrt | openai | …
+      PLASMOD_EMBEDDER_DEVICE       cpu | cuda | metal（onnx/gguf 双路径）
+      PLASMOD_EMBEDDER_DIM          向量维度，须与模型一致
+      PLASMOD_EMBEDDER_MODEL_PATH   本地 .onnx / .gguf / .engine 路径
+      PLASMOD_ONNX_VOCAB_PATH       ONNX BERT vocab（可选）
+
+    在 Python 中查看能力表: from pyplasmod import format_capability_table; print(format_capability_table())
     """
     print(textwrap.dedent(text).rstrip(), file=file)
 
@@ -138,7 +154,7 @@ def plasmod_help(
         _print_env(file=file)
         return
 
-    embed = frozenset({"easy", "upload", "querybody", "errors", "binary"})
+    embed = frozenset({"easy", "upload", "querybody", "errors", "binary", "embedding"})
 
     for name, blurb, obj, how in _topic_entries():
         if key == name:

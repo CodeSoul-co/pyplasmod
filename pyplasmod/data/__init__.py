@@ -20,7 +20,7 @@ import struct
 import time
 import sys
 from pathlib import Path
-from typing import Any, Callable, Iterator, Mapping, Optional, TextIO
+from typing import Any, Callable, Iterator, Mapping, Optional, Sequence, TextIO
 
 from pyplasmod.http.client import PlasmodHttpClient
 
@@ -177,6 +177,7 @@ def build_query_body(
     import_batch_id: str = "",
     latest_batch_only: bool = False,
     source_file_name: str = "",
+    embedding_vector: Optional[Sequence[float]] = None,
     extra: Optional[Mapping[str, Any]] = None,
 ) -> dict[str, Any]:
     """
@@ -194,6 +195,10 @@ def build_query_body(
     :func:`upload` via ``ingest_fbin_path``, the default session matches
     ``upload``'s ``ingest_{dataset}_{filename}`` rule. Otherwise the default is
     ``query_{workspace_id}``.
+
+    Pass ``embedding_vector`` to query with a precomputed dense vector (skips the
+    gateway embedder). Omit it to use server-side embedding (CPU/GPU per
+    ``PLASMOD_EMBEDDER_DEVICE`` — see :mod:`pyplasmod.embedding`).
     """
     sid = session_id.strip()
     if not sid:
@@ -224,6 +229,8 @@ def build_query_body(
         body["latest_batch_only"] = True
     if source_file_name:
         body["source_file_name"] = source_file_name
+    if embedding_vector is not None:
+        body["embedding_vector"] = [float(x) for x in embedding_vector]
     if extra:
         body.update(dict(extra))
     return body

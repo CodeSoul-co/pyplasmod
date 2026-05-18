@@ -18,6 +18,9 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Union
 
 from pyplasmod.data import build_query_body, upload as data_upload
+from pyplasmod.embedding import PlasmodEmbedding
+from pyplasmod.embedding.config import EmbedderConfig
+from pyplasmod.embedding.runtime import EmbeddingRuntimeInfo
 from pyplasmod.http.client import PlasmodHttpClient
 
 
@@ -29,7 +32,7 @@ class EasyPlasmod:
     :attr:`http` (:class:`~pyplasmod.http.client.PlasmodHttpClient`).
     """
 
-    __slots__ = ("http",)
+    __slots__ = ("http", "_embedding")
 
     def __init__(
         self,
@@ -51,6 +54,7 @@ class EasyPlasmod:
             admin_key=admin_key,
             session=session,
         )
+        self._embedding: Optional[PlasmodEmbedding] = None
 
     def close(self) -> None:
         self.http.close()
@@ -94,6 +98,37 @@ class EasyPlasmod:
     ) -> int:
         """``.fbin`` → :func:`pyplasmod.data.upload`（固定 ``client=self.http``）；*kwargs* 同 ``upload``。"""
         return int(data_upload(dataset, workspace_id, path, client=self.http, **kwargs))
+
+    @property
+    def embedding(self) -> PlasmodEmbedding:
+        """
+        Gateway-side embedding helper (ingest / search / CPU·GPU presets).
+
+        See :class:`~pyplasmod.embedding.facade.PlasmodEmbedding` and ``docs/EMBEDDING.md``.
+        """
+        if self._embedding is None:
+            self._embedding = PlasmodEmbedding(easy=self)
+        return self._embedding
+
+    def embed_ingest(self, text: str, workspace_id: str, **kwargs: Any) -> Any:
+        """Shorthand: ``self.embedding.ingest(text, workspace_id, **kwargs)``."""
+        return self.embedding.ingest(text, workspace_id, **kwargs)
+
+    def embed_search(self, query_text: str, workspace_id: str, **kwargs: Any) -> Any:
+        """Shorthand: ``self.embedding.search(query_text, workspace_id, **kwargs)``."""
+        return self.embedding.search(query_text, workspace_id, **kwargs)
+
+    def gateway_embedding(self) -> PlasmodEmbedding:
+        """Alias for :attr:`embedding` (backward compatible)."""
+        return self.embedding
+
+    def embedder_config(self) -> EmbedderConfig:
+        """``PLASMOD_EMBEDDER*`` on this machine (deployment / client env)."""
+        return self.embedding.config()
+
+    def embedding_runtime(self, **kwargs: Any) -> EmbeddingRuntimeInfo:
+        """Probe live gateway embedder via ``POST /v1/query`` provenance."""
+        return self.embedding.runtime(**kwargs)
 
     def memories(self, workspace_id: str, **params: Any) -> Any:
         """``GET /v1/memory`` with ``workspace_id`` merged into query ``params``."""

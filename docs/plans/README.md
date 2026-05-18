@@ -11,7 +11,10 @@
 | 002 | [Tier B HTTP 快捷方法说明](pyplasmod-002-gateway-tier-b-shortcuts-design.md) | 高级集成 | 扩展 Admin / internal JSON API 命名与路由索引 |
 | 003 | [SDK 用户指南](pyplasmod-003-sdk-usage-guide.md) | 所有用户 | 参数填法、场景样例、排错 |
 
-另请参阅：[docs/SDK.md](../SDK.md)（实现细节与 API 速查）。
+另请参阅：
+
+- [docs/SDK.md](../SDK.md)（实现细节与 API 速查）
+- [docs/EMBEDDING.md](../EMBEDDING.md)（网关嵌入与 CPU/GPU，`PlasmodEmbedding`）
 
 ## 命名规范
 

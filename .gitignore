@@ -18,3 +18,5 @@ examples/try_output.txt
 gateway.go
 examples/test.py
 examples/output.txt
+examples/embedding_cpu_gpu.py
+tests/test_embedding.py

@@ -286,6 +286,19 @@ class PlasmodHttpClient:
     def query(self, body: Mapping[str, Any]) -> Any:
         return self.request_json("POST", "/v1/query", json_body=dict(body))
 
+    def fetch_embedding_runtime(self, **kwargs: Any) -> Any:
+        """
+        Probe gateway embedding backend via a minimal ``POST /v1/query``.
+
+        Returns :class:`~pyplasmod.embedding.runtime.EmbeddingRuntimeInfo`.
+        Keyword args are forwarded to
+        :func:`pyplasmod.embedding.runtime.fetch_embedding_runtime`
+        (e.g. ``workspace_id``, ``query_text``).
+        """
+        from pyplasmod.embedding.runtime import fetch_embedding_runtime
+
+        return fetch_embedding_runtime(self, **kwargs)
+
     def query_batch(self, body: Mapping[str, Any]) -> Any:
         """
         POST ``/v1/query/batch`` — warm-segment batch ANN over a vector matrix.

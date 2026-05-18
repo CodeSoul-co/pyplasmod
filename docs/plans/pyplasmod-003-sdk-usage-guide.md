@@ -226,6 +226,36 @@ python -m pyplasmod.data upload my_dataset w_demo /path/to/vectors.fbin --show-p
 
 向量维度须与网关 warm 段 / 嵌入配置一致。
 
+### 4.5 网关嵌入与 CPU / GPU — `PlasmodEmbedding`
+
+Plasmod **没有** `/v1/embed`；纯文本在服务端由 ONNX / GGUF / TF-IDF 等生成向量。推荐入口：
+
+```python
+from pyplasmod import PlasmodEmbedding, EasyPlasmod
+
+# 独立门面
+with PlasmodEmbedding.connect() as emb:
+    print(emb.capabilities())
+    emb.ingest("入库文本", workspace_id="w_demo")
+    print(emb.search("检索词", workspace_id="w_demo", top_k=5))
+    print(emb.runtime())
+
+# 或挂在 EasyPlasmod 上
+with EasyPlasmod() as p:
+    p.embed_ingest("入库文本", workspace_id="w_demo")
+    print(p.embed_search("检索词", workspace_id="w_demo"))
+```
+
+**启动 Plasmod 前** 配置 CPU 或 GPU（写入 `PLASMOD_EMBEDDER*`）：
+
+```python
+emb = PlasmodEmbedding.connect()
+emb.use_onnx_cpu(model_path="/models/model.onnx", dim=384, apply=True)
+# emb.use_onnx_gpu(model_path="/models/model.onnx", dim=384, apply=True)
+```
+
+详见 **[docs/EMBEDDING.md](../EMBEDDING.md)** 与 [SDK.md §8](../SDK.md#8-网关嵌入pyplasmodembedding)。
+
 ---
 
 ## 5. 查询与检索
@@ -244,6 +274,7 @@ with EasyPlasmod() as p:
 | 参数 | 说明 |
 |------|------|
 | `query_text` | 查询字符串 |
+| `embedding_vector` | 可选；传入则跳过网关 embedder |
 | `workspace_id` | 工作区；同时写入 `query_scope` |
 | `session_id` | 为空时：若同时提供 `dataset_name` 与 `ingest_fbin_path` → `ingest_{dataset}_{文件名}`；否则 `query_{workspace_id}` |
 | `agent_id` | 默认 `pyplasmod_data`；须与入库一致 |
