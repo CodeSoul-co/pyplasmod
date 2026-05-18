@@ -1,129 +1,129 @@
-# pyplasmod SDK 用户指南
+# pyplasmod SDK usage guide
 
-| 元数据 | 值 |
-|--------|-----|
-| **文档编号** | pyplasmod-003 |
-| **状态** | 当前版本适用 |
-| **创建** | 2026-05-06 |
-| **更新** | 2026-05-18 |
-| **维护方** | [CodeSoul-co](https://github.com/CodeSoul-co) |
-| **读者** | 使用 pyplasmod 集成 Plasmod 的应用开发者 |
+| Metadata | Value |
+|----------|-------|
+| **Document ID** | pyplasmod-003 |
+| **Status** | Current release |
+| **Created** | 2026-05-06 |
+| **Updated** | 2026-05-18 |
+| **Maintainer** | [CodeSoul-co](https://github.com/CodeSoul-co) |
+| **Audience** | Application developers integrating Plasmod via pyplasmod |
 
-> **首次使用**建议按顺序阅读：  
-> 1. [README.md](../../README.md) — 安装、网关启动、5 分钟快速开始  
-> 2. 本文 — 参数含义、推荐填法、可复制样例  
-> 3. [docs/SDK.md](../SDK.md) — 架构与 API 全量索引  
+> **First-time users** — recommended reading order:  
+> 1. [README.md](../../README.md) — install, start the gateway, 5-minute quick start  
+> 2. This guide — parameter meanings, recommended values, copy-paste examples  
+> 3. [docs/SDK.md](../SDK.md) — architecture and full API index  
 >  
-> 架构背景：[pyplasmod-001-http-sdk-design.md](pyplasmod-001-http-sdk-design.md)  
-> Tier B 扩展 API：[pyplasmod-002-gateway-tier-b-shortcuts-design.md](pyplasmod-002-gateway-tier-b-shortcuts-design.md)
+> Architecture background: [pyplasmod-001-http-sdk-design.md](pyplasmod-001-http-sdk-design.md)  
+> Tier B extended APIs: [pyplasmod-002-gateway-tier-b-shortcuts-design.md](pyplasmod-002-gateway-tier-b-shortcuts-design.md)
 
-**服务端契约**：JSON 字段与路由以 [Plasmod HTTP API](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api) 为准；本文与当前 `pyplasmod` 代码保持一致。
+**Server contract:** JSON fields and routes follow the [Plasmod HTTP API](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api); this guide matches the current `pyplasmod` codebase.
 
 ---
 
-## 1. 安装与运行前提
+## 1. Installation and prerequisites
 
-### 1.1 安装客户端
+### 1.1 Install the client
 
 ```bash
 pip install pyplasmod
 ```
 
-可选 LangChain 集成：
+Optional LangChain integration:
 
 ```bash
 pip install pyplasmod[langchain]
 ```
 
-从源码开发安装：
+Development install from source:
 
 ```bash
 pip install -e ".[dev]"
 make unittest
 ```
 
-### 1.2 运行前提
+### 1.2 Runtime prerequisites
 
-| 要求 | 说明 |
-|------|------|
-| Python | 3.8 及以上 |
-| Plasmod 网关 | 已启动且可从本机访问（默认 `http://127.0.0.1:8080`） |
-| 网络 | `curl $PLASMOD_BASE_URL/healthz` 返回成功 |
+| Requirement | Notes |
+|-------------|-------|
+| Python | 3.8 or newer |
+| Plasmod gateway | Running and reachable (default `http://127.0.0.1:8080`) |
+| Network | `curl $PLASMOD_BASE_URL/healthz` succeeds |
 
-网关**不在** pyplasmod 包内。启动方式（`make dev`、Docker Compose 等）见 [README.md — 启动 Plasmod 网关](../../README.md#启动-plasmod-网关)。
+The gateway is **not** bundled in pyplasmod. Start options (`make dev`, Docker Compose, etc.) are in [README.md — Start the Plasmod gateway](../../README.md#start-the-plasmod-gateway).
 
-### 1.3 包内帮助
+### 1.3 In-package help
 
 ```python
 from pyplasmod import plasmod_help, plasmod_topics
 
-plasmod_help()           # 主题索引
-plasmod_help("easy")     # EasyPlasmod 详细说明
-plasmod_help("env")      # 环境变量
+plasmod_help()           # topic index
+plasmod_help("easy")     # EasyPlasmod details
+plasmod_help("env")      # environment variables
 ```
 
-命令行：`python -m pyplasmod [topic]`。完整函数签名亦可使用 `help(EasyPlasmod)` 等内置帮助。
+Command line: `python -m pyplasmod [topic]`. Full signatures: `help(EasyPlasmod)`, etc.
 
 ---
 
-## 2. 环境变量
+## 2. Environment variables
 
-| 变量 | 作用 |
-|------|------|
-| `PLASMOD_BASE_URL` / `ANDB_BASE_URL` | HTTP 根地址；默认 `http://127.0.0.1:8080` |
-| `PLASMOD_HTTP_TIMEOUT` / `ANDB_HTTP_TIMEOUT` | 超时（秒）；默认 `30` |
-| `PLASMOD_ADMIN_API_KEY` / `ANDB_ADMIN_API_KEY` | 访问 `/v1/admin/*` 时设置请求头 `X-Admin-Key` |
+| Variable | Purpose |
+|----------|---------|
+| `PLASMOD_BASE_URL` / `ANDB_BASE_URL` | HTTP root URL; default `http://127.0.0.1:8080` |
+| `PLASMOD_HTTP_TIMEOUT` / `ANDB_HTTP_TIMEOUT` | Timeout in seconds; default `30` |
+| `PLASMOD_ADMIN_API_KEY` / `ANDB_ADMIN_API_KEY` | Sets `X-Admin-Key` for `/v1/admin/*` |
 
-构造客户端时传入的 `base_url`、`timeout`、`admin_key` **优先于**环境变量。  
-可将仓库 [`.env.example`](../../.env.example) 复制为 `.env` 供本地工具加载（pyplasmod 本身通过 `os.environ` 读取，不强制依赖 dotenv）。
+Constructor arguments `base_url`, `timeout`, and `admin_key` **override** environment variables.  
+Copy [`.env.example`](../../.env.example) to `.env` for local tooling (pyplasmod reads `os.environ` directly and does not require dotenv).
 
 ---
 
-## 3. 选择客户端入口
+## 3. Choosing a client entry point
 
-| 入口 | 适用场景 |
-|------|----------|
-| **`EasyPlasmod`** | 健康检查、文本检索、`ingest_document`、`.fbin` 上传、`memories` |
-| **`PlasmodClient`**（= `PlasmodHttpClient`） | Admin、二进制 RPC、`ingest_vectors`、Tier B internal、WAL SSE |
-| **`pyplasmod.data`** | `build_query_body`、`upload`（可传入 `client=` 复用连接） |
-| **`PlasmodVectorStore`** | LangChain（需 optional extra） |
+| Entry | Use when |
+|-------|----------|
+| **`EasyPlasmod`** | Health checks, text search, `ingest_document`, `.fbin` upload, `memories` |
+| **`PlasmodClient`** (= `PlasmodHttpClient`) | Admin, binary RPC, `ingest_vectors`, Tier B internal, WAL SSE |
+| **`pyplasmod.data`** | `build_query_body`, `upload` (pass `client=` to reuse connections) |
+| **`PlasmodVectorStore`** | LangChain (optional extra) |
 
 ```python
 from pyplasmod import EasyPlasmod
 
 with EasyPlasmod() as p:
     p.health()
-    p.http.dataset_delete({...})  # 完整能力经 .http 访问
+    p.http.dataset_delete({...})  # full API via .http
 ```
 
-### 3.1 核心概念
+### 3.1 Core concepts
 
-| 概念 | 说明 |
-|------|------|
-| `workspace_id` | 工作区隔离键，入库与查询通常必填（如 `w_demo`） |
-| `dataset_name` | 逻辑数据集名；与 `upload(..., dataset=...)` 对应 |
-| `session_id` / `agent_id` | 会话与智能体；**查询须与入库一致** |
-| Memory | 网关物化后的记忆；`p.memories(workspace_id)` 列举 |
+| Concept | Description |
+|---------|-------------|
+| `workspace_id` | Workspace isolation key; usually required for ingest and query (e.g. `w_demo`) |
+| `dataset_name` | Logical dataset; pairs with `upload(..., dataset=...)` |
+| `session_id` / `agent_id` | Session and agent; **must match between ingest and query** |
+| Memory | Materialized gateway memory; `p.memories(workspace_id)` lists rows |
 
 ---
 
-## 4. 数据入库
+## 4. Data ingest
 
-### 4.1 长文本与文档 — `ingest_document`
+### 4.1 Long text and documents — `ingest_document`
 
-网关将 `text` **自动分块**为多条 memory 事件，客户端无需自行切句。
+The gateway **chunks** `text` into multiple memory events automatically; the client does not split sentences.
 
-**必填 / 强烈建议字段**
+**Required / strongly recommended fields**
 
-| 字段 | 说明 |
-|------|------|
-| `text` | 正文（必填） |
-| `workspace_id` | 工作区 |
-| `agent_id` | 智能体 ID |
-| `session_id` | 会话 ID（查询时沿用） |
-| `title` | 文档标题（建议） |
+| Field | Description |
+|-------|-------------|
+| `text` | Body (required) |
+| `workspace_id` | Workspace |
+| `agent_id` | Agent ID |
+| `session_id` | Session ID (reuse at query time) |
+| `title` | Document title (recommended) |
 
-**可选**：`chunk_size`、`overlap`、`importance` 等（语义以网关为准）。
+**Optional:** `chunk_size`, `overlap`, `importance`, etc. (semantics per gateway).
 
 ```python
 from pyplasmod import EasyPlasmod
@@ -137,11 +137,11 @@ with EasyPlasmod() as p:
     print(
         p.ingest_document(
             {
-                "text": "需要入库的正文内容。",
+                "text": "Content to ingest.",
                 "workspace_id": workspace,
                 "agent_id": agent_id,
                 "session_id": session_id,
-                "title": "示例文档",
+                "title": "Example document",
                 "chunk_size": 500,
                 "overlap": 50,
             }
@@ -150,7 +150,7 @@ with EasyPlasmod() as p:
     print(
         p.query(
             build_query_body(
-                "文档主题是什么？",
+                "What is this document about?",
                 workspace,
                 session_id=session_id,
                 agent_id=agent_id,
@@ -160,18 +160,18 @@ with EasyPlasmod() as p:
     )
 ```
 
-**从文件读取**：
+**From a file:**
 
 ```python
 from pathlib import Path
 
 text = Path("/path/to/manual.md").read_text(encoding="utf-8")
-# 将 text 填入 ingest_document 的 "text" 字段，title 可用 path.name
+# Put text in ingest_document's "text" field; title can be path.name
 ```
 
-### 4.2 单条短文本 — `ingest_event`
+### 4.2 Single short text — `ingest_event`
 
-适用于单条结构化事件、自定义 `payload`、或需附带 `embedding_vector` 的场景。
+For one structured event, custom `payload`, or an attached `embedding_vector`.
 
 ```python
 with EasyPlasmod() as p:
@@ -182,18 +182,18 @@ with EasyPlasmod() as p:
             "agent_id": "pyplasmod_data",
             "session_id": "notes_session",
             "event_type": "observation",
-            "payload": {"text": "一条备注"},
+            "payload": {"text": "A note"},
             "source": "my_application",
             "version": 1,
         }
     )
 ```
 
-多条事件可循环调用，或使用 `p.http.ingest_events(events, batch_size=...)`。
+For multiple events, loop calls or use `p.http.ingest_events(events, batch_size=...)`.
 
-### 4.3 向量文件 — `upload` / `upload_fbin`
+### 4.3 Vector files — `upload` / `upload_fbin`
 
-`.fbin` 格式：8 字节头（`uint32` 行数 + `uint32` 维度）+ 按行的 little-endian `float32`。
+`.fbin` format: 8-byte header (`uint32` row count + `uint32` dimension) + little-endian `float32` per row.
 
 ```python
 from pyplasmod import EasyPlasmod
@@ -210,43 +210,43 @@ with EasyPlasmod() as p:
     print("ingested rows:", n)
 ```
 
-命令行：
+Command line:
 
 ```bash
 python -m pyplasmod.data upload my_dataset w_demo /path/to/vectors.fbin --show-progress
 ```
 
-### 4.4 JSON 向量与二进制批量
+### 4.4 JSON vectors and binary batch
 
-| 方法 | 适用 |
-|------|------|
-| `client.ingest_vectors([[...], ...])` | 中等规模 JSON 矩阵 |
-| `client.ingest_batch(segment_id, vectors, batch_size=500)` | 大规模；内部 RPC PLIB 自动分片 |
-| `client.rpc_ingest_batch(...)` | 低级 RPC，自行控制批次 |
+| Method | When to use |
+|--------|-------------|
+| `client.ingest_vectors([[...], ...])` | Medium-sized JSON matrices |
+| `client.ingest_batch(segment_id, vectors, batch_size=500)` | Large scale; internal PLIB RPC with automatic chunking |
+| `client.rpc_ingest_batch(...)` | Low-level RPC; you control batching |
 
-向量维度须与网关 warm 段 / 嵌入配置一致。
+Vector dimension must match gateway warm segment / embedder configuration.
 
-### 4.5 网关嵌入与 CPU / GPU — `PlasmodEmbedding`
+### 4.5 Gateway embedding and CPU / GPU — `PlasmodEmbedding`
 
-Plasmod **没有** `/v1/embed`；纯文本在服务端由 ONNX / GGUF / TF-IDF 等生成向量。推荐入口：
+Plasmod has **no** `/v1/embed`; plain text is embedded server-side via ONNX / GGUF / TF-IDF, etc. Recommended entry:
 
 ```python
 from pyplasmod import PlasmodEmbedding, EasyPlasmod
 
-# 独立门面
+# Standalone facade
 with PlasmodEmbedding.connect() as emb:
     print(emb.capabilities())
-    emb.ingest("入库文本", workspace_id="w_demo")
-    print(emb.search("检索词", workspace_id="w_demo", top_k=5))
+    emb.ingest("text to ingest", workspace_id="w_demo")
+    print(emb.search("query terms", workspace_id="w_demo", top_k=5))
     print(emb.runtime())
 
-# 或挂在 EasyPlasmod 上
+# Or on EasyPlasmod
 with EasyPlasmod() as p:
-    p.embed_ingest("入库文本", workspace_id="w_demo")
-    print(p.embed_search("检索词", workspace_id="w_demo"))
+    p.embed_ingest("text to ingest", workspace_id="w_demo")
+    print(p.embed_search("query terms", workspace_id="w_demo"))
 ```
 
-**启动 Plasmod 前** 配置 CPU 或 GPU（写入 `PLASMOD_EMBEDDER*`）：
+**Before starting Plasmod**, configure CPU or GPU (`PLASMOD_EMBEDDER*`):
 
 ```python
 emb = PlasmodEmbedding.connect()
@@ -254,33 +254,33 @@ emb.use_onnx_cpu(model_path="/models/model.onnx", dim=384, apply=True)
 # emb.use_onnx_gpu(model_path="/models/model.onnx", dim=384, apply=True)
 ```
 
-详见 **[docs/EMBEDDING.md](../EMBEDDING.md)** 与 [SDK.md §8](../SDK.md#8-网关嵌入pyplasmodembedding)。
+See **[docs/EMBEDDING.md](../EMBEDDING.md)** (recommended entry and CPU/GPU presets) and [docs/SDK.md](../SDK.md) (module index when available).
 
 ---
 
-## 5. 查询与检索
+## 5. Query and retrieval
 
-### 5.1 简易检索 — `search`
+### 5.1 Simple search — `search`
 
 ```python
 with EasyPlasmod() as p:
-    r = p.search("示例问题", "w_demo", top_k=10)
+    r = p.search("example question", "w_demo", top_k=10)
 ```
 
-内部调用 `build_query_body` 后 `POST /v1/query`。
+Internally: `build_query_body` then `POST /v1/query`.
 
-### 5.2 显式请求体 — `build_query_body` + `query`
+### 5.2 Explicit request body — `build_query_body` + `query`
 
-| 参数 | 说明 |
-|------|------|
-| `query_text` | 查询字符串 |
-| `embedding_vector` | 可选；传入则跳过网关 embedder |
-| `workspace_id` | 工作区；同时写入 `query_scope` |
-| `session_id` | 为空时：若同时提供 `dataset_name` 与 `ingest_fbin_path` → `ingest_{dataset}_{文件名}`；否则 `query_{workspace_id}` |
-| `agent_id` | 默认 `pyplasmod_data`；须与入库一致 |
-| `dataset_name` | 按数据集过滤 |
-| `ingest_fbin_path` | 仅用于推导默认 `session_id` |
-| `extra` | 合并覆盖任意字段 |
+| Parameter | Description |
+|-----------|-------------|
+| `query_text` | Query string |
+| `embedding_vector` | Optional; skips gateway embedder when set |
+| `workspace_id` | Workspace; also written to `query_scope` |
+| `session_id` | If empty: when both `dataset_name` and `ingest_fbin_path` are set → `ingest_{dataset}_{filename}`; else `query_{workspace_id}` |
+| `agent_id` | Default `pyplasmod_data`; must match ingest |
+| `dataset_name` | Filter by dataset |
+| `ingest_fbin_path` | Used only to derive default `session_id` |
+| `extra` | Merge to override any field |
 
 ```python
 from pyplasmod.data import build_query_body
@@ -294,47 +294,47 @@ body = build_query_body(
 )
 ```
 
-响应结构因服务端版本而异，常见键包括 `objects`、`hits` 等。
+Response shape varies by server version; common keys include `objects`, `hits`.
 
-### 5.3 列举 Memory
+### 5.3 List Memory
 
 ```python
 rows = p.memories("w_demo", limit=100)
 ```
 
-等价于 `GET /v1/memory` 并自动带上 `workspace_id` 查询参数。
+Equivalent to `GET /v1/memory` with `workspace_id` query parameter.
 
 ---
 
-## 6. `PlasmodHttpClient` 参考
+## 6. `PlasmodHttpClient` reference
 
-### 6.1 构造
+### 6.1 Construction
 
 ```python
 from pyplasmod import PlasmodHttpClient, PlasmodHttpError
 
 client = PlasmodHttpClient(
-    base_url=None,      # 默认读环境变量 → http://127.0.0.1:8080
+    base_url=None,      # env → http://127.0.0.1:8080
     timeout=None,
     admin_key=None,
-    session=None,       # 可选复用 requests.Session
+    session=None,       # optional requests.Session reuse
 )
 
 with PlasmodHttpClient() as c:
     ...
 ```
 
-### 6.2 通用方法
+### 6.2 Generic methods
 
-| 方法 | 说明 |
-|------|------|
-| `request_json(method, path, *, json_body=..., params=..., headers=...)` | 任意 JSON API |
-| `request_bytes(method, path, *, data=..., headers=...)` | 二进制 body；返回 `(status, bytes, headers)` |
+| Method | Description |
+|--------|-------------|
+| `request_json(method, path, *, json_body=..., params=..., headers=...)` | Any JSON API |
+| `request_bytes(method, path, *, data=..., headers=...)` | Binary body; returns `(status, bytes, headers)` |
 
-### 6.3 Tier A 常用 JSON 快捷方法
+### 6.3 Tier A JSON shortcuts (common)
 
-| 方法 | HTTP |
-|------|------|
+| Method | HTTP |
+|--------|------|
 | `health()` | `GET /healthz` |
 | `system_mode()` | `GET /v1/system/mode` |
 | `ingest_event(event)` | `POST /v1/ingest/events` |
@@ -349,28 +349,28 @@ with PlasmodHttpClient() as c:
 | `warm_prebuild()` | `POST /v1/admin/warm/prebuild` |
 | `warm_segment_register(body)` | `POST /v1/internal/warm-segment/register` |
 
-### 6.4 二进制 RPC
+### 6.4 Binary RPC
 
-| 方法 | 说明 |
-|------|------|
-| `rpc_ingest_batch(segment_id, vectors, object_ids=None, wire_version=1\|2)` | PLIB 批量入库 |
-| `rpc_query_warm(segment_id, top_k, vector)` | PLQW 单向量检索 |
-| `rpc_query_warm_batch` / `rpc_query_warm_batch_raw` | PLQB 批量检索 |
-| `rpc_unload_segment` / `rpc_register_warm` | 段卸载 / 注册 |
+| Method | Description |
+|--------|-------------|
+| `rpc_ingest_batch(segment_id, vectors, object_ids=None, wire_version=1\|2)` | PLIB batch ingest |
+| `rpc_query_warm(segment_id, top_k, vector)` | PLQW single-vector search |
+| `rpc_query_warm_batch` / `rpc_query_warm_batch_raw` | PLQB batch search |
+| `rpc_unload_segment` / `rpc_register_warm` | Segment unload / register |
 
-非 200 响应抛出 `PlasmodHttpError`。一般优先使用 `rpc_*`，无需手动调用 `encode_*`。
+Non-200 responses raise `PlasmodHttpError`. Prefer `rpc_*` over manual `encode_*` in most cases.
 
-### 6.5 Canonical CRUD 与 internal memory
+### 6.5 Canonical CRUD and internal memory
 
-- CRUD：`agents_get/post`、`sessions_get/post`、`states_get/post`、`artifacts_get/post`、`edges_get/post`、`policies_get/post`、`share_contracts_get/post`
-- 追踪：`traces_get(object_id)`
-- 算法桥：`internal_memory_recall`、`internal_memory_ingest` 等（路径 `/v1/internal/memory/*`，**不同于** `/v1/memory` CRUD）
+- CRUD: `agents_get/post`, `sessions_get/post`, `states_get/post`, `artifacts_get/post`, `edges_get/post`, `policies_get/post`, `share_contracts_get/post`
+- Tracing: `traces_get(object_id)`
+- Algorithm bridge: `internal_memory_recall`, `internal_memory_ingest`, etc. (`/v1/internal/memory/*` — **not** `/v1/memory` CRUD)
 
 ### 6.6 Tier B
 
-Admin 扩展、internal task/MAS、`agent_list_get`、`internal_session_context_get`、`debug_echo` 等见 [pyplasmod-002](pyplasmod-002-gateway-tier-b-shortcuts-design.md) §4。
+Extended Admin, internal task/MAS, `agent_list_get`, `internal_session_context_get`, `debug_echo`, etc. — see [pyplasmod-002](pyplasmod-002-gateway-tier-b-shortcuts-design.md) §4.
 
-**数据集 purge 示例**（先 `dry_run`）：
+**Dataset purge example** (use `dry_run` first):
 
 ```python
 p.http.dataset_purge(
@@ -380,23 +380,23 @@ p.http.dataset_purge(
 
 ---
 
-## 7. `EasyPlasmod` 方法一览
+## 7. `EasyPlasmod` method summary
 
-| 方法 | 行为 |
-|------|------|
-| `health()` / `system_mode()` | 同 `http.*` |
+| Method | Behavior |
+|--------|----------|
+| `health()` / `system_mode()` | Same as `http.*` |
 | `query(body)` | `POST /v1/query` |
 | `search(query_text, workspace_id, **kwargs)` | `build_query_body` + `query` |
-| `ingest_event` / `ingest_document` | 同 `http.*` |
+| `ingest_event` / `ingest_document` | Same as `http.*` |
 | `upload_fbin(dataset, workspace_id, path, **kwargs)` | `data.upload(..., client=self.http)` |
 | `memories(workspace_id, **params)` | `GET /v1/memory` |
-| `http` | 完整 `PlasmodHttpClient` |
+| `http` | Full `PlasmodHttpClient` |
 
 ---
 
-## 8. 错误处理与排错
+## 8. Error handling and troubleshooting
 
-### 8.1 捕获 HTTP 错误
+### 8.1 Catching HTTP errors
 
 ```python
 from pyplasmod import PlasmodClient, PlasmodHttpError
@@ -407,43 +407,43 @@ except PlasmodHttpError as e:
     print(e.status_code, e.path, (e.body or "")[:500])
 ```
 
-| 属性 | 含义 |
-|------|------|
-| `status_code` | HTTP 状态；连接失败时常为 `0` |
-| `path` | 请求路径 |
-| `body` | 响应体文本 |
+| Attribute | Meaning |
+|-----------|---------|
+| `status_code` | HTTP status; often `0` on connection failure |
+| `path` | Request path |
+| `body` | Response body text |
 
-### 8.2 常见问题
+### 8.2 Common issues
 
-| 现象 | 可能原因 | 建议 |
-|------|----------|------|
-| `status_code=0`、连接错误 | 网关未启动或 URL/端口错误 | 检查 `PLASMOD_BASE_URL`、`curl .../healthz` |
-| 401/403 on `/v1/admin/*` | 未配置 Admin Key | 设置 `PLASMOD_ADMIN_API_KEY` 或 `admin_key=` |
-| 查询无命中 | `session_id`/`agent_id` 与入库不一致 | 对齐 ingest 与 `build_query_body` 参数 |
-| 向量入库失败 | 维度与网关不匹配 | 确认 `.fbin` dim 与 embedder 配置 |
-| `ingest_document` 后查不到 | 未传相同 `session_id` | 查询 body 显式带上入库时的 session |
-| RPC warm 失败 | 段未注册或维度错误 | 检查 `warm_segment_register` 与 `segment_id` |
+| Symptom | Likely cause | Suggestion |
+|---------|--------------|------------|
+| `status_code=0`, connection error | Gateway down or wrong URL/port | Check `PLASMOD_BASE_URL`, `curl .../healthz` |
+| 401/403 on `/v1/admin/*` | Missing Admin key | Set `PLASMOD_ADMIN_API_KEY` or `admin_key=` |
+| No query hits | `session_id` / `agent_id` mismatch vs ingest | Align ingest and `build_query_body` |
+| Vector ingest failure | Dimension mismatch | Confirm `.fbin` dim and embedder config |
+| Nothing after `ingest_document` | Missing same `session_id` at query | Pass ingest `session_id` in query body |
+| RPC warm failure | Segment not registered or wrong dim | Check `warm_segment_register` and `segment_id` |
 
 ---
 
-## 9. 示例与延伸阅读
+## 9. Examples and further reading
 
-| 资源 | 说明 |
-|------|------|
-| [README.md](../../README.md) | 快速开始、分场景示例 |
-| [docs/SDK.md](../SDK.md) | 架构、实现细节、API 索引 |
-| `examples/http_quickstart.py` | 最小 HTTP 示例 |
-| `examples/ingest_fbin.py` | `.fbin` 入库 |
-| `examples/batch_ingest.py` | 批量向量 |
+| Resource | Description |
+|----------|-------------|
+| [README.md](../../README.md) | Quick start, scenario examples |
+| [docs/SDK.md](../SDK.md) | Architecture, implementation, API index |
+| `examples/http_quickstart.py` | Minimal HTTP example |
+| `examples/ingest_fbin.py` | `.fbin` ingest |
+| `examples/batch_ingest.py` | Batch vectors |
 | `examples/langchain_quickstart.py` | LangChain |
-| `examples/test.py` | 综合联调（ingest、query、admin、Tier B） |
-| [Plasmod docs/api](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api) | 服务端权威 API |
+| `examples/test.py` | End-to-end (ingest, query, admin, Tier B) |
+| [Plasmod docs/api](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api) | Authoritative server API |
 
 ---
 
-## 10. 修订记录
+## 10. Revision history
 
-| 日期 | 说明 |
-|------|------|
-| 2026-05-06 | 首版：参数、Tier A/B、EasyPlasmod、data、错误处理 |
-| 2026-05-18 | 对外规范化：对齐 README 入库分节、网关前提、排错表、文档交叉引用 |
+| Date | Notes |
+|------|-------|
+| 2026-05-06 | Initial version: parameters, Tier A/B, EasyPlasmod, data, error handling |
+| 2026-05-18 | Public documentation pass: README ingest alignment, gateway prerequisites, troubleshooting table, cross-links |
