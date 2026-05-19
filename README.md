@@ -1,6 +1,6 @@
 # pyplasmod
 
-> **[中文](README.zh-CN.md)** 
+> **[中文](https://github.com/CodeSoul-co/pyplasmod/blob/main/README.zh-CN.md)** 
 
 **pyplasmod** is a Python **HTTP client library** for **[Plasmod](https://github.com/CodeSoul-co/Plasmod)**: it talks to a deployed Plasmod gateway over standard HTTP (and some binary RPC) for vector ingest, search, Memory listing, dataset operations, and health checks.
 
@@ -8,7 +8,7 @@
 Request paths, fields, and semantics follow the official Plasmod **[HTTP API documentation](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api)**; this README only describes what this repository wraps and typical usage.
 
 In-package topic index: `from pyplasmod import plasmod_help; plasmod_help()`. CLI: `python -m pyplasmod [topic]`.  
-SDK architecture and implementation details: **[docs/SDK.md](docs/SDK.md)**; gateway embedding (CPU/GPU): **[docs/EMBEDDING.md](docs/EMBEDDING.md)**.
+SDK architecture and implementation details: **[docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md)**; gateway embedding (CPU/GPU): **[docs/EMBEDDING.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/EMBEDDING.md)**.
 
 ---
 
@@ -20,11 +20,11 @@ The steps below assume you can reach a Plasmod gateway on your machine (default 
 |------|------------|----------------|
 | 0 | Confirm the gateway is up | `curl -sS http://127.0.0.1:8080/healthz` |
 | 1 | Install this client | `pip install pyplasmod` |
-| 2 | Configure gateway URL (optional) | `export PLASMOD_BASE_URL=http://127.0.0.1:8080` (or copy [`.env.example`](.env.example) to `.env`) |
+| 2 | Configure gateway URL (optional) | `export PLASMOD_BASE_URL=http://127.0.0.1:8080` (or copy [`.env.example`](https://github.com/CodeSoul-co/pyplasmod/blob/main/.env.example) to `.env`) |
 | 3 | Health check | See Python snippet below |
 | 4 | (Optional) Upload data | Text/docs: **§2.1**; vector files: **§2.3**; skip if you have no data yet |
 | 5 | Search | `p.search("your question", "w_demo", top_k=10)` |
-| 6 | API details | `plasmod_help("easy")` or read [docs/SDK.md](docs/SDK.md) |
+| 6 | API details | `plasmod_help("easy")` or read [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md) |
 
 **Steps 3 + 5 minimal example** (verifies connectivity without your own data; `search` returns hits only when data exists):
 
@@ -36,9 +36,10 @@ with EasyPlasmod() as p:
     print("search:", p.search("hello", "w_demo"))  # empty store may yield no objects/hits
 ```
 
-Example script in the repo (set `export PLASMOD_BASE_URL=...` first):
+Example script in the [repository](https://github.com/CodeSoul-co/pyplasmod/blob/main/examples/http_quickstart.py) (clone the repo or copy the script; it is not installed via `pip`):
 
 ```bash
+export PLASMOD_BASE_URL=http://127.0.0.1:8080
 python examples/http_quickstart.py
 ```
 
@@ -196,7 +197,7 @@ Read at construct time by `PlasmodHttpClient` / `EasyPlasmod` (constructor args 
 | `PLASMOD_EMBEDDER_DIM` | Vector dimension |
 | `PLASMOD_EMBEDDER_MODEL_PATH` | Local model path |
 
-See **[docs/EMBEDDING.md](docs/EMBEDDING.md)** and [`.env.example`](.env.example).
+See **[docs/EMBEDDING.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/EMBEDDING.md)** and [`.env.example`](https://github.com/CodeSoul-co/pyplasmod/blob/main/.env.example).
 
 Equivalent to `PLASMOD_ADMIN_API_KEY`: `EasyPlasmod(..., admin_key="...")` or `PlasmodHttpClient(..., admin_key="...")`. Whether Admin Key is enforced depends on gateway deployment.
 
@@ -230,7 +231,7 @@ export PLASMOD_BASE_URL=http://127.0.0.1:8080
 | `p.http.dataset_purge(body)` | `POST /v1/admin/dataset/purge` | Hard purge; use `dry_run: True` first |
 | `p.http.dataset_purge_task(task_id)` | `GET /v1/admin/dataset/purge/task` | Async purge task status |
 
-Other HTTP/RPC methods are on **`PlasmodHttpClient`**; **`EasyPlasmod.http`** exposes it. **`PlasmodClient`** is an alias for **`PlasmodHttpClient`**. Full method list: [docs/SDK.md](docs/SDK.md).
+Other HTTP/RPC methods are on **`PlasmodHttpClient`**; **`EasyPlasmod.http`** exposes it. **`PlasmodClient`** is an alias for **`PlasmodHttpClient`**. Full method list: [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md).
 
 ---
 
@@ -393,7 +394,7 @@ CLI equivalent:
 python -m pyplasmod.data upload my_dataset w_demo /path/to/vectors.fbin --show-progress
 ```
 
-For **JSON vector matrices** (not `.fbin`), use the full client: `p.http.ingest_vectors([[...], [...]])` or binary `p.http.ingest_batch(...)` — see [docs/SDK.md](docs/SDK.md).
+For **JSON vector matrices** (not `.fbin`), use the full client: `p.http.ingest_vectors([[...], [...]])` or binary `p.http.ingest_batch(...)` — see [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md).
 
 ---
 
@@ -467,7 +468,7 @@ emb.use_onnx_cpu(model_path="/models/model.onnx", dim=384, apply=True)   # CPU
 print(emb.capabilities())  # cpu/cuda/metal per provider
 ```
 
-Topic guide: **[docs/EMBEDDING.md](docs/EMBEDDING.md)**. Architecture: [docs/SDK.md](docs/SDK.md) §8.
+Topic guide: **[docs/EMBEDDING.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/EMBEDDING.md)**. Architecture: [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md) §8.
 
 ---
 
@@ -546,12 +547,12 @@ print(p.http.dataset_purge_task("<task_id>"))
 | `examples/langchain_quickstart.py` | LangChain (`pip install pyplasmod[langchain]`) |
 | `examples/embedding_cpu_gpu.py` | Gateway embedding, CPU/GPU presets, `PlasmodEmbedding` |
 
-- **Gateway embedding (CPU/GPU):** [docs/EMBEDDING.md](docs/EMBEDDING.md)  
-- **SDK architecture and implementation:** [docs/SDK.md](docs/SDK.md)  
-- **SDK usage guide** (parameters, samples, troubleshooting): [docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)  
-- **HTTP SDK architecture:** [docs/plans/pyplasmod-001-http-sdk-design.md](docs/plans/pyplasmod-001-http-sdk-design.md)  
-- **Tier B extension APIs:** [docs/plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md](docs/plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md)  
-- **Documentation index:** [docs/README.md](docs/README.md)  
+- **Gateway embedding (CPU/GPU):** [docs/EMBEDDING.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/EMBEDDING.md)  
+- **SDK architecture and implementation:** [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md)  
+- **SDK usage guide** (parameters, samples, troubleshooting): [docs/plans/pyplasmod-003-sdk-usage-guide.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/plans/pyplasmod-003-sdk-usage-guide.md)  
+- **HTTP SDK architecture:** [docs/plans/pyplasmod-001-http-sdk-design.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/plans/pyplasmod-001-http-sdk-design.md)  
+- **Tier B extension APIs:** [docs/plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md)  
+- **Documentation index:** [docs/README.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/README.md)  
 - **Routes and field mapping:** [Plasmod `docs/sdk/README.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)  
 - **Binary frame helpers:** `from pyplasmod.http import encode_ingest_batch`, etc. (most cases: `PlasmodHttpClient.rpc_*`)
 
