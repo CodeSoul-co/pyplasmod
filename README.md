@@ -1,6 +1,6 @@
 # pyplasmod
 
-> **中文** | [README.zh-CN.md](README.zh-CN.md)
+> **[中文](README.zh-CN.md)** 
 
 **pyplasmod** is a Python **HTTP client library** for **[Plasmod](https://github.com/CodeSoul-co/Plasmod)**: it talks to a deployed Plasmod gateway over standard HTTP (and some binary RPC) for vector ingest, search, Memory listing, dataset operations, and health checks.
 
