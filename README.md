@@ -19,7 +19,7 @@ The steps below assume you can reach a Plasmod gateway on your machine (default 
 | Step | What to do | Command / code |
 |------|------------|----------------|
 | 0 | Confirm the gateway is up | `curl -sS http://127.0.0.1:8080/healthz` |
-| 1 | Install this client | `pip install pyplasmod` |
+| 1 | Install this client | `pip install pyplasmod==0.1.0` |
 | 2 | Configure gateway URL (optional) | `export PLASMOD_BASE_URL=http://127.0.0.1:8080` (or copy [`.env.example`](.env.example) to `.env`) |
 | 3 | Health check | See Python snippet below |
 | 4 | (Optional) Upload data | Text/docs: **§2.1**; vector files: **§2.3**; skip if you have no data yet |
