@@ -220,11 +220,34 @@ python -m pyplasmod.data upload my_dataset w_demo /path/to/vectors.fbin --show-p
 
 | 方法 | 适用 |
 |------|------|
-| `client.ingest_vectors([[...], ...])` | 中等规模 JSON 矩阵 |
-| `client.ingest_batch(segment_id, vectors, batch_size=500)` | 大规模；内部 RPC PLIB 自动分片 |
+| `client.ingest_vectors([[...], ...])` | 中等规模 JSON 矩阵；**warm ANN 索引类型**（`index_type`、IVF 字段） |
+| `client.ingest_batch(segment_id, vectors, batch_size=500)` | 大规模；内部 RPC PLIB 自动分片（**无 `index_type`**） |
 | `client.rpc_ingest_batch(...)` | 低级 RPC，自行控制批次 |
 
 向量维度须与网关 warm 段 / 嵌入配置一致。
+
+**Warm 段 ANN 索引**（构建时，仅 `POST /v1/ingest/vectors`）：
+
+| `index_type` | 说明 |
+|--------------|------|
+| `HNSW` | 省略时默认 |
+| `IVF_FLAT` / `IVF_PQ` / `IVF_SQ8` | 可选 `ivf_nlist`、`ivf_nprobe`、`ivf_m`、`ivf_nbits`、`ivf_sq_type` |
+| `DISKANN` | 磁盘友好、超大规模 |
+
+```python
+from pyplasmod import PlasmodClient, WARM_INDEX_IVF_FLAT
+
+with PlasmodClient() as c:
+    c.ingest_vectors(
+        [[0.1, 0.2, ...]],
+        segment_id="demo.ivf",
+        index_type=WARM_INDEX_IVF_FLAT,
+        ivf_nlist=128,
+        ivf_nprobe=32,
+    )
+```
+
+查询时使用构建该索引的同一 `segment_id`（或查询体中的 `warm_segment_id`）。超大规模非默认索引可多次调用 `ingest_vectors`，直至 PLIB 入库支持索引元数据。详见 [SDK.md](../SDK.md) §10。
 
 ### 4.5 网关嵌入与 CPU / GPU — `PlasmodEmbedding`
 
@@ -338,7 +361,7 @@ with PlasmodHttpClient() as c:
 | `health()` | `GET /healthz` |
 | `system_mode()` | `GET /v1/system/mode` |
 | `ingest_event(event)` | `POST /v1/ingest/events` |
-| `ingest_vectors(vectors, *, segment_id=..., object_ids=...)` | `POST /v1/ingest/vectors` |
+| `ingest_vectors(vectors, *, segment_id=..., object_ids=..., index_type=..., ivf_*=...)` | `POST /v1/ingest/vectors` |
 | `ingest_document(body)` | `POST /v1/ingest/document` |
 | `query(body)` | `POST /v1/query` |
 | `query_batch(body)` | `POST /v1/query/batch` |

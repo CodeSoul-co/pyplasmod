@@ -63,6 +63,7 @@ flowchart TB
 | 精简门面 | `pyplasmod/easy.py` | `EasyPlasmod`：包装常用 JSON 调用，`.embedding` / `embed_*` 网关嵌入，`.http` 暴露完整客户端 |
 | 网关嵌入 | `pyplasmod/embedding/` | `PlasmodEmbedding`（推荐）、`EmbedderConfig` CPU/GPU 预设、`GatewayEmbedding`；见 [EMBEDDING.md](EMBEDDING.md) |
 | HTTP 客户端 | `pyplasmod/http/client.py` | `PlasmodHttpClient`：`request_json` / `request_bytes`、Tier A/B 方法、`rpc_*`、批量 `ingest_batch` |
+| Warm 索引辅助 | `pyplasmod/http/warm_index.py` | ANN `index_type` 常量、`normalize_warm_index_type`、`warm_index_ingest_fields`（`POST /v1/ingest/vectors`） |
 | 二进制帧 | `pyplasmod/http/binary.py` | `encode_ingest_batch`（PLIB）、`encode_query_warm`（PLQW）、`encode_query_warm_batch`（PLQB）及解码 |
 | HTTP 错误 | `pyplasmod/http/errors.py` | `PlasmodHttpError` |
 | 通用异常 | `pyplasmod/exceptions.py` | `PlasmodException`、`ConnectError`、`ParamError` 等 |
@@ -259,10 +260,41 @@ with PlasmodEmbedding.connect() as emb:
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `ingest_vectors(vectors, segment_id=..., object_ids=...)` | `POST /v1/ingest/vectors` | JSON 矩阵，适合中小批量 |
-| `ingest_batch(segment_id, vectors, ...)` | RPC PLIB | 大批量，自动分批 |
+| `ingest_vectors(vectors, segment_id=..., object_ids=..., index_type=..., ivf_*=...)` | `POST /v1/ingest/vectors` | JSON 矩阵；**warm ANN 索引类型**（HNSW、IVF_*、DISKANN）— 见下文 |
+| `ingest_batch(segment_id, vectors, ...)` | RPC PLIB | 大批量，自动分批；**无 `index_type`**（网关默认） |
 | `ingest_events(events)` | 多次 `ingest_event` | 逐条事件 |
-| `add_vectors(...)` | 封装 `ingest_batch` + 可选 `ingest_event` | 见 `client.py` |
+| `add_vectors(...)` | 封装 `ingest_batch` + 可选 `ingest_event` | PLIB 路径，与 `ingest_batch` 相同索引限制 |
+
+向量维度须与网关 warm 段 / 嵌入配置一致。
+
+### Warm 段 ANN 索引（仅 `ingest_vectors`）
+
+`PlasmodHttpClient.ingest_vectors` 用调用方提供的向量构建 warm 段；**入库时**通过 JSON 选择 ANN 索引，字段与 Plasmod `warm_segment_ingest`（`schemas/warm_segment_ingest.go`）对齐。
+
+| `index_type` | 典型场景 |
+|--------------|----------|
+| `HNSW`（省略时默认） | 通用、低延迟检索 |
+| `IVF_FLAT` / `IVF_PQ` / `IVF_SQ8` | 大规模；可调 `ivf_nlist`、`ivf_nprobe` 等 |
+| `DISKANN` | 磁盘友好、超大规模 |
+
+可选 IVF 字段（非零/非空才发送）：`ivf_nlist`、`ivf_nprobe`、`ivf_m`、`ivf_nbits`、`ivf_sq_type`（`IVF_SQ8` 用 `INT8` / `FP32`）。可用根包常量（`WARM_INDEX_IVF_FLAT` 等）或 `normalize_warm_index_type("ivf_flat")`。
+
+```python
+from pyplasmod import PlasmodClient, WARM_INDEX_IVF_FLAT
+
+with PlasmodClient() as c:
+    c.ingest_vectors(
+        [[0.1, 0.2, ...]],
+        segment_id="demo.ivf",
+        index_type=WARM_INDEX_IVF_FLAT,
+        ivf_nlist=128,
+        ivf_nprobe=32,
+    )
+```
+
+**路径区分：** `ingest_batch` / `rpc_ingest_batch`（PLIB）当前 SDK **不暴露** `index_type`。非默认 ANN 索引请用 `ingest_vectors`（可按段多次调用），待 PLIB 支持索引元数据后再扩展。
+
+查询时使用构建该索引的同一 `segment_id` / `warm_segment_id`。
 
 `validate_batch_size` 将 `batch_size` 限制在 `[1, MAX_BATCH_VECTORS]`（`MAX_BATCH_VECTORS = 2^22`）。
 
@@ -298,7 +330,7 @@ except PlasmodHttpError as e:
 `PlasmodVectorStore`（`pyplasmod/langchain/vectorstore.py`）：
 
 - 构造时持有 `PlasmodHttpClient` + LangChain `Embeddings`。
-- `add_texts` / `add_documents`：本地 embed → `rpc_ingest_batch`（分批）+ 尽力 `ingest_event` 写元数据。
+- `add_texts` / `add_documents`：本地 embed → `rpc_ingest_batch`（分批）+ 尽力 `ingest_event` 写元数据；**不能**选择 warm ANN `index_type`，需 IVF/DISKANN 时请用 `ingest_vectors`。
 - `similarity_search*`：`build_query_body` + `query`，或 warm 路径 `rpc_query_warm`。
 - `delete`、`max_marginal_relevance_search` 暂未实现（`NotImplementedError`）。
 
@@ -344,6 +376,8 @@ except PlasmodHttpError as e:
 | **`DEFAULT_BATCH_SIZE`**、`**MAX_BATCH_VECTORS**` | 默认批量大小与上限 |
 | **`iter_batches`**、`**validate_batch_size**` | 分批迭代与校验 |
 | **`encode_ingest_batch`** 等 | 二进制帧编解码（不发起 HTTP） |
+| **`WARM_INDEX_HNSW`**、`**WARM_INDEX_IVF_*`**、`**WARM_INDEX_DISKANN`**、`**WARM_INDEX_TYPES**` | 支持的 warm ANN 索引类型字符串 |
+| **`normalize_warm_index_type`**、`**warm_index_ingest_fields**` | 校验 / 构造 `ingest_vectors` 的 JSON 字段 |
 | **`plasmod_help`**、`**plasmod_topics**` | 主题帮助 |
 | **`__version__`** | 包版本 |
 | **`PlasmodVectorStore`** | LangChain 适配器（懒加载） |
@@ -395,7 +429,7 @@ CLI：`python -m pyplasmod.data upload|query ...`
 | **`health()`** | `GET /healthz` | |
 | **`system_mode()`** | `GET /v1/system/mode` | |
 | **`ingest_event(event)`** | `POST /v1/ingest/events` | |
-| **`ingest_vectors(...)`** | `POST /v1/ingest/vectors` | JSON 向量 |
+| **`ingest_vectors(...)`** | `POST /v1/ingest/vectors` | JSON 向量；可选 `index_type`、IVF 调参（`ivf_nlist` 等） |
 | **`ingest_document(body)`** | `POST /v1/ingest/document` | |
 | **`query(body)`** | `POST /v1/query` | |
 | **`query_batch(body)`** | `POST /v1/query/batch` | warm 批量 ANN |

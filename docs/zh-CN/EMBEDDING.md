@@ -145,7 +145,7 @@ with EasyPlasmod() as p:
     p.query(body)
 ```
 
-`.fbin` / `ingest_vectors` 路径见 [SDK.md](SDK.md) §7。
+`.fbin`（`pyplasmod.data.upload`）与 `ingest_vectors`（含 warm ANN `index_type`）见 [SDK.md](SDK.md) §10。
 
 ---
 

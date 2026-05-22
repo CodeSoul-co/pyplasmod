@@ -22,7 +22,7 @@ SDK 架构与实现细节见 **[docs/zh-CN/SDK.md](docs/zh-CN/SDK.md)**；网关
 | 1 | 安装本客户端 | `pip install pyplasmod` |
 | 2 | 配置网关地址（可选） | `export PLASMOD_BASE_URL=http://127.0.0.1:8080`（也可复制仓库内 [`.env.example`](.env.example) 为 `.env`） |
 | 3 | 健康检查 | 见下方 Python 片段 |
-| 4 | （可选）上传数据 | 文本/文档见 **§2.1**；向量文件见 **§2.3**；无数据可跳过 |
+| 4 | （可选）上传数据 | 文本/文档 **§2.1**；`.fbin` **§2.3**；JSON 矩阵 + ANN 索引 **§2.4**；无数据可跳过 |
 | 5 | 发起检索 | `p.search("你的问题", "w_demo", top_k=10)` |
 | 6 | 查 API 细节 | `plasmod_help("easy")` 或阅读 [docs/zh-CN/SDK.md](docs/zh-CN/SDK.md) |
 
@@ -250,7 +250,7 @@ with EasyPlasmod() as p:
 
 ## 2. 上传数据
 
-入库方式取决于数据形态：**长文本/文档** 用 `ingest_document`；**已向量化或需逐条控制的事件** 用 `.fbin` / `ingest_event`。与后续 `search` 共用同一 `EasyPlasmod` 实例，并记住 **`workspace_id`、`session_id`、`agent_id` 在查询时须与入库一致**。
+入库方式取决于数据形态：**长文本/文档** → `ingest_document`（§2.1）；**已向量化或逐条事件** → `.fbin` / `ingest_event`（§2.2–2.3）；**内存中的 JSON 向量矩阵且需指定 ANN 索引** → `ingest_vectors`（§2.4）。与后续 `search` 共用同一 `EasyPlasmod` 实例，并记住 **`workspace_id`、`session_id`、`agent_id` 在查询时须与入库一致**。
 
 ### 2.1 文本与长文档（`ingest_document`）
 
@@ -393,7 +393,34 @@ with EasyPlasmod() as p:
 python -m pyplasmod.data upload my_dataset w_demo /path/to/vectors.fbin --show-progress
 ```
 
-已有 **JSON 向量矩阵**（非 `.fbin` 文件）时，可用完整客户端：`p.http.ingest_vectors([[...], [...]])` 或二进制 `p.http.ingest_batch(...)`，详见 [docs/zh-CN/SDK.md](docs/zh-CN/SDK.md)。
+已有 **JSON 向量矩阵**（非 `.fbin`）时，用 `p.http.ingest_vectors` 或大规模场景下的 `p.http.ingest_batch`（PLIB）；若需选择 warm 段 ANN 索引类型，见 **§2.4**。
+
+### 2.4 JSON 向量与 warm ANN 索引（`ingest_vectors`）
+
+通过 `POST /v1/ingest/vectors` 用已有向量**构建 warm 段**；`index_type` 在入库时选定，查询须使用同一 `segment_id`（或查询 JSON 中的 `warm_segment_id`）。
+
+| `index_type` | 何时考虑 |
+|--------------|----------|
+| `HNSW` | **默认**（省略 `index_type` 即可） |
+| `IVF_FLAT` / `IVF_PQ` / `IVF_SQ8` | 向量量大；可调 `ivf_nlist`、`ivf_nprobe` 等 |
+| `DISKANN` | 超大规模、偏磁盘友好 |
+
+**注意：** 仅 `ingest_vectors` 支持 `index_type`；
+
+```python
+from pyplasmod import PlasmodClient, WARM_INDEX_IVF_FLAT
+
+with PlasmodClient() as c:
+    c.ingest_vectors(
+        [[0.1, 0.2, ...]],  # 维度须与网关 warm 段 / 嵌入配置一致
+        segment_id="demo.ivf",
+        index_type=WARM_INDEX_IVF_FLAT,  # 也可写 "IVF_FLAT"
+        ivf_nlist=128,
+        ivf_nprobe=32,
+    )
+```
+
+省略 `index_type` 即服务端默认 **HNSW**。`IVF_PQ`、`DISKANN` 等同理传入对应常量或字符串。完整字段与 `ingest_batch` 对比见 [docs/zh-CN/SDK.md](docs/zh-CN/SDK.md) §10。
 
 ---
 

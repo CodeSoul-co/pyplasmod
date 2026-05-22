@@ -22,7 +22,7 @@ The steps below assume you can reach a Plasmod gateway on your machine (default 
 | 1 | Install this client | `pip install pyplasmod` |
 | 2 | Configure gateway URL (optional) | `export PLASMOD_BASE_URL=http://127.0.0.1:8080` (or copy [`.env.example`](https://github.com/CodeSoul-co/pyplasmod/blob/main/.env.example) to `.env`) |
 | 3 | Health check | See Python snippet below |
-| 4 | (Optional) Upload data | Text/docs: **§2.1**; vector files: **§2.3**; skip if you have no data yet |
+| 4 | (Optional) Upload data | Text/docs **§2.1**; `.fbin` **§2.3**; JSON matrix + ANN index **§2.4**; skip if no data yet |
 | 5 | Search | `p.search("your question", "w_demo", top_k=10)` |
 | 6 | API details | `plasmod_help("easy")` or read [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md) |
 
@@ -251,7 +251,7 @@ with EasyPlasmod() as p:
 
 ## 2. Upload data
 
-Choose ingest by shape: **long text/documents** → `ingest_document`; **pre-vectorized or per-event control** → `.fbin` / `ingest_event`. Reuse the same `EasyPlasmod` for later `search`; keep **`workspace_id`, `session_id`, and `agent_id` consistent between ingest and query**.
+Choose ingest by shape: **long text/documents** → `ingest_document` (§2.1); **pre-vectorized or per-event control** → `.fbin` / `ingest_event` (§2.2–2.3); **in-memory JSON matrices with ANN index choice** → `ingest_vectors` (§2.4). Reuse the same `EasyPlasmod` for later `search`; keep **`workspace_id`, `session_id`, and `agent_id` consistent between ingest and query**.
 
 ### 2.1 Text and long documents (`ingest_document`)
 
@@ -394,7 +394,34 @@ CLI equivalent:
 python -m pyplasmod.data upload my_dataset w_demo /path/to/vectors.fbin --show-progress
 ```
 
-For **JSON vector matrices** (not `.fbin`), use the full client: `p.http.ingest_vectors([[...], [...]])` or binary `p.http.ingest_batch(...)` — see [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md).
+For **JSON vector matrices** (not `.fbin`), use `p.http.ingest_vectors` or `p.http.ingest_batch` (PLIB) at large scale. To pick the warm-segment ANN index type, see **§2.4**.
+
+### 2.4 JSON vectors and warm ANN index (`ingest_vectors`)
+
+`POST /v1/ingest/vectors` builds a warm segment from caller-supplied vectors. The ANN index is fixed at **ingest time**; queries must use the same `segment_id` (or `warm_segment_id` in the query body).
+
+| `index_type` | When to consider |
+|--------------|------------------|
+| `HNSW` | **Default** (omit `index_type`) |
+| `IVF_FLAT` / `IVF_PQ` / `IVF_SQ8` | Large corpora; tune `ivf_nlist`, `ivf_nprobe`, etc. |
+| `DISKANN` | Very large scale, disk-friendly |
+
+**Note:** Only `ingest_vectors` supports `index_type`;
+
+```python
+from pyplasmod import PlasmodClient, WARM_INDEX_IVF_FLAT
+
+with PlasmodClient() as c:
+    c.ingest_vectors(
+        [[0.1, 0.2, ...]],  # dim must match gateway warm segment / embedder config
+        segment_id="demo.ivf",
+        index_type=WARM_INDEX_IVF_FLAT,  # or "IVF_FLAT"
+        ivf_nlist=128,
+        ivf_nprobe=32,
+    )
+```
+
+Omitting `index_type` uses server default **HNSW**. Pass other constants or strings for `IVF_PQ`, `DISKANN`, and so on. Full fields and comparison with `ingest_batch`: [docs/SDK.md](docs/SDK.md) §10.
 
 ---
 

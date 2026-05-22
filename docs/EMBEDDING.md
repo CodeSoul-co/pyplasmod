@@ -134,7 +134,7 @@ with EasyPlasmod() as p:
     p.query(build_query_body("ignored", "w_demo", embedding_vector=vec, top_k=10))
 ```
 
-See [SDK.md](SDK.md) §7 for `.fbin` / `ingest_vectors`.
+See [SDK.md](SDK.md) §10 for `.fbin` (`pyplasmod.data.upload`) and `ingest_vectors` (including warm ANN `index_type`).
 
 ---
 
