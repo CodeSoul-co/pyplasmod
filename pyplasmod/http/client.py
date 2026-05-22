@@ -37,6 +37,7 @@ from pyplasmod.http.binary import (
     encode_query_warm_batch,
 )
 from pyplasmod.http.errors import PlasmodHttpError
+from pyplasmod.http.warm_index import warm_index_ingest_fields
 
 
 def _iter_wal_sse_json_events(response: requests.Response) -> Iterator[dict[str, Any]]:
@@ -267,10 +268,38 @@ class PlasmodHttpClient:
         *,
         segment_id: str = "warm.default",
         object_ids: Optional[Sequence[str]] = None,
+        index_type: Optional[str] = None,
+        ivf_nlist: int = 0,
+        ivf_nprobe: int = 0,
+        ivf_m: int = 0,
+        ivf_nbits: int = 0,
+        ivf_sq_type: str = "",
     ) -> Any:
-        body: dict[str, Any] = {"segment_id": segment_id, "vectors": [list(row) for row in vectors]}
+        """
+        POST ``/v1/ingest/vectors`` — build warm segment with caller-supplied vectors.
+
+        ``index_type`` selects the ANN index (default ``HNSW`` when omitted). Supported:
+        ``HNSW``, ``IVF_FLAT``, ``IVF_PQ``, ``IVF_SQ8``, ``DISKANN``.
+
+        IVF tuning: ``ivf_nlist``, ``ivf_nprobe``, ``ivf_m``, ``ivf_nbits``, ``ivf_sq_type``
+        (``INT8`` / ``FP32`` for IVF_SQ8). ``0`` / empty → server defaults.
+        """
+        body: dict[str, Any] = {
+            "segment_id": segment_id,
+            "vectors": [list(row) for row in vectors],
+        }
         if object_ids is not None:
             body["object_ids"] = list(object_ids)
+        body.update(
+            warm_index_ingest_fields(
+                index_type,
+                ivf_nlist=ivf_nlist,
+                ivf_nprobe=ivf_nprobe,
+                ivf_m=ivf_m,
+                ivf_nbits=ivf_nbits,
+                ivf_sq_type=ivf_sq_type,
+            )
+        )
         return self.request_json("POST", "/v1/ingest/vectors", json_body=body)
 
     def ingest_document(self, body: Mapping[str, Any]) -> Any:
