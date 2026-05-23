@@ -14,7 +14,7 @@
 | Included | Not included |
 |----------|----------------|
 | Tier A JSON (ingest, query, memory, admin, and related routes) | The Plasmod server process itself |
-| Tier B extended JSON (internal task/MAS, CRUD, and related routes) | gRPC, Milvus ORM |
+| Tier B extended JSON (internal task/MAS, CRUD, and related routes) | gRPC, collection/schema ORM |
 | PLIB / PLQW / PLQB binary RPC wrappers | Auto-generated OpenAPI clients |
 | `.fbin` → `ingest_event` batch helpers | Authoritative server routes or field definitions (see Plasmod `docs/api`) |
 
@@ -64,6 +64,7 @@ flowchart TB
 | Facade | `pyplasmod/easy.py` | `EasyPlasmod`: common JSON calls, `.embedding` / `embed_*` for gateway embedding, `.http` for the full client |
 | Gateway embedding | `pyplasmod/embedding/` | `PlasmodEmbedding` (recommended), `EmbedderConfig` CPU/GPU presets, `GatewayEmbedding`; see [EMBEDDING.md](EMBEDDING.md) |
 | HTTP client | `pyplasmod/http/client.py` | `PlasmodHttpClient`: `request_json` / `request_bytes`, Tier A/B methods, `rpc_*`, batch `ingest_batch` |
+| Warm index helpers | `pyplasmod/http/warm_index.py` | ANN `index_type` constants, `normalize_warm_index_type`, `warm_index_ingest_fields` for `POST /v1/ingest/vectors` |
 | Binary frames | `pyplasmod/http/binary.py` | `encode_ingest_batch` (PLIB), `encode_query_warm` (PLQW), `encode_query_warm_batch` (PLQB), and decoders |
 | HTTP errors | `pyplasmod/http/errors.py` | `PlasmodHttpError` |
 | General exceptions | `pyplasmod/exceptions.py` | `PlasmodException`, `ConnectError`, `ParamError`, and related types |
@@ -260,10 +261,41 @@ You may also use root-package `encode_*` / `decode_*` with `request_bytes` direc
 
 | Method | Path | Notes |
 |--------|------|-------|
-| `ingest_vectors(vectors, segment_id=..., object_ids=...)` | `POST /v1/ingest/vectors` | JSON matrix; suitable for small to medium batches |
-| `ingest_batch(segment_id, vectors, ...)` | RPC PLIB | Large batches with automatic chunking |
+| `ingest_vectors(vectors, segment_id=..., object_ids=..., index_type=..., ivf_*=...)` | `POST /v1/ingest/vectors` | JSON matrix; **warm ANN index type** (HNSW, IVF_*, DISKANN) — see below |
+| `ingest_batch(segment_id, vectors, ...)` | RPC PLIB | Large batches with automatic chunking; **no `index_type`** (gateway default) |
 | `ingest_events(events)` | Multiple `ingest_event` | One event per call |
-| `add_vectors(...)` | Wraps `ingest_batch` + optional `ingest_event` | See `client.py` |
+| `add_vectors(...)` | Wraps `ingest_batch` + optional `ingest_event` | PLIB path; same index-type limitation as `ingest_batch` |
+
+Vector dimension must match the gateway warm segment / embedder configuration.
+
+### Warm segment ANN index (`ingest_vectors` only)
+
+`PlasmodHttpClient.ingest_vectors` builds a warm segment from caller-supplied vectors. The ANN index is chosen at **ingest time** via JSON fields aligned with Plasmod `warm_segment_ingest` (see gateway `schemas/warm_segment_ingest.go`).
+
+| `index_type` | Typical use |
+|--------------|-------------|
+| `HNSW` (default when omitted) | General-purpose, low-latency search |
+| `IVF_FLAT` / `IVF_PQ` / `IVF_SQ8` | Larger corpora; tune `ivf_nlist`, `ivf_nprobe`, and related fields |
+| `DISKANN` | Disk-friendly, very large scale |
+
+Optional IVF fields (sent only when non-zero / non-empty): `ivf_nlist`, `ivf_nprobe`, `ivf_m`, `ivf_nbits`, `ivf_sq_type` (`INT8` / `FP32` for `IVF_SQ8`). Use root-package constants (`WARM_INDEX_IVF_FLAT`, etc.) or `normalize_warm_index_type("ivf_flat")`.
+
+```python
+from pyplasmod import PlasmodClient, WARM_INDEX_IVF_FLAT
+
+with PlasmodClient() as c:
+    c.ingest_vectors(
+        [[0.1, 0.2, ...]],
+        segment_id="demo.ivf",
+        index_type=WARM_INDEX_IVF_FLAT,
+        ivf_nlist=128,
+        ivf_nprobe=32,
+    )
+```
+
+**Path split:** `ingest_batch` / `rpc_ingest_batch` (PLIB) do not expose `index_type` in the SDK today. For non-default ANN indexes, use `ingest_vectors` (possibly in multiple calls per segment) until PLIB supports index metadata.
+
+Query the same `segment_id` / `warm_segment_id` that was built with that index.
 
 `validate_batch_size` constrains `batch_size` to `[1, MAX_BATCH_VECTORS]` (`MAX_BATCH_VECTORS = 2^22`).
 
@@ -299,7 +331,7 @@ More patterns: [plans/pyplasmod-003-sdk-usage-guide.md](plans/pyplasmod-003-sdk-
 `PlasmodVectorStore` (`pyplasmod/langchain/vectorstore.py`):
 
 - Holds `PlasmodHttpClient` and a LangChain `Embeddings` instance at construction.
-- `add_texts` / `add_documents`: local embed → `rpc_ingest_batch` (chunked) plus best-effort `ingest_event` for metadata.
+- `add_texts` / `add_documents`: local embed → `rpc_ingest_batch` (chunked) plus best-effort `ingest_event` for metadata. Does **not** select warm ANN `index_type`; use `ingest_vectors` if you need IVF/DISKANN on a segment.
 - `similarity_search*`: `build_query_body` + `query`, or warm path `rpc_query_warm`.
 - `delete`, `max_marginal_relevance_search`: not implemented (`NotImplementedError`).
 
@@ -345,6 +377,8 @@ Functions and methods with **name + purpose**. Private helpers (`_url`, `_finish
 | **`DEFAULT_BATCH_SIZE`**, **`MAX_BATCH_VECTORS`** | Default chunk size and upper bound |
 | **`iter_batches`**, **`validate_batch_size`** | Batch iteration and validation |
 | **`encode_ingest_batch`**, and related | Binary frame codecs (no HTTP) |
+| **`WARM_INDEX_HNSW`**, **`WARM_INDEX_IVF_*`**, **`WARM_INDEX_DISKANN`**, **`WARM_INDEX_TYPES`** | Supported warm ANN index type strings |
+| **`normalize_warm_index_type`**, **`warm_index_ingest_fields`** | Validate / build JSON fields for `ingest_vectors` |
 | **`plasmod_help`**, **`plasmod_topics`** | Topic-based help |
 | **`__version__`** | Package version |
 | **`PlasmodVectorStore`** | LangChain adapter (lazy-loaded) |
@@ -396,7 +430,7 @@ CLI: `python -m pyplasmod.data upload|query ...`
 | **`health()`** | `GET /healthz` | |
 | **`system_mode()`** | `GET /v1/system/mode` | |
 | **`ingest_event(event)`** | `POST /v1/ingest/events` | |
-| **`ingest_vectors(...)`** | `POST /v1/ingest/vectors` | JSON vectors |
+| **`ingest_vectors(...)`** | `POST /v1/ingest/vectors` | JSON vectors; optional `index_type`, IVF tuning (`ivf_nlist`, …) |
 | **`ingest_document(body)`** | `POST /v1/ingest/document` | |
 | **`query(body)`** | `POST /v1/query` | |
 | **`query_batch(body)`** | `POST /v1/query/batch` | Warm batch ANN |

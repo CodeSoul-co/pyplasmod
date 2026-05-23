@@ -34,7 +34,7 @@ class EasyPlasmod:
         session: Optional[Any] = None,
     ) -> None:
         """
-        :param base_url: 服务根 URL；默认读 ``PLASMOD_BASE_URL`` / ``ANDB_BASE_URL``，再 ``http://127.0.0.1:8080``。
+        :param base_url: 服务根 URL；默认读 ``PLASMOD_BASE_URL`` / ``ANDB_BASE_URL``，再 ``http://127.0.0.1:19530``（split compose）。unified 请设 ``http://127.0.0.1:8080``。
         :param timeout: HTTP 超时秒数；默认读 ``PLASMOD_HTTP_TIMEOUT`` / ``ANDB_HTTP_TIMEOUT``，再 ``30``。
         :param admin_key: Admin API Key；默认读 ``PLASMOD_ADMIN_API_KEY`` / ``ANDB_ADMIN_API_KEY``。访问 ``/v1/admin/*`` 时自动加 ``X-Admin-Key``。
         :param session: 可选传入已有 ``requests.Session`` 以复用连接。

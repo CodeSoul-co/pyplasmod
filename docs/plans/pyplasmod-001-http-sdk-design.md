@@ -42,7 +42,7 @@ This document describes the client’s **architectural boundaries, module layout
 ### 2.2 Non-goals
 
 - Does not ship Plasmod **server** binaries or deployment logic (see README “Start the Plasmod gateway”).
-- No gRPC, Milvus-compatible ORM, or collection/schema management APIs.
+- No gRPC, collection/schema ORM, or collection/schema management APIs.
 - No embedded full OpenAPI copy; field changes follow Plasmod `docs/api`.
 - No forward-compatibility guarantee for unpublished or experimental gateway routes (follow what the running gateway registers).
 
@@ -160,7 +160,7 @@ You may pass a `requests.Session` to reuse TCP connections; use `with client:` o
 | Long text / documents | `EasyPlasmod.ingest_document` | `POST /v1/ingest/document` |
 | Single structured event | `ingest_event` | `POST /v1/ingest/events` |
 | Bulk vector file | `pyplasmod.data.upload` / `upload_fbin` | one `ingest/events` per row |
-| JSON vector matrix | `ingest_vectors` / `ingest_batch` | `ingest/vectors` or RPC PLIB |
+| JSON vector matrix | `ingest_vectors` (optional `index_type`, IVF fields) / `ingest_batch` | `ingest/vectors` or RPC PLIB; ANN index selection on JSON path only |
 | Natural-language retrieval | `search` or `build_query_body` + `query` | `POST /v1/query` |
 
 **Session alignment:** `upload` defaults `session_id` to `ingest_{dataset}_{filename}`; `build_query_body` can align automatically when both `dataset_name` and `ingest_fbin_path` are provided. For document ingest, pass the same `session_id` and `agent_id` explicitly at query time.
@@ -185,6 +185,7 @@ You may pass a `requests.Session` to reuse TCP connections; use `with client:` o
 | Capability | Status |
 |------------|--------|
 | Tier A ingest/query/admin/memory | Implemented |
+| Warm ANN `index_type` on `ingest_vectors` (`pyplasmod.http.warm_index`) | Implemented |
 | Binary RPC + `ingest_batch` chunking | Implemented |
 | `EasyPlasmod`, `pyplasmod.data` | Implemented |
 | Tier B JSON shortcut methods | Implemented (see 002) |

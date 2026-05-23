@@ -4,6 +4,9 @@ Example: Batch ingestion with automatic splitting.
 This example demonstrates how to use the batch ingestion methods
 to efficiently ingest large amounts of data without memory issues.
 
+For warm ANN index selection (HNSW, IVF_*, DISKANN), use ``ingest_vectors``
+instead — ``ingest_batch`` / PLIB RPC does not expose ``index_type``; see docs/SDK.md §10.
+
 Requires a running Plasmod server at http://127.0.0.1:8080
 """
 

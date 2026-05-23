@@ -42,7 +42,7 @@
 ### 2.2 非目标
 
 - 不包含 Plasmod **服务端**二进制或部署逻辑（见 README「启动 Plasmod 网关」）。
-- 不提供 gRPC、Milvus 兼容 ORM 或 collection/schema 管理 API。
+- 不提供 gRPC、collection/schema ORM 或 collection/schema 管理 API。
 - 不内嵌完整 OpenAPI 副本；字段变更以 Plasmod `docs/api` 为准。
 - 不保证与 Plasmod 未发布或实验性路由的向前兼容（以网关实际注册为准）。
 
@@ -160,7 +160,7 @@ flowchart LR
 | 长文本 / 文档 | `EasyPlasmod.ingest_document` | `POST /v1/ingest/document` |
 | 单条结构化事件 | `ingest_event` | `POST /v1/ingest/events` |
 | Bulk 向量文件 | `pyplasmod.data.upload` / `upload_fbin` | 每行一次 `ingest/events` |
-| JSON 向量矩阵 | `ingest_vectors` / `ingest_batch` | `ingest/vectors` 或 RPC PLIB |
+| JSON 向量矩阵 | `ingest_vectors`（可选 `index_type`、IVF 字段）/ `ingest_batch` | `ingest/vectors` 或 RPC PLIB；ANN 索引仅 JSON 路径 |
 | 自然语言检索 | `search` 或 `build_query_body` + `query` | `POST /v1/query` |
 
 **会话对齐**：`upload` 默认 `session_id = ingest_{dataset}_{文件名}`；`build_query_body` 在提供 `dataset_name` 与 `ingest_fbin_path` 时可自动对齐。文档入库场景须在查询时显式传入相同的 `session_id` 与 `agent_id`。
@@ -185,6 +185,7 @@ flowchart LR
 | 能力 | 状态 |
 |------|------|
 | Tier A ingest/query/admin/memory | 已实现 |
+| `ingest_vectors` 的 warm ANN `index_type`（`pyplasmod.http.warm_index`） | 已实现 |
 | 二进制 RPC + `ingest_batch` 分片 | 已实现 |
 | `EasyPlasmod`、`pyplasmod.data` | 已实现 |
 | Tier B JSON 快捷方法 | 已实现（见 002） |

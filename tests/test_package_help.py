@@ -28,7 +28,7 @@ def test_plasmod_help_index_contains_easy() -> None:
 def test_plasmod_help_unknown_topic() -> None:
     buf = io.StringIO()
     plasmod_help("no-such-topic-xyz", file=buf)
-    assert "未知主题" in buf.getvalue()
+    assert "Unknown topic" in buf.getvalue()
 
 
 def test_plasmod_help_env() -> None:

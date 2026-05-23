@@ -220,11 +220,34 @@ python -m pyplasmod.data upload my_dataset w_demo /path/to/vectors.fbin --show-p
 
 | Method | When to use |
 |--------|-------------|
-| `client.ingest_vectors([[...], ...])` | Medium-sized JSON matrices |
-| `client.ingest_batch(segment_id, vectors, batch_size=500)` | Large scale; internal PLIB RPC with automatic chunking |
+| `client.ingest_vectors([[...], ...])` | Medium-sized JSON matrices; **warm ANN index type** (`index_type`, IVF fields) |
+| `client.ingest_batch(segment_id, vectors, batch_size=500)` | Large scale; internal PLIB RPC with automatic chunking (**no `index_type`**) |
 | `client.rpc_ingest_batch(...)` | Low-level RPC; you control batching |
 
 Vector dimension must match gateway warm segment / embedder configuration.
+
+**Warm segment ANN index** (build-time, `POST /v1/ingest/vectors` only):
+
+| `index_type` | Notes |
+|--------------|-------|
+| `HNSW` | Default when omitted |
+| `IVF_FLAT` / `IVF_PQ` / `IVF_SQ8` | Optional `ivf_nlist`, `ivf_nprobe`, `ivf_m`, `ivf_nbits`, `ivf_sq_type` |
+| `DISKANN` | Disk-oriented large scale |
+
+```python
+from pyplasmod import PlasmodClient, WARM_INDEX_IVF_FLAT
+
+with PlasmodClient() as c:
+    c.ingest_vectors(
+        [[0.1, 0.2, ...]],
+        segment_id="demo.ivf",
+        index_type=WARM_INDEX_IVF_FLAT,
+        ivf_nlist=128,
+        ivf_nprobe=32,
+    )
+```
+
+Use the same `segment_id` (or `warm_segment_id` in queries) that was built with that index. For non-default indexes at very large scale, prefer repeated `ingest_vectors` calls until PLIB ingest supports index metadata. Details: [SDK.md](../SDK.md) §10.
 
 ### 4.5 Gateway embedding and CPU / GPU — `PlasmodEmbedding`
 
@@ -338,7 +361,7 @@ with PlasmodHttpClient() as c:
 | `health()` | `GET /healthz` |
 | `system_mode()` | `GET /v1/system/mode` |
 | `ingest_event(event)` | `POST /v1/ingest/events` |
-| `ingest_vectors(vectors, *, segment_id=..., object_ids=...)` | `POST /v1/ingest/vectors` |
+| `ingest_vectors(vectors, *, segment_id=..., object_ids=..., index_type=..., ivf_*=...)` | `POST /v1/ingest/vectors` |
 | `ingest_document(body)` | `POST /v1/ingest/document` |
 | `query(body)` | `POST /v1/query` |
 | `query_batch(body)` | `POST /v1/query/batch` |

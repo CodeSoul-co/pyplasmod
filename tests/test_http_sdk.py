@@ -33,6 +33,18 @@ def test_encode_ingest_batch_wire_version_2():
     assert buf[4] == 2
 
 
+def test_normalize_warm_index_type():
+    from pyplasmod.http.warm_index import (
+        WARM_INDEX_HNSW,
+        normalize_warm_index_type,
+    )
+
+    assert normalize_warm_index_type("") == WARM_INDEX_HNSW
+    assert normalize_warm_index_type("ivf_flat") == "IVF_FLAT"
+    with pytest.raises(ValueError):
+        normalize_warm_index_type("FOO")
+
+
 def test_encode_query_warm_prefix():
     buf = encode_query_warm("warm.default", 10, [0.25] * 128)
     assert buf[:4] == b"PLQW"
@@ -105,6 +117,22 @@ def test_http_client_admin_key_on_admin_route():
         client.warm_prebuild()
         _, kwargs = client._session.request.call_args
         assert kwargs["headers"]["X-Admin-Key"] == "k"
+
+
+def test_ingest_vectors_index_type_json():
+    client = PlasmodHttpClient(base_url="http://example.invalid")
+    with patch.object(client._session, "request", return_value=_ok_json_response({"index_type": "IVF_FLAT"})) as m:
+        client.ingest_vectors(
+            [[1.0, 0.0]],
+            segment_id="demo.ivf",
+            index_type="IVF_FLAT",
+            ivf_nlist=128,
+            ivf_nprobe=32,
+        )
+        body = m.call_args[1]["json"]
+        assert body["index_type"] == "IVF_FLAT"
+        assert body["ivf_nlist"] == 128
+        assert body["ivf_nprobe"] == 32
 
 
 def test_http_client_query_body():

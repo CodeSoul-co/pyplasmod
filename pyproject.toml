@@ -13,16 +13,20 @@ include = ["pyplasmod*"]
 
 [project]
 name = "pyplasmod"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "CodeSoul-co" }]
 requires-python = ">=3.8"
-description = "Python HTTP SDK for the Plasmod agent-native storage stack (Tier A + Tier B JSON + binary RPC)."
+description = "Python HTTP SDK for the Plasmod agent-native storage stack (Tier A + Tier B JSON + binary RPC). Requires a running Plasmod gateway."
 readme = "README.md"
+keywords = ["plasmod", "vector", "agent", "http", "sdk", "memory", "embedding"]
 dependencies = [
     "requests>=2.20.0",
 ]
 
 classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -31,14 +35,18 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
-    "License :: OSI Approved :: MIT License",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
 
 dynamic = ["version"]
 
 [project.urls]
-homepage = "https://github.com/CodeSoul-co/Plasmod"
-repository = "https://github.com/CodeSoul-co/Plasmod"
+Homepage = "https://github.com/CodeSoul-co/pyplasmod"
+Repository = "https://github.com/CodeSoul-co/pyplasmod"
+Documentation = "https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md"
+"Bug Tracker" = "https://github.com/CodeSoul-co/pyplasmod/issues"
+"Plasmod (server)" = "https://github.com/CodeSoul-co/Plasmod"
 
 [project.optional-dependencies]
 dev = [
@@ -55,6 +63,8 @@ all = [
 ]
 
 [tool.setuptools_scm]
+version_scheme = "release-branch-semver"
+local_scheme = "no-local-version"
 
 [tool.black]
 line-length = 100

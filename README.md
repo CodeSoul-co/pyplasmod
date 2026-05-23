@@ -1,6 +1,6 @@
 # pyplasmod
 
-> **[中文](README.zh-CN.md)** 
+> **[中文](https://github.com/CodeSoul-co/pyplasmod/blob/main/README.zh-CN.md)** 
 
 **pyplasmod** is a Python **HTTP client library** for **[Plasmod](https://github.com/CodeSoul-co/Plasmod)**: it talks to a deployed Plasmod gateway over standard HTTP (and some binary RPC) for vector ingest, search, Memory listing, dataset operations, and health checks.
 
@@ -8,23 +8,23 @@
 Request paths, fields, and semantics follow the official Plasmod **[HTTP API documentation](https://github.com/CodeSoul-co/Plasmod/tree/main/docs/api)**; this README only describes what this repository wraps and typical usage.
 
 In-package topic index: `from pyplasmod import plasmod_help; plasmod_help()`. CLI: `python -m pyplasmod [topic]`.  
-SDK architecture and implementation details: **[docs/SDK.md](docs/SDK.md)**; gateway embedding (CPU/GPU): **[docs/EMBEDDING.md](docs/EMBEDDING.md)**.
+SDK architecture and implementation details: **[docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md)**; gateway embedding (CPU/GPU): **[docs/EMBEDDING.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/EMBEDDING.md)**.
 
 ---
 
 ## Quick start (~5 minutes)
 
-The steps below assume you can reach a Plasmod gateway on your machine (default `http://127.0.0.1:8080`). If the gateway is not running yet, read **[Start the Plasmod gateway](#start-the-plasmod-gateway)** first.
+The steps below assume Plasmod is running. For `docker compose up -d` (split), the SDK default is `http://127.0.0.1:19530` and health is on port `9091`; unified / `go run` uses `8080`. See **[Start the Plasmod gateway](#start-the-plasmod-gateway)**.
 
 | Step | What to do | Command / code |
 |------|------------|----------------|
-| 0 | Confirm the gateway is up | `curl -sS http://127.0.0.1:8080/healthz` |
+| 0 | Confirm the gateway is up | split: `curl -sS http://127.0.0.1:9091/healthz`; unified: `curl -sS http://127.0.0.1:8080/healthz` |
 | 1 | Install this client | `pip install pyplasmod==0.1.0` |
-| 2 | Configure gateway URL (optional) | `export PLASMOD_BASE_URL=http://127.0.0.1:8080` (or copy [`.env.example`](.env.example) to `.env`) |
+| 2 | Configure gateway URL (optional) | split: `export PLASMOD_BASE_URL=http://127.0.0.1:19530`; unified: `http://127.0.0.1:8080` (see [`.env.example`](.env.example)) |
 | 3 | Health check | See Python snippet below |
-| 4 | (Optional) Upload data | Text/docs: **§2.1**; vector files: **§2.3**; skip if you have no data yet |
+| 4 | (Optional) Upload data | Text/docs **§2.1**; `.fbin` **§2.3**; JSON matrix + ANN index **§2.4**; skip if no data yet |
 | 5 | Search | `p.search("your question", "w_demo", top_k=10)` |
-| 6 | API details | `plasmod_help("easy")` or read [docs/SDK.md](docs/SDK.md) |
+| 6 | API details | `plasmod_help("easy")` or read [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md) |
 
 **Steps 3 + 5 minimal example** (verifies connectivity without your own data; `search` returns hits only when data exists):
 
@@ -36,9 +36,10 @@ with EasyPlasmod() as p:
     print("search:", p.search("hello", "w_demo"))  # empty store may yield no objects/hits
 ```
 
-Example script in the repo (set `export PLASMOD_BASE_URL=...` first):
+Example script in the [repository](https://github.com/CodeSoul-co/pyplasmod/blob/main/examples/http_quickstart.py) (clone the repo or copy the script; it is not installed via `pip`):
 
 ```bash
+export PLASMOD_BASE_URL=http://127.0.0.1:19530
 python examples/http_quickstart.py
 ```
 
@@ -46,7 +47,12 @@ python examples/http_quickstart.py
 
 ## Start the Plasmod gateway
 
-**pyplasmod only calls a running Plasmod HTTP service**; it does not ship the server binary. The gateway listens on **`127.0.0.1:8080` by default** (override with `PLASMOD_HTTP_ADDR`), matching this client’s default `PLASMOD_BASE_URL`.
+**pyplasmod only calls a running Plasmod HTTP service**; it does not ship the server binary. Default entry points:
+
+| Deployment | Health | `PLASMOD_BASE_URL` (SDK) |
+|------------|--------|---------------------------|
+| `docker compose up -d` (split) | `http://127.0.0.1:9091/healthz` | `http://127.0.0.1:19530` (client default) |
+| `docker compose -f docker-compose.unified.yml` or `make dev` / `go run` | `http://127.0.0.1:8080/healthz` | `http://127.0.0.1:8080` |
 
 ### Option A: Local dev from Plasmod source (recommended for debugging)
 
@@ -66,12 +72,21 @@ curl -sS http://127.0.0.1:8080/v1/system/mode
 
 More (HNSW build, `make build`, seed data, `scripts/run_demo.py`) is in the Plasmod README **Quick start / Run** section.
 
-### Option B: Docker Compose full stack
+### Option B: Docker Compose full stack (split, default)
 
 In the Plasmod repo:
 
 ```bash
 docker compose up -d
+export PLASMOD_BASE_URL=http://127.0.0.1:19530
+curl -sS http://127.0.0.1:9091/healthz
+```
+
+Single-port unified:
+
+```bash
+docker compose -f docker-compose.unified.yml up -d
+export PLASMOD_BASE_URL=http://127.0.0.1:8080
 ```
 
 Switch prod/test with `APP_MODE=prod` / `APP_MODE=test`, etc.; see Plasmod docs.
@@ -183,7 +198,7 @@ Read at construct time by `PlasmodHttpClient` / `EasyPlasmod` (constructor args 
 
 | Variable | Purpose |
 |----------|---------|
-| `PLASMOD_BASE_URL` or `ANDB_BASE_URL` | Gateway root URL; default `http://127.0.0.1:8080` if unset. |
+| `PLASMOD_BASE_URL` or `ANDB_BASE_URL` | Gateway root URL; default `http://127.0.0.1:19530` (split compose). Use `http://127.0.0.1:8080` for unified. |
 | `PLASMOD_HTTP_TIMEOUT` or `ANDB_HTTP_TIMEOUT` | HTTP timeout (seconds); default `30`. |
 | `PLASMOD_ADMIN_API_KEY` or `ANDB_ADMIN_API_KEY` | `X-Admin-Key` header for `/v1/admin/*`. |
 
@@ -196,12 +211,12 @@ Read at construct time by `PlasmodHttpClient` / `EasyPlasmod` (constructor args 
 | `PLASMOD_EMBEDDER_DIM` | Vector dimension |
 | `PLASMOD_EMBEDDER_MODEL_PATH` | Local model path |
 
-See **[docs/EMBEDDING.md](docs/EMBEDDING.md)** and [`.env.example`](.env.example).
+See **[docs/EMBEDDING.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/EMBEDDING.md)** and [`.env.example`](https://github.com/CodeSoul-co/pyplasmod/blob/main/.env.example).
 
 Equivalent to `PLASMOD_ADMIN_API_KEY`: `EasyPlasmod(..., admin_key="...")` or `PlasmodHttpClient(..., admin_key="...")`. Whether Admin Key is enforced depends on gateway deployment.
 
 ```bash
-export PLASMOD_BASE_URL=http://127.0.0.1:8080
+export PLASMOD_BASE_URL=http://127.0.0.1:19530
 # export PLASMOD_ADMIN_API_KEY=...   # only when calling admin APIs
 ```
 
@@ -230,7 +245,7 @@ export PLASMOD_BASE_URL=http://127.0.0.1:8080
 | `p.http.dataset_purge(body)` | `POST /v1/admin/dataset/purge` | Hard purge; use `dry_run: True` first |
 | `p.http.dataset_purge_task(task_id)` | `GET /v1/admin/dataset/purge/task` | Async purge task status |
 
-Other HTTP/RPC methods are on **`PlasmodHttpClient`**; **`EasyPlasmod.http`** exposes it. **`PlasmodClient`** is an alias for **`PlasmodHttpClient`**. Full method list: [docs/SDK.md](docs/SDK.md).
+Other HTTP/RPC methods are on **`PlasmodHttpClient`**; **`EasyPlasmod.http`** exposes it. **`PlasmodClient`** is an alias for **`PlasmodHttpClient`**. Full method list: [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md).
 
 ---
 
@@ -250,7 +265,7 @@ with EasyPlasmod() as p:
 
 ## 2. Upload data
 
-Choose ingest by shape: **long text/documents** → `ingest_document`; **pre-vectorized or per-event control** → `.fbin` / `ingest_event`. Reuse the same `EasyPlasmod` for later `search`; keep **`workspace_id`, `session_id`, and `agent_id` consistent between ingest and query**.
+Choose ingest by shape: **long text/documents** → `ingest_document` (§2.1); **pre-vectorized or per-event control** → `.fbin` / `ingest_event` (§2.2–2.3); **in-memory JSON matrices with ANN index choice** → `ingest_vectors` (§2.4). Reuse the same `EasyPlasmod` for later `search`; keep **`workspace_id`, `session_id`, and `agent_id` consistent between ingest and query**.
 
 ### 2.1 Text and long documents (`ingest_document`)
 
@@ -393,7 +408,34 @@ CLI equivalent:
 python -m pyplasmod.data upload my_dataset w_demo /path/to/vectors.fbin --show-progress
 ```
 
-For **JSON vector matrices** (not `.fbin`), use the full client: `p.http.ingest_vectors([[...], [...]])` or binary `p.http.ingest_batch(...)` — see [docs/SDK.md](docs/SDK.md).
+For **JSON vector matrices** (not `.fbin`), use `p.http.ingest_vectors` or `p.http.ingest_batch` (PLIB) at large scale. To pick the warm-segment ANN index type, see **§2.4**.
+
+### 2.4 JSON vectors and warm ANN index (`ingest_vectors`)
+
+`POST /v1/ingest/vectors` builds a warm segment from caller-supplied vectors. The ANN index is fixed at **ingest time**; queries must use the same `segment_id` (or `warm_segment_id` in the query body).
+
+| `index_type` | When to consider |
+|--------------|------------------|
+| `HNSW` | **Default** (omit `index_type`) |
+| `IVF_FLAT` / `IVF_PQ` / `IVF_SQ8` | Large corpora; tune `ivf_nlist`, `ivf_nprobe`, etc. |
+| `DISKANN` | Very large scale, disk-friendly |
+
+**Note:** Only `ingest_vectors` supports `index_type`;
+
+```python
+from pyplasmod import PlasmodClient, WARM_INDEX_IVF_FLAT
+
+with PlasmodClient() as c:
+    c.ingest_vectors(
+        [[0.1, 0.2, ...]],  # dim must match gateway warm segment / embedder config
+        segment_id="demo.ivf",
+        index_type=WARM_INDEX_IVF_FLAT,  # or "IVF_FLAT"
+        ivf_nlist=128,
+        ivf_nprobe=32,
+    )
+```
+
+Omitting `index_type` uses server default **HNSW**. Pass other constants or strings for `IVF_PQ`, `DISKANN`, and so on. Full fields and comparison with `ingest_batch`: [docs/SDK.md](docs/SDK.md) §10.
 
 ---
 
@@ -467,7 +509,7 @@ emb.use_onnx_cpu(model_path="/models/model.onnx", dim=384, apply=True)   # CPU
 print(emb.capabilities())  # cpu/cuda/metal per provider
 ```
 
-Topic guide: **[docs/EMBEDDING.md](docs/EMBEDDING.md)**. Architecture: [docs/SDK.md](docs/SDK.md) §8.
+Topic guide: **[docs/EMBEDDING.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/EMBEDDING.md)**. Architecture: [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md) §8.
 
 ---
 
@@ -546,12 +588,12 @@ print(p.http.dataset_purge_task("<task_id>"))
 | `examples/langchain_quickstart.py` | LangChain (`pip install pyplasmod[langchain]`) |
 | `examples/embedding_cpu_gpu.py` | Gateway embedding, CPU/GPU presets, `PlasmodEmbedding` |
 
-- **Gateway embedding (CPU/GPU):** [docs/EMBEDDING.md](docs/EMBEDDING.md)  
-- **SDK architecture and implementation:** [docs/SDK.md](docs/SDK.md)  
-- **SDK usage guide** (parameters, samples, troubleshooting): [docs/plans/pyplasmod-003-sdk-usage-guide.md](docs/plans/pyplasmod-003-sdk-usage-guide.md)  
-- **HTTP SDK architecture:** [docs/plans/pyplasmod-001-http-sdk-design.md](docs/plans/pyplasmod-001-http-sdk-design.md)  
-- **Tier B extension APIs:** [docs/plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md](docs/plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md)  
-- **Documentation index:** [docs/README.md](docs/README.md)  
+- **Gateway embedding (CPU/GPU):** [docs/EMBEDDING.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/EMBEDDING.md)  
+- **SDK architecture and implementation:** [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md)  
+- **SDK usage guide** (parameters, samples, troubleshooting): [docs/plans/pyplasmod-003-sdk-usage-guide.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/plans/pyplasmod-003-sdk-usage-guide.md)  
+- **HTTP SDK architecture:** [docs/plans/pyplasmod-001-http-sdk-design.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/plans/pyplasmod-001-http-sdk-design.md)  
+- **Tier B extension APIs:** [docs/plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/plans/pyplasmod-002-gateway-tier-b-shortcuts-design.md)  
+- **Documentation index:** [docs/README.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/README.md)  
 - **Routes and field mapping:** [Plasmod `docs/sdk/README.md`](https://github.com/CodeSoul-co/Plasmod/blob/main/docs/sdk/README.md)  
 - **Binary frame helpers:** `from pyplasmod.http import encode_ingest_batch`, etc. (most cases: `PlasmodHttpClient.rpc_*`)
 

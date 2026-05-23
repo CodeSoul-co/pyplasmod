@@ -23,43 +23,43 @@ def _topic_entries() -> list[tuple[str, str, Optional[object], str]]:
     return [
         (
             "embedding",
-            "网关侧嵌入：PlasmodEmbedding（ingest/search/runtime、use_cpu/use_gpu）。",
+            "Gateway-side embeddings: PlasmodEmbedding (ingest/search/runtime, use_cpu/use_gpu).",
             PlasmodEmbedding,
             "from pyplasmod import PlasmodEmbedding; help(PlasmodEmbedding)",
         ),
         (
             "easy",
-            "精简入口：健康检查、search/query、ingest、upload_fbin、memories；完整 HTTP 用 .http。",
+            "Convenience API: health, search/query, ingest, upload_fbin, memories; full HTTP via .http.",
             EasyPlasmod,
             "from pyplasmod import EasyPlasmod; help(EasyPlasmod)",
         ),
         (
             "client",
-            "完整 HTTP 客户端（别名 PlasmodClient）：ingest、query、admin、RPC 等。",
+            "Full HTTP client (alias PlasmodClient): ingest, query, admin, RPC, etc.",
             PlasmodHttpClient,
             "from pyplasmod import PlasmodHttpClient; help(PlasmodHttpClient)",
         ),
         (
             "upload",
-            "将 .fbin 按行打成 ingest_event 并 POST（可传 client= 复用连接）。",
+            "Upload .fbin rows as ingest_event POSTs (optional client= for connection reuse).",
             upload,
             "from pyplasmod.data import upload; help(upload)",
         ),
         (
             "querybody",
-            "只组装 POST /v1/query 的 dict，不发起 HTTP；常与 client.query 或 EasyPlasmod.query 搭配。",
+            "Build POST /v1/query JSON only (no HTTP); pair with client.query or EasyPlasmod.query.",
             build_query_body,
             "from pyplasmod.data import build_query_body; help(build_query_body)",
         ),
         (
             "errors",
-            "HTTP 失败时抛出 PlasmodHttpError（含 status_code、path、body）。",
+            "PlasmodHttpError on HTTP failures (status_code, path, body).",
             PlasmodHttpError,
             "from pyplasmod import PlasmodHttpError; help(PlasmodHttpError)",
         ),
         (
             "binary",
-            "PLIB/PLQW/PLQB 编解码；多数场景直接用 PlasmodHttpClient.rpc_*。",
+            "PLIB/PLQW/PLQB encode/decode; prefer PlasmodHttpClient.rpc_* in most apps.",
             binary,
             "import pyplasmod.http.binary as b; help(b)",
         ),
@@ -75,19 +75,19 @@ def plasmod_topics() -> list[str]:
 
 def _print_env(*, file: TextIO) -> None:
     text = """\
-    环境变量（客户端）
-      PLASMOD_BASE_URL / ANDB_BASE_URL   服务根 URL，默认 http://127.0.0.1:8080
-      PLASMOD_HTTP_TIMEOUT / ANDB_HTTP_TIMEOUT   秒，默认 30
-      PLASMOD_ADMIN_API_KEY / ANDB_ADMIN_API_KEY   访问 /v1/admin/* 时自动加 X-Admin-Key
+    Client environment variables
+      PLASMOD_BASE_URL / ANDB_BASE_URL   Gateway root URL (default http://127.0.0.1:8080)
+      PLASMOD_HTTP_TIMEOUT / ANDB_HTTP_TIMEOUT   Seconds (default 30)
+      PLASMOD_ADMIN_API_KEY / ANDB_ADMIN_API_KEY   Sent as X-Admin-Key for /v1/admin/*
 
-    环境变量（Plasmod 网关进程 — 嵌入 CPU/GPU）
+    Plasmod gateway process (embedding CPU/GPU)
       PLASMOD_EMBEDDER              tfidf | onnx | gguf | tensorrt | openai | …
-      PLASMOD_EMBEDDER_DEVICE       cpu | cuda | metal（onnx/gguf 双路径）
-      PLASMOD_EMBEDDER_DIM          向量维度，须与模型一致
-      PLASMOD_EMBEDDER_MODEL_PATH   本地 .onnx / .gguf / .engine 路径
-      PLASMOD_ONNX_VOCAB_PATH       ONNX BERT vocab（可选）
+      PLASMOD_EMBEDDER_DEVICE       cpu | cuda | metal (onnx/gguf)
+      PLASMOD_EMBEDDER_DIM          Vector dimension (must match the model)
+      PLASMOD_EMBEDDER_MODEL_PATH   Local .onnx / .gguf / .engine path
+      PLASMOD_ONNX_VOCAB_PATH       Optional ONNX BERT vocab
 
-    在 Python 中查看能力表: from pyplasmod import format_capability_table; print(format_capability_table())
+    Capability table: from pyplasmod import format_capability_table; print(format_capability_table())
     """
     print(textwrap.dedent(text).rstrip(), file=file)
 
@@ -128,15 +128,15 @@ def plasmod_help(
     key = aliases.get(raw, raw)
 
     if key in ("", "index", "topics", "list"):
-        print("pyplasmod — 主题索引（详细说明请用 Python 内置 help()）\n", file=file)
+        print("pyplasmod — topic index (use Python help() for full API docs)\n", file=file)
         for name, blurb, _obj, how in _topic_entries():
             print(f"  {name:<14}{blurb}", file=file)
             print(f"                → {how}", file=file)
-        print("  env           仅打印环境变量说明。", file=file)
+        print("  env           Print environment variable reference only.", file=file)
         print("                → plasmod_help('env')", file=file)
         print(
-            "\n用法: plasmod_help('easy')  —  也可: python -m pyplasmod [主题]\n"
-            "内置文档: from pyplasmod import EasyPlasmod; help(EasyPlasmod)",
+            "\nUsage: plasmod_help('easy')  —  or: python -m pyplasmod [topic]\n"
+            "Built-in docs: from pyplasmod import EasyPlasmod; help(EasyPlasmod)",
             file=file,
         )
         return
@@ -149,23 +149,23 @@ def plasmod_help(
 
     for name, blurb, obj, how in _topic_entries():
         if key == name:
-            print(f"主题: {name}\n", file=file)
+            print(f"Topic: {name}\n", file=file)
             print(textwrap.fill(blurb, width=88), file=file)
-            print(f"\n在 REPL 查看完整 API: {how}\n", file=file)
+            print(f"\nIn the REPL: {how}\n", file=file)
             if obj is not None and name in embed:
-                print("— 以下为内置 help() 输出 —\n", file=file)
+                print("— built-in help() output —\n", file=file)
                 import pydoc
 
                 pydoc.doc(obj, title="%s", output=file)
             elif name == "client":
                 print(
-                    "提示: ``PlasmodHttpClient`` 方法很多，请在 Python 中执行上述 ``help()`` 分页查看。\n",
+                    "Tip: PlasmodHttpClient has many methods; run the help() command above to page through them.\n",
                     file=file,
                 )
             print(file=file)
             return
 
-    print(f"未知主题 {topic!r}。可用主题: {', '.join(plasmod_topics())}", file=file)
+    print(f"Unknown topic {topic!r}. Available: {', '.join(plasmod_topics())}", file=file)
 
 
 __all__ = ["plasmod_help", "plasmod_topics"]

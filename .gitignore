@@ -12,11 +12,9 @@ coverage.xml
 venv/
 
 scripts
-tests/test_http_sdk.py
 examples/try.py
 examples/try_output.txt
 gateway.go
 examples/test.py
 examples/output.txt
-examples/embedding_cpu_gpu.py
-tests/test_embedding.py
+examples/ingest_vectors_warm_index.py

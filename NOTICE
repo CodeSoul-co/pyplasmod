@@ -1,0 +1,12 @@
+pyplasmod
+=========
+
+Copyright (c) 2026 CodeSoul-co
+
+This project is distributed under the MIT License (see LICENSE).
+
+Portions of the Python source code retain Apache License 2.0 file headers
+from earlier work by Zilliz (2019–2021), consistent with common vector-database
+Python SDK conventions. Those portions remain available under the Apache License 2.0:
+
+    http://www.apache.org/licenses/LICENSE-2.0
