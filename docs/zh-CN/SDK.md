@@ -13,7 +13,7 @@
 | 包含 | 不包含 |
 |------|--------|
 | Tier A JSON（ingest、query、memory、admin 等） | Plasmod 服务端进程本身 |
-| Tier B 扩展 JSON（internal task/MAS、CRUD 等） | gRPC、Milvus ORM |
+| Tier B 扩展 JSON（internal task/MAS、CRUD 等） | gRPC、collection/schema ORM |
 | PLIB / PLQW / PLQB 二进制 RPC 封装 | 自动生成的 OpenAPI 客户端 |
 | `.fbin` → `ingest_event` 批量辅助 | 服务端路由/字段的权威定义（以 Plasmod `docs/api` 为准） |
 

@@ -4,7 +4,7 @@
 
 **Documentation:** English is the default ([README.md](README.md), [docs/](docs/README.md)). Optional Simplified Chinese lives under [docs/zh-CN/](docs/zh-CN/) and [README.zh-CN.md](README.zh-CN.md). New user-facing docs should land in English first; add or update Chinese translations when maintaining parity.
 
-**pyplasmod** is the Python **HTTP** client for [Plasmod](https://github.com/CodeSoul-co/Plasmod). This repository intentionally stays small: JSON Tier A routes plus binary RPC framing (`PLIB` / `PLQW` / `PLQB`). There is **no** gRPC stack or Milvus-compatible ORM here.
+**pyplasmod** is the Python **HTTP** client for [Plasmod](https://github.com/CodeSoul-co/Plasmod). This repository intentionally stays small: JSON Tier A routes plus binary RPC framing (`PLIB` / `PLQW` / `PLQB`). There is **no** gRPC stack or collection/schema ORM here.
 
 The authoritative API contract lives in the server repo:
 

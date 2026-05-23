@@ -104,8 +104,9 @@ class PlasmodHttpClient:
     ``admin_key`` or env ``PLASMOD_ADMIN_API_KEY`` / ``ANDB_ADMIN_API_KEY`` is set.
 
     When ``base_url`` is omitted, the client reads env ``PLASMOD_BASE_URL`` or
-    ``ANDB_BASE_URL``, then falls back to ``http://127.0.0.1:8080`` (so the Plasmod
-    process can listen on any host/port while callers only set the env).
+    ``ANDB_BASE_URL``,     then falls back to ``http://127.0.0.1:19530`` (split compose API port).
+    Use ``http://127.0.0.1:8080`` for unified ``go run`` or
+    ``docker-compose.unified.yml``.
     """
 
     def __init__(
@@ -120,7 +121,7 @@ class PlasmodHttpClient:
             base_url = (
                 os.environ.get("PLASMOD_BASE_URL")
                 or os.environ.get("ANDB_BASE_URL")
-                or "http://127.0.0.1:8080"
+                or "http://127.0.0.1:19530"
             )
         self.base_url = str(base_url).rstrip("/")
         env_timeout = os.environ.get("PLASMOD_HTTP_TIMEOUT") or os.environ.get(

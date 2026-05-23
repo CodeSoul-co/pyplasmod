@@ -14,7 +14,7 @@
 | Included | Not included |
 |----------|----------------|
 | Tier A JSON (ingest, query, memory, admin, and related routes) | The Plasmod server process itself |
-| Tier B extended JSON (internal task/MAS, CRUD, and related routes) | gRPC, Milvus ORM |
+| Tier B extended JSON (internal task/MAS, CRUD, and related routes) | gRPC, collection/schema ORM |
 | PLIB / PLQW / PLQB binary RPC wrappers | Auto-generated OpenAPI clients |
 | `.fbin` → `ingest_event` batch helpers | Authoritative server routes or field definitions (see Plasmod `docs/api`) |
 

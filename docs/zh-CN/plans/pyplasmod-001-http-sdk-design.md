@@ -42,7 +42,7 @@
 ### 2.2 非目标
 
 - 不包含 Plasmod **服务端**二进制或部署逻辑（见 README「启动 Plasmod 网关」）。
-- 不提供 gRPC、Milvus 兼容 ORM 或 collection/schema 管理 API。
+- 不提供 gRPC、collection/schema ORM 或 collection/schema 管理 API。
 - 不内嵌完整 OpenAPI 副本；字段变更以 Plasmod `docs/api` 为准。
 - 不保证与 Plasmod 未发布或实验性路由的向前兼容（以网关实际注册为准）。
 

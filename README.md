@@ -14,13 +14,13 @@ SDK architecture and implementation details: **[docs/SDK.md](https://github.com/
 
 ## Quick start (~5 minutes)
 
-The steps below assume you can reach a Plasmod gateway on your machine (default `http://127.0.0.1:8080`). If the gateway is not running yet, read **[Start the Plasmod gateway](#start-the-plasmod-gateway)** first.
+The steps below assume Plasmod is running. For `docker compose up -d` (split), the SDK default is `http://127.0.0.1:19530` and health is on port `9091`; unified / `go run` uses `8080`. See **[Start the Plasmod gateway](#start-the-plasmod-gateway)**.
 
 | Step | What to do | Command / code |
 |------|------------|----------------|
-| 0 | Confirm the gateway is up | `curl -sS http://127.0.0.1:8080/healthz` |
+| 0 | Confirm the gateway is up | split: `curl -sS http://127.0.0.1:9091/healthz`; unified: `curl -sS http://127.0.0.1:8080/healthz` |
 | 1 | Install this client | `pip install pyplasmod` |
-| 2 | Configure gateway URL (optional) | `export PLASMOD_BASE_URL=http://127.0.0.1:8080` (or copy [`.env.example`](https://github.com/CodeSoul-co/pyplasmod/blob/main/.env.example) to `.env`) |
+| 2 | Configure gateway URL (optional) | split: `export PLASMOD_BASE_URL=http://127.0.0.1:19530`; unified: `http://127.0.0.1:8080` (see [`.env.example`](.env.example)) |
 | 3 | Health check | See Python snippet below |
 | 4 | (Optional) Upload data | Text/docs **§2.1**; `.fbin` **§2.3**; JSON matrix + ANN index **§2.4**; skip if no data yet |
 | 5 | Search | `p.search("your question", "w_demo", top_k=10)` |
@@ -39,7 +39,7 @@ with EasyPlasmod() as p:
 Example script in the [repository](https://github.com/CodeSoul-co/pyplasmod/blob/main/examples/http_quickstart.py) (clone the repo or copy the script; it is not installed via `pip`):
 
 ```bash
-export PLASMOD_BASE_URL=http://127.0.0.1:8080
+export PLASMOD_BASE_URL=http://127.0.0.1:19530
 python examples/http_quickstart.py
 ```
 
@@ -47,7 +47,12 @@ python examples/http_quickstart.py
 
 ## Start the Plasmod gateway
 
-**pyplasmod only calls a running Plasmod HTTP service**; it does not ship the server binary. The gateway listens on **`127.0.0.1:8080` by default** (override with `PLASMOD_HTTP_ADDR`), matching this client’s default `PLASMOD_BASE_URL`.
+**pyplasmod only calls a running Plasmod HTTP service**; it does not ship the server binary. Default entry points:
+
+| Deployment | Health | `PLASMOD_BASE_URL` (SDK) |
+|------------|--------|---------------------------|
+| `docker compose up -d` (split) | `http://127.0.0.1:9091/healthz` | `http://127.0.0.1:19530` (client default) |
+| `docker compose -f docker-compose.unified.yml` or `make dev` / `go run` | `http://127.0.0.1:8080/healthz` | `http://127.0.0.1:8080` |
 
 ### Option A: Local dev from Plasmod source (recommended for debugging)
 
@@ -67,12 +72,21 @@ curl -sS http://127.0.0.1:8080/v1/system/mode
 
 More (HNSW build, `make build`, seed data, `scripts/run_demo.py`) is in the Plasmod README **Quick start / Run** section.
 
-### Option B: Docker Compose full stack
+### Option B: Docker Compose full stack (split, default)
 
 In the Plasmod repo:
 
 ```bash
 docker compose up -d
+export PLASMOD_BASE_URL=http://127.0.0.1:19530
+curl -sS http://127.0.0.1:9091/healthz
+```
+
+Single-port unified:
+
+```bash
+docker compose -f docker-compose.unified.yml up -d
+export PLASMOD_BASE_URL=http://127.0.0.1:8080
 ```
 
 Switch prod/test with `APP_MODE=prod` / `APP_MODE=test`, etc.; see Plasmod docs.
@@ -184,7 +198,7 @@ Read at construct time by `PlasmodHttpClient` / `EasyPlasmod` (constructor args 
 
 | Variable | Purpose |
 |----------|---------|
-| `PLASMOD_BASE_URL` or `ANDB_BASE_URL` | Gateway root URL; default `http://127.0.0.1:8080` if unset. |
+| `PLASMOD_BASE_URL` or `ANDB_BASE_URL` | Gateway root URL; default `http://127.0.0.1:19530` (split compose). Use `http://127.0.0.1:8080` for unified. |
 | `PLASMOD_HTTP_TIMEOUT` or `ANDB_HTTP_TIMEOUT` | HTTP timeout (seconds); default `30`. |
 | `PLASMOD_ADMIN_API_KEY` or `ANDB_ADMIN_API_KEY` | `X-Admin-Key` header for `/v1/admin/*`. |
 
@@ -202,7 +216,7 @@ See **[docs/EMBEDDING.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/doc
 Equivalent to `PLASMOD_ADMIN_API_KEY`: `EasyPlasmod(..., admin_key="...")` or `PlasmodHttpClient(..., admin_key="...")`. Whether Admin Key is enforced depends on gateway deployment.
 
 ```bash
-export PLASMOD_BASE_URL=http://127.0.0.1:8080
+export PLASMOD_BASE_URL=http://127.0.0.1:19530
 # export PLASMOD_ADMIN_API_KEY=...   # only when calling admin APIs
 ```
 

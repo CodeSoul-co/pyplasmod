@@ -4,7 +4,7 @@
 
 **文档语言：** 仓库默认文档为英文（[README.md](README.md)、[docs/README.md](docs/README.md)）。可选中文见 [README.zh-CN.md](README.zh-CN.md) 与 [docs/zh-CN/](docs/zh-CN/)。新增面向用户的文档请优先写英文，并视需要同步更新中文译本。
 
-**pyplasmod** 是 [Plasmod](https://github.com/CodeSoul-co/Plasmod) 的 Python **HTTP** 客户端仓库，刻意保持精简：Tier A JSON 接口 + 二进制 RPC 帧（`PLIB` / `PLQW` / `PLQB`）。本仓库**不包含** gRPC 栈或与 Milvus 对齐的 ORM。
+**pyplasmod** 是 [Plasmod](https://github.com/CodeSoul-co/Plasmod) 的 Python **HTTP** 客户端仓库，刻意保持精简：Tier A JSON 接口 + 二进制 RPC 帧（`PLIB` / `PLQW` / `PLQB`）。本仓库**不包含** gRPC 栈或 collection/schema 类 ORM。
 
 服务端侧的契约说明（路由、字段、OpenAPI 子集）以官方文档为准：
 

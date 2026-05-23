@@ -42,7 +42,7 @@ This document describes the client’s **architectural boundaries, module layout
 ### 2.2 Non-goals
 
 - Does not ship Plasmod **server** binaries or deployment logic (see README “Start the Plasmod gateway”).
-- No gRPC, Milvus-compatible ORM, or collection/schema management APIs.
+- No gRPC, collection/schema ORM, or collection/schema management APIs.
 - No embedded full OpenAPI copy; field changes follow Plasmod `docs/api`.
 - No forward-compatibility guarantee for unpublished or experimental gateway routes (follow what the running gateway registers).
 

@@ -14,13 +14,13 @@ SDK 架构与实现细节见 **[docs/zh-CN/SDK.md](docs/zh-CN/SDK.md)**；网关
 
 ## 快速开始（约 5 分钟）
 
-下列步骤假设你在本机已能访问 Plasmod 网关（默认 `http://127.0.0.1:8080`）。若尚未启动网关，请先阅读下一节 **[启动 Plasmod 网关](#启动-plasmod-网关)**。
+下列步骤假设 Plasmod 已启动。`docker compose up -d`（split）时 SDK 默认 `http://127.0.0.1:19530`，健康检查在 `9091`；unified / `go run` 用 `8080`。详见 **[启动 Plasmod 网关](#启动-plasmod-网关)**。
 
 | 步骤 | 做什么 | 命令 / 代码 |
 |------|--------|-------------|
-| 0 | 确认网关存活 | `curl -sS http://127.0.0.1:8080/healthz` |
+| 0 | 确认网关存活 | split：`curl -sS http://127.0.0.1:9091/healthz`；unified：`curl -sS http://127.0.0.1:8080/healthz` |
 | 1 | 安装本客户端 | `pip install pyplasmod` |
-| 2 | 配置网关地址（可选） | `export PLASMOD_BASE_URL=http://127.0.0.1:8080`（也可复制仓库内 [`.env.example`](.env.example) 为 `.env`） |
+| 2 | 配置网关地址（可选） | split：`export PLASMOD_BASE_URL=http://127.0.0.1:19530`；unified：`http://127.0.0.1:8080`（见 [`.env.example`](.env.example)） |
 | 3 | 健康检查 | 见下方 Python 片段 |
 | 4 | （可选）上传数据 | 文本/文档 **§2.1**；`.fbin` **§2.3**；JSON 矩阵 + ANN 索引 **§2.4**；无数据可跳过 |
 | 5 | 发起检索 | `p.search("你的问题", "w_demo", top_k=10)` |
@@ -46,7 +46,12 @@ python examples/http_quickstart.py
 
 ## 启动 Plasmod 网关
 
-**pyplasmod 只负责调用已运行的 Plasmod HTTP 服务**，不包含服务端二进制。网关默认监听 **`127.0.0.1:8080`**（可用环境变量 `PLASMOD_HTTP_ADDR` 覆盖），与本客户端默认的 `PLASMOD_BASE_URL` 一致。
+**pyplasmod 只负责调用已运行的 Plasmod HTTP 服务**，不包含服务端二进制。默认入口与部署方式对应：
+
+| 部署 | 健康检查 | `PLASMOD_BASE_URL`（SDK） |
+|------|----------|---------------------------|
+| `docker compose up -d`（split） | `http://127.0.0.1:9091/healthz` | `http://127.0.0.1:19530`（客户端默认） |
+| `docker compose -f docker-compose.unified.yml` 或 `make dev` / `go run` | `http://127.0.0.1:8080/healthz` | `http://127.0.0.1:8080` |
 
 ### 方式 A：从 Plasmod 源码本地开发启动（推荐调试）
 
@@ -66,12 +71,21 @@ curl -sS http://127.0.0.1:8080/v1/system/mode
 
 更多说明（HNSW 构建、`make build`、种子数据、`scripts/run_demo.py`）见 Plasmod 官方 README 的 **Quick start / Run** 章节。
 
-### 方式 B：Docker Compose 全栈
+### 方式 B：Docker Compose 全栈（split，默认）
 
 在 Plasmod 仓库：
 
 ```bash
 docker compose up -d
+export PLASMOD_BASE_URL=http://127.0.0.1:19530
+curl -sS http://127.0.0.1:9091/healthz
+```
+
+单端口 unified：
+
+```bash
+docker compose -f docker-compose.unified.yml up -d
+export PLASMOD_BASE_URL=http://127.0.0.1:8080
 ```
 
 生产或测试模式可通过 `APP_MODE=prod` / `APP_MODE=test` 等变量切换，详见 Plasmod 文档。
