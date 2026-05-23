@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import os
 from typing import Any, Iterator, List, Mapping, MutableMapping, Optional, Sequence
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 import requests
 
@@ -70,6 +70,16 @@ def _merge_headers(
     return out
 
 
+def _mgmt_url_from_api(api_url: str) -> Optional[str]:
+    """Split deploy: API on :19530, admin/health on :9091. Unified mode returns None."""
+    parsed = urlparse(api_url)
+    if parsed.port == 19530:
+        host = parsed.hostname or "127.0.0.1"
+        scheme = parsed.scheme or "http"
+        return f"{scheme}://{host}:9091"
+    return None
+
+
 class PlasmodHttpClient:
     """
     Plasmod HTTP SDK client.
@@ -93,6 +103,8 @@ class PlasmodHttpClient:
 
     Admin routes ``/v1/admin/*`` automatically receive ``X-Admin-Key`` when
     ``admin_key`` or env ``PLASMOD_ADMIN_API_KEY`` / ``ANDB_ADMIN_API_KEY`` is set.
+    In **split** mode (API ``:19530``), admin and ``/healthz`` are sent to the mgmt port
+    ``:9091`` automatically.
 
     When ``base_url`` is omitted, the client reads env ``PLASMOD_BASE_URL`` or
     ``ANDB_BASE_URL``,     then falls back to ``http://127.0.0.1:19530`` (split compose API port).
@@ -131,6 +143,7 @@ class PlasmodHttpClient:
         )
         self._session = session or requests.Session()
         self._owns_session = session is None
+        self._mgmt_base_url = _mgmt_url_from_api(self.base_url)
 
     def close(self) -> None:
         if self._owns_session:
@@ -145,7 +158,12 @@ class PlasmodHttpClient:
     def _url(self, path: str) -> str:
         if not path.startswith("/"):
             path = "/" + path
-        return f"{self.base_url}{path}"
+        base = self.base_url
+        if self._mgmt_base_url and (
+            path == "/healthz" or path.startswith("/v1/admin/")
+        ):
+            base = self._mgmt_base_url
+        return f"{base}{path}"
 
     def _admin_headers(self, path: str, headers: Optional[Mapping[str, str]]) -> dict[str, str]:
         h = _merge_headers({}, headers)

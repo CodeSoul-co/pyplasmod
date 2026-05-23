@@ -11,11 +11,8 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence, Union
 from urllib.parse import urlparse
 
-import requests
-
 from pyplasmod.data import build_query_body
 from pyplasmod.http.client import PlasmodHttpClient
-from pyplasmod.http.errors import PlasmodHttpError
 from pyplasmod.http.warm_index import WARM_INDEX_HNSW, normalize_warm_index_type
 
 # Published Docker image (split: mgmt 9091, API 19530).
@@ -194,23 +191,7 @@ class PlasmodClient:
         return seg
 
     def health(self) -> Any:
-        """``GET /healthz`` — uses mgmt port (9091) when API is on 19530 (split deploy)."""
-        if self._mgmt_base_url:
-            url = f"{self._mgmt_base_url.rstrip('/')}/healthz"
-            try:
-                resp = self.http._session.get(url, timeout=self.http.timeout)
-            except requests.RequestException as exc:
-                raise PlasmodHttpError(0, reason=f"GET {url} failed: {exc}") from exc
-            if not resp.ok:
-                raise PlasmodHttpError(
-                    resp.status_code,
-                    reason=f"GET {url} failed",
-                    body=resp.text,
-                    path="/healthz",
-                )
-            if not resp.text.strip():
-                return None
-            return resp.json()
+        """``GET /healthz`` — split deploy uses mgmt :9091 via :attr:`http`."""
         return self.http.health()
 
     def has_collection(self, collection_name: str) -> bool:

@@ -449,6 +449,13 @@ def test_query_batch_json():
         assert body["vectors"] == [[1.0, 2.0], [3.0, 4.0]]
 
 
+def test_admin_routes_use_mgmt_port_on_split_api_url():
+    client = PlasmodHttpClient(base_url="http://127.0.0.1:19530")
+    assert client._mgmt_base_url == "http://127.0.0.1:9091"
+    assert client._url("/v1/admin/topology").startswith("http://127.0.0.1:9091/")
+    assert client._url("/v1/query").startswith("http://127.0.0.1:19530/")
+
+
 def test_admin_memory_delete_and_purge():
     client = PlasmodHttpClient(base_url="http://example.invalid")
     with patch.object(client._session, "request", return_value=_ok_json_response({"deleted": 1})) as m:
