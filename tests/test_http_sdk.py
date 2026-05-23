@@ -18,8 +18,8 @@ from pyplasmod import (
 )
 
 
-def test_plasmod_client_alias():
-    assert PlasmodClient is PlasmodHttpClient
+def test_plasmod_http_client_distinct_from_high_level_client():
+    assert PlasmodClient is not PlasmodHttpClient
 
 
 def test_encode_ingest_batch_magic_and_roundtrip_ids():

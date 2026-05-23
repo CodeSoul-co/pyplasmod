@@ -24,6 +24,12 @@ from pyplasmod.exceptions import (
     PlasmodException,
     PlasmodUnavailableException,
 )
+from pyplasmod.client import (
+    DEFAULT_API_URI,
+    DEFAULT_DOCKER_IMAGE,
+    DEFAULT_UNIFIED_URI,
+    PlasmodClient,
+)
 from pyplasmod.easy import EasyPlasmod
 from pyplasmod.embedding import (
     EmbedderConfig,
@@ -57,10 +63,10 @@ try:
 except PackageNotFoundError:
     __version__ = "0.0.0"
 
-# Align with ``Plasmod/sdk/python/plasmod_sdk`` naming.
-PlasmodClient = PlasmodHttpClient
-
 __all__ = [
+    "DEFAULT_API_URI",
+    "DEFAULT_DOCKER_IMAGE",
+    "DEFAULT_UNIFIED_URI",
     "BatchResult",
     "ConnectError",
     "DEFAULT_BATCH_SIZE",

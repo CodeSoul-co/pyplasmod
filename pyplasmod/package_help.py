@@ -14,6 +14,7 @@ from typing import Optional, TextIO
 def _topic_entries() -> list[tuple[str, str, Optional[object], str]]:
     """name, one-line blurb, object for ``help()`` or None, how to open ``help`` in REPL."""
     from pyplasmod.data import build_query_body, upload
+    from pyplasmod.client import PlasmodClient
     from pyplasmod.easy import EasyPlasmod
     from pyplasmod.embedding import PlasmodEmbedding
     from pyplasmod.http.client import PlasmodHttpClient
@@ -34,8 +35,14 @@ def _topic_entries() -> list[tuple[str, str, Optional[object], str]]:
             "from pyplasmod import EasyPlasmod; help(EasyPlasmod)",
         ),
         (
+            "plasmodclient",
+            "MilvusClient-style API: create_collection, insert, search; uri or *.db profile.",
+            PlasmodClient,
+            "from pyplasmod import PlasmodClient; help(PlasmodClient)",
+        ),
+        (
             "client",
-            "Full HTTP client (alias PlasmodClient): ingest, query, admin, RPC, etc.",
+            "Full HTTP client (PlasmodHttpClient): ingest, query, admin, RPC, etc.",
             PlasmodHttpClient,
             "from pyplasmod import PlasmodHttpClient; help(PlasmodHttpClient)",
         ),

@@ -14,6 +14,34 @@ SDK architecture and implementation details: **[docs/SDK.md](https://github.com/
 
 ## Quick start (~5 minutes)
 
+Install and use **`PlasmodClient`** (same idea as `pymilvus.MilvusClient`):
+
+```bash
+pip install -U pyplasmod
+```
+
+```python
+from pyplasmod import PlasmodClient
+
+# Local profile file (JSON) — stores default gateway URI + collection metadata
+client = PlasmodClient("plasmod_demo.db")
+
+# Or connect to a running server (Docker: oneflybird/plasmod on port 19530)
+# client = PlasmodClient(uri="http://127.0.0.1:19530")
+
+client.create_collection(collection_name="demo_collection", dimension=768)
+client.insert("demo_collection", data=[{"id": "1", "vector": [0.0] * 768}])
+res = client.search(collection_name="demo_collection", data="hello", limit=10)
+```
+
+Start the published image:
+
+```bash
+docker run -d --name plasmod -p 9091:9091 -p 19530:19530 oneflybird/plasmod
+```
+
+Full HTTP/RPC surface: `client.http` (`PlasmodHttpClient`). Day-to-day helpers: `EasyPlasmod`.
+
 The steps below assume Plasmod is running. For `docker compose up -d` (split), the SDK default is `http://127.0.0.1:19530` and health is on port `9091`; unified / `go run` uses `8080`. See **[Start the Plasmod gateway](#start-the-plasmod-gateway)**.
 
 | Step | What to do | Command / code |
@@ -114,7 +142,8 @@ If you do not have Plasmod yet, `pip install pyplasmod` and run `python -c "from
 |-------|-------------|
 | **`EasyPlasmod`** | Day-to-day: health, `search`/`query`, `.fbin` upload, `ingest_document`, `memories` |
 | **`PlasmodEmbedding`** | **Gateway-side embedding** (CPU/GPU presets, `ingest`/`search`, runtime probe); also via `p.embedding` |
-| **`PlasmodClient`** (= `PlasmodHttpClient`) | Full HTTP/RPC: admin ops, `ingest_vectors`, binary `rpc_*`, internal task/MAS, WAL SSE, etc. |
+| **`PlasmodClient`** | MilvusClient-style API: `create_collection`, `insert`, `search`; profile file or `uri=`; `.http` for full gateway |
+| **`PlasmodHttpClient`** | Full HTTP/RPC: admin ops, `ingest_vectors`, binary `rpc_*`, internal task/MAS, WAL SSE, etc. |
 | **`pyplasmod.data.upload` / `build_query_body`** | Helpers decoupled from HTTP; pass `client=` to reuse connections |
 | **`PlasmodVectorStore`** | LangChain (`pip install pyplasmod[langchain]`); embedding runs on the **client** |
 
@@ -245,7 +274,7 @@ export PLASMOD_BASE_URL=http://127.0.0.1:19530
 | `p.http.dataset_purge(body)` | `POST /v1/admin/dataset/purge` | Hard purge; use `dry_run: True` first |
 | `p.http.dataset_purge_task(task_id)` | `GET /v1/admin/dataset/purge/task` | Async purge task status |
 
-Other HTTP/RPC methods are on **`PlasmodHttpClient`**; **`EasyPlasmod.http`** exposes it. **`PlasmodClient`** is an alias for **`PlasmodHttpClient`**. Full method list: [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md).
+Low-level HTTP/RPC is on **`PlasmodHttpClient`**; high-level **`PlasmodClient`** and **`EasyPlasmod`** expose it via **`.http`**. Full method list: [docs/SDK.md](https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md).
 
 ---
 

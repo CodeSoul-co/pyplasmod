@@ -14,6 +14,29 @@ SDK 架构与实现细节见 **[docs/zh-CN/SDK.md](docs/zh-CN/SDK.md)**；网关
 
 ## 快速开始（约 5 分钟）
 
+安装后使用 **`PlasmodClient`**（用法类似 `pymilvus.MilvusClient`）：
+
+```bash
+pip install -U pyplasmod
+```
+
+```python
+from pyplasmod import PlasmodClient
+
+client = PlasmodClient("plasmod_demo.db")
+# client = PlasmodClient(uri="http://127.0.0.1:19530")
+
+client.create_collection(collection_name="demo_collection", dimension=768)
+client.insert("demo_collection", data=[{"id": "1", "vector": [0.0] * 768}])
+res = client.search(collection_name="demo_collection", data="hello", limit=10)
+```
+
+```bash
+docker run -d --name plasmod -p 9091:9091 -p 19530:19530 oneflybird/plasmod
+```
+
+完整 HTTP/RPC：`client.http`。日常封装：`EasyPlasmod`。
+
 下列步骤假设 Plasmod 已启动。`docker compose up -d`（split）时 SDK 默认 `http://127.0.0.1:19530`，健康检查在 `9091`；unified / `go run` 用 `8080`。详见 **[启动 Plasmod 网关](#启动-plasmod-网关)**。
 
 | 步骤 | 做什么 | 命令 / 代码 |
@@ -113,7 +136,8 @@ export PLASMOD_BASE_URL=http://127.0.0.1:8080
 |------|----------|
 | **`EasyPlasmod`** | 日常集成：健康检查、`search`/`query`、`.fbin` 上传、`ingest_document`、`memories` |
 | **`PlasmodEmbedding`** | **网关侧嵌入**（CPU/GPU 预设、`ingest`/`search`、运行时探针）；也可用 `p.embedding` |
-| **`PlasmodClient`**（= `PlasmodHttpClient`） | 需要完整 HTTP/RPC：admin 运维、`ingest_vectors`、二进制 `rpc_*`、内部 task/MAS、WAL SSE 等 |
+| **`PlasmodClient`** | 类 MilvusClient：`create_collection`、`insert`、`search`；支持 profile 文件或 `uri=`；`.http` 访问完整网关 |
+| **`PlasmodHttpClient`** | 完整 HTTP/RPC：admin 运维、`ingest_vectors`、二进制 `rpc_*`、内部 task/MAS、WAL SSE 等 |
 | **`pyplasmod.data.upload` / `build_query_body`** | 与 HTTP 解耦的辅助函数；可传入 `client=` 复用连接 |
 | **`PlasmodVectorStore`** | LangChain 集成（`pip install pyplasmod[langchain]`）；嵌入在**客户端**完成 |
 
@@ -244,7 +268,7 @@ export PLASMOD_BASE_URL=http://127.0.0.1:8080
 | `p.http.dataset_purge(body)` | `POST /v1/admin/dataset/purge` | 数据集硬清理；执行前应使用 `dry_run: True` 评估影响 |
 | `p.http.dataset_purge_task(task_id)` | `GET /v1/admin/dataset/purge/task` | 查询异步 purge 任务状态 |
 
-其余 HTTP 与 RPC 接口均位于 **`PlasmodHttpClient`** 实例上。`EasyPlasmod` 通过属性 **`http`** 暴露该实例。类型别名 **`PlasmodClient`** 与 **`PlasmodHttpClient`** 指向同一类。完整方法名列表见 [docs/zh-CN/SDK.md](docs/zh-CN/SDK.md)。
+其余 HTTP 与 RPC 接口位于 **`PlasmodHttpClient`**；高层 **`PlasmodClient`** 通过 **`.http`** 访问。`EasyPlasmod` 亦通过 **`p.http`** 暴露完整客户端。完整方法名列表见 [docs/zh-CN/SDK.md](docs/zh-CN/SDK.md)。
 
 ---
 

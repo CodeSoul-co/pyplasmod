@@ -17,4 +17,5 @@ examples/try_output.txt
 gateway.go
 examples/test.py
 examples/output.txt
-examples/ingest_vectors_warm_index.py
+examples/
+examples/http_quickstart.py
