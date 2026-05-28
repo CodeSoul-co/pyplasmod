@@ -14,9 +14,15 @@ from urllib.parse import urlparse
 from pyplasmod.data import build_query_body
 from pyplasmod.http.client import PlasmodHttpClient
 from pyplasmod.http.warm_index import WARM_INDEX_HNSW, normalize_warm_index_type
+from pyplasmod.runtime.docker_bootstrap import (
+    DEFAULT_CONTAINER_NAME,
+    DEFAULT_DOCKER_IMAGE,
+    auto_start_enabled,
+    ensure_docker_gateway,
+    is_local_gateway_url,
+)
 
-# Published Docker image (split: mgmt 9091, API 19530).
-DEFAULT_DOCKER_IMAGE = "oneflybird/plasmod"
+# Published Docker image (split: mgmt 9091, API 19530); re-exported from runtime.docker_bootstrap.
 DEFAULT_API_URI = "http://127.0.0.1:19530"
 DEFAULT_UNIFIED_URI = "http://127.0.0.1:8080"
 _PROFILE_SUFFIXES = (".db", ".json")
@@ -105,11 +111,15 @@ class PlasmodClient:
     """
     MilvusClient-style entry point for Plasmod.
 
-    Connect to a running gateway (Docker image :data:`DEFAULT_DOCKER_IMAGE` or your own deploy)::
+    On a **local** default URL (``http://127.0.0.1:19530``), the client can auto-start the
+    published Docker image :data:`DEFAULT_DOCKER_IMAGE` when the gateway is down (disable with
+    ``auto_start=False`` or ``PLASMOD_AUTO_START=0``)::
 
         from pyplasmod import PlasmodClient
 
         client = PlasmodClient(uri="http://127.0.0.1:19530")
+
+    Remote gateways are never auto-started; pass an explicit URL or set ``PLASMOD_BASE_URL``.
 
     Persist connection defaults in a local profile file (JSON, ``.db`` suffix like Milvus Lite)::
 
@@ -130,11 +140,17 @@ class PlasmodClient:
         timeout: Optional[float] = None,
         admin_key: Optional[str] = None,
         session: Optional[Any] = None,
+        auto_start: Optional[bool] = None,
+        docker_image: Optional[str] = None,
+        docker_container_name: Optional[str] = None,
     ) -> None:
         """
         :param uri: Gateway URL, or path to a local profile (``*.db`` / ``*.json``).
         :param token: Optional credential; stored in profile files and passed as ``admin_key`` when set.
         :param base_url: Alias for ``uri`` when connecting over HTTP (backward compatible).
+        :param auto_start: When True (default for local ``:19530``), start ``oneflybird/plasmod`` via Docker if needed.
+        :param docker_image: Image for auto-start (env ``PLASMOD_DOCKER_IMAGE`` overrides default).
+        :param docker_container_name: Container name (env ``PLASMOD_DOCKER_CONTAINER``, default ``plasmod``).
         """
         resolved, profile_path = _resolve_base_url(uri or None, base_url=base_url)
         key = admin_key
@@ -152,6 +168,13 @@ class PlasmodClient:
             if stored_uri:
                 resolved = stored_uri.rstrip("/")
 
+        if auto_start_enabled(auto_start) and is_local_gateway_url(resolved):
+            ensure_docker_gateway(
+                resolved,
+                image=docker_image,
+                container_name=docker_container_name,
+            )
+
         self._profile_path = profile_path
         self._collections: dict[str, dict[str, Any]] = {}
         if profile_path is not None:
@@ -167,6 +190,10 @@ class PlasmodClient:
             session=session,
         )
         self._mgmt_base_url = _mgmt_url_from_api(self.http.base_url)
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate unknown attributes to :attr:`http` (``PlasmodHttpClient`` compatibility)."""
+        return getattr(self.http, name)
 
     def close(self) -> None:
         self.http.close()
@@ -403,6 +430,7 @@ def _mgmt_url_from_api(api_url: str) -> Optional[str]:
 
 __all__ = [
     "DEFAULT_API_URI",
+    "DEFAULT_CONTAINER_NAME",
     "DEFAULT_DOCKER_IMAGE",
     "DEFAULT_UNIFIED_URI",
     "PlasmodClient",

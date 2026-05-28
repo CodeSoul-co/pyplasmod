@@ -19,7 +19,8 @@ def test_plasmod_client_is_high_level_entry():
 
 
 def test_plasmod_client_default_uri():
-    c = PlasmodClient()
+    with patch("pyplasmod.client.ensure_docker_gateway"):
+        c = PlasmodClient(auto_start=False)
     assert c.http.base_url == DEFAULT_API_URI.rstrip("/")
     assert c._mgmt_base_url == "http://127.0.0.1:9091"
     c.close()
@@ -40,7 +41,8 @@ def test_plasmod_client_base_url_backward_compat():
 
 def test_plasmod_client_profile_file(tmp_path: Path):
     db = tmp_path / "plasmod_demo.db"
-    c = PlasmodClient(str(db))
+    with patch("pyplasmod.client.ensure_docker_gateway"):
+        c = PlasmodClient(str(db), auto_start=False)
     assert db.is_file()
     profile = json.loads(db.read_text(encoding="utf-8"))
     assert profile["uri"] == DEFAULT_API_URI

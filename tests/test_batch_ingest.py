@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from pyplasmod import PlasmodClient, BatchResult
+from pyplasmod import BatchResult, PlasmodHttpClient
 from pyplasmod.exceptions import PlasmodException
 from pyplasmod.http import PlasmodHttpError
 
@@ -17,7 +17,7 @@ class TestIngestBatch:
 
     def test_empty_vectors(self):
         """Empty vectors should return empty BatchResult."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         result = client.ingest_batch("seg", [])
         assert result.total_count == 0
         assert result.batch_count == 0
@@ -25,7 +25,7 @@ class TestIngestBatch:
 
     def test_small_batch_single_request(self):
         """Vectors smaller than batch_size should send single request."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]
 
         with patch.object(client, "rpc_ingest_batch", return_value={"ok": True}) as mock:
@@ -40,7 +40,7 @@ class TestIngestBatch:
 
     def test_large_batch_multiple_requests(self):
         """Vectors larger than batch_size should send multiple requests."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[float(i)] for i in range(10)]
 
         with patch.object(client, "rpc_ingest_batch", return_value={"ok": True}) as mock:
@@ -55,7 +55,7 @@ class TestIngestBatch:
 
     def test_with_object_ids(self):
         """Object IDs should be split correctly across batches."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[0.1], [0.2], [0.3], [0.4], [0.5]]
         object_ids = ["a", "b", "c", "d", "e"]
 
@@ -76,7 +76,7 @@ class TestIngestBatch:
 
     def test_object_ids_length_mismatch(self):
         """Mismatched object_ids length should raise ValueError."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[0.1], [0.2], [0.3]]
         object_ids = ["a", "b"]  # Wrong length
 
@@ -85,7 +85,7 @@ class TestIngestBatch:
 
     def test_batch_failure_raise_on_error_true(self):
         """With raise_on_error=True, should raise on first failure."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[float(i)] for i in range(10)]
 
         call_count = [0]
@@ -102,7 +102,7 @@ class TestIngestBatch:
 
     def test_batch_failure_raise_on_error_false(self):
         """With raise_on_error=False, should collect errors and continue."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[float(i)] for i in range(10)]
 
         call_count = [0]
@@ -126,7 +126,7 @@ class TestIngestBatch:
 
     def test_extracts_memory_ids_from_response(self):
         """Should extract memory_ids from response."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[0.1], [0.2]]
 
         with patch.object(
@@ -139,7 +139,7 @@ class TestIngestBatch:
 
     def test_extracts_object_ids_from_response(self):
         """Should extract object_ids from response as memory_ids."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[0.1], [0.2]]
 
         with patch.object(
@@ -156,7 +156,7 @@ class TestAddVectors:
 
     def test_delegates_to_ingest_batch(self):
         """add_vectors should delegate to ingest_batch."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[0.1], [0.2]]
 
         with patch.object(
@@ -177,7 +177,7 @@ class TestAddVectors:
 
     def test_default_segment_id(self):
         """Default segment_id should be warm.default."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         vectors = [[0.1]]
 
         with patch.object(
@@ -194,14 +194,14 @@ class TestIngestEvents:
 
     def test_empty_events(self):
         """Empty events should return empty BatchResult."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         result = client.ingest_events([])
         assert result.total_count == 0
         assert result.batch_count == 0
 
     def test_ingests_each_event(self):
         """Should call ingest_event for each event."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         events = [
             {"event_id": "e1", "event_type": "test"},
             {"event_id": "e2", "event_type": "test"},
@@ -222,7 +222,7 @@ class TestIngestEvents:
 
     def test_extracts_memory_id_from_response(self):
         """Should extract memory_id from each event response."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         events = [{"event_id": "e1"}, {"event_id": "e2"}]
 
         responses = [{"memory_id": "m1"}, {"memory_id": "m2"}]
@@ -233,7 +233,7 @@ class TestIngestEvents:
 
     def test_event_failure_raise_on_error_true(self):
         """With raise_on_error=True, should raise on first failure."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         events = [{"event_id": "e1"}, {"event_id": "e2"}]
 
         def fail_on_second(event):
@@ -247,7 +247,7 @@ class TestIngestEvents:
 
     def test_event_failure_raise_on_error_false(self):
         """With raise_on_error=False, should collect errors and continue."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         events = [{"event_id": "e1"}, {"event_id": "e2"}, {"event_id": "e3"}]
 
         def fail_on_second(event):
@@ -270,13 +270,13 @@ class TestBatchQuery:
 
     def test_empty_queries(self):
         """Empty queries should return empty list."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         result = client.batch_query([])
         assert result == []
 
     def test_executes_each_query(self):
         """Should execute each query and collect results."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         queries = [
             {"query_text": "q1", "top_k": 5},
             {"query_text": "q2", "top_k": 5},
@@ -294,7 +294,7 @@ class TestBatchQuery:
 
     def test_preserves_order(self):
         """Results should be in same order as queries."""
-        client = PlasmodClient(base_url="http://example.invalid")
+        client = PlasmodHttpClient(base_url="http://example.invalid")
         queries = [{"id": i} for i in range(10)]
 
         def return_id(query):
