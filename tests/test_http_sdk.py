@@ -450,7 +450,11 @@ def test_query_batch_json():
 
 
 def test_admin_routes_use_mgmt_port_on_split_api_url():
-    client = PlasmodHttpClient(base_url="http://127.0.0.1:19530")
+    with patch(
+        "pyplasmod.http.client.resolve_mgmt_base_url",
+        return_value="http://127.0.0.1:9091",
+    ):
+        client = PlasmodHttpClient(base_url="http://127.0.0.1:19530")
     assert client._mgmt_base_url == "http://127.0.0.1:9091"
     assert client._url("/v1/admin/topology").startswith("http://127.0.0.1:9091/")
     assert client._url("/v1/query").startswith("http://127.0.0.1:19530/")

@@ -12,13 +12,12 @@ import time
 from typing import Optional
 from urllib.parse import urlparse
 
-import requests
-
 from pyplasmod.exceptions import ConnectError
+from pyplasmod.http.deploy import SPLIT_API_PORT, gateway_is_healthy
 
 DEFAULT_DOCKER_IMAGE = "oneflybird/plasmod"
 DEFAULT_CONTAINER_NAME = "plasmod"
-DEFAULT_API_PORT = 19530
+DEFAULT_API_PORT = SPLIT_API_PORT
 DEFAULT_MGMT_PORT = 9091
 DEFAULT_STARTUP_TIMEOUT = 120.0
 DEFAULT_PULL_TIMEOUT = 600.0
@@ -58,25 +57,6 @@ def port_is_open(host: str, port: int, *, timeout: float = 0.3) -> bool:
         with socket.create_connection((host, port), timeout=timeout):
             return True
     except OSError:
-        return False
-
-
-def _mgmt_health_url(api_url: str) -> str:
-    parsed = urlparse(api_url)
-    host = parsed.hostname or "127.0.0.1"
-    scheme = parsed.scheme or "http"
-    if parsed.port == DEFAULT_API_PORT:
-        return f"{scheme}://{host}:{DEFAULT_MGMT_PORT}/healthz"
-    return f"{api_url.rstrip('/')}/healthz"
-
-
-def gateway_is_healthy(api_url: str, *, timeout: float = 2.0) -> bool:
-    """Return True when ``GET /healthz`` succeeds on the mgmt port (split) or unified base URL."""
-    url = _mgmt_health_url(api_url)
-    try:
-        resp = requests.get(url, timeout=timeout)
-        return resp.ok
-    except requests.RequestException:
         return False
 
 
@@ -210,8 +190,9 @@ def ensure_docker_gateway(
     host = parsed.hostname or "127.0.0.1"
     if port_is_open(host, DEFAULT_API_PORT) and not gateway_is_healthy(api_url):
         raise ConnectError(
-            f"Port {DEFAULT_API_PORT} on {host} is open but Plasmod health check failed. "
-            "Stop the conflicting process or set a different PLASMOD_BASE_URL.",
+            f"Port {DEFAULT_API_PORT} on {host} is open but Plasmod health check failed "
+            f"(tried split :{DEFAULT_MGMT_PORT} and unified {api_url}/healthz). "
+            "Stop the conflicting process, use unified make dev on :8080, or set PLASMOD_BASE_URL.",
         )
 
     state = _docker_container_state(container_name)
