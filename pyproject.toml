@@ -17,11 +17,13 @@ license = "MIT"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "CodeSoul-co" }]
 requires-python = ">=3.8"
-description = "Python HTTP SDK for the Plasmod agent-native storage stack (Tier A + Tier B JSON + binary RPC). Requires a running Plasmod gateway."
+description = "Python SDK for Plasmod with pip-only embedded vector storage (MilvusClient-style local *.db profiles)."
 readme = "README.md"
-keywords = ["plasmod", "vector", "agent", "http", "sdk", "memory", "embedding"]
+keywords = ["plasmod", "vector", "agent", "http", "sdk", "memory", "embedding", "embedded"]
 dependencies = [
     "requests>=2.20.0",
+    "numpy>=1.20.0",
+    "faiss-cpu>=1.7.4",
 ]
 
 classifiers = [
@@ -55,10 +57,14 @@ dev = [
     "ruff>=0.12.9,<1",
     "black",
 ]
+embedded = [
+    "hnswlib>=0.8.0",
+]
 langchain = [
     "langchain-core>=0.1.0",
 ]
 all = [
+    "hnswlib>=0.8.0",
     "langchain-core>=0.1.0",
 ]
 

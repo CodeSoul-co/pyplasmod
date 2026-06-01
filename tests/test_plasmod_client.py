@@ -41,7 +41,13 @@ def test_plasmod_client_base_url_backward_compat():
 
 def test_plasmod_client_profile_file(tmp_path: Path):
     db = tmp_path / "plasmod_demo.db"
-    with patch("pyplasmod.client.ensure_docker_gateway"):
+    db.write_text(
+        json.dumps({"uri": DEFAULT_API_URI, "token": "", "collections": {}}),
+        encoding="utf-8",
+    )
+    with patch("pyplasmod.client.ensure_docker_gateway"), patch(
+        "pyplasmod.client.create_warm_store", return_value=(None, None)
+    ), patch("pyplasmod.client.find_plasmod_server_binary", return_value=None):
         c = PlasmodClient(str(db), auto_start=False)
     assert db.is_file()
     profile = json.loads(db.read_text(encoding="utf-8"))
@@ -50,6 +56,23 @@ def test_plasmod_client_profile_file(tmp_path: Path):
     c.close()
     profile2 = json.loads(db.read_text(encoding="utf-8"))
     assert "demo_collection" in profile2["collections"]
+
+
+def test_plasmod_client_profile_directory(tmp_path: Path):
+    db_root = tmp_path / "plasmod_demo.db"
+    with patch("pyplasmod.client.ensure_docker_gateway"), patch(
+        "pyplasmod.client.create_warm_store", return_value=(None, None)
+    ), patch("pyplasmod.client.find_plasmod_server_binary", return_value=None):
+        c = PlasmodClient(str(db_root), auto_start=False)
+    assert db_root.is_dir()
+    assert (db_root / "profile.json").is_file()
+    assert (db_root / "data").is_dir()
+    assert c.profile_path == db_root
+    assert c.profile_data_dir == db_root / "data"
+    c.create_collection("demo_collection", dimension=4)
+    c.close()
+    profile = json.loads((db_root / "profile.json").read_text(encoding="utf-8"))
+    assert "demo_collection" in profile["collections"]
 
 
 def test_plasmod_client_create_insert_search():

@@ -5,27 +5,44 @@
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence, Union
 from urllib.parse import urlparse
 
 from pyplasmod.data import build_query_body
+from pyplasmod.exceptions import ConnectError
 from pyplasmod.http.client import PlasmodHttpClient
 from pyplasmod.http.warm_index import WARM_INDEX_HNSW, normalize_warm_index_type
+from pyplasmod.embedded import WarmVectorStore, create_warm_store
+from pyplasmod.embedded.milvus_compat import format_insert_result, format_search_results
+from pyplasmod.profile_store import (
+    ensure_profile_layout,
+    is_profile_path,
+    profile_uri,
+    read_profile,
+    write_profile,
+)
 from pyplasmod.runtime.docker_bootstrap import (
     DEFAULT_CONTAINER_NAME,
     DEFAULT_DOCKER_IMAGE,
     auto_start_enabled,
     ensure_docker_gateway,
+    gateway_is_healthy,
     is_local_gateway_url,
 )
+from pyplasmod.runtime.embedded_server import (
+    embedded_enabled,
+    ensure_embedded_server,
+    find_plasmod_server_binary,
+    release_embedded_server,
+)
+from pyplasmod.embedded.manifest import drop_collection_data
+from pyplasmod.runtime.retrieval_probe import gateway_has_vector_retrieval
 
 # Published Docker image (split: mgmt 9091, API 19530); re-exported from runtime.docker_bootstrap.
 DEFAULT_API_URI = "http://127.0.0.1:19530"
 DEFAULT_UNIFIED_URI = "http://127.0.0.1:8080"
-_PROFILE_SUFFIXES = (".db", ".json")
 
 
 def _looks_like_url(value: str) -> bool:
@@ -34,77 +51,139 @@ def _looks_like_url(value: str) -> bool:
 
 
 def _looks_like_profile_path(value: str) -> bool:
-    v = value.strip()
-    if any(v.endswith(s) for s in _PROFILE_SUFFIXES):
-        return True
-    return "/" in v or "\\" in v or v.startswith(".")
+    return is_profile_path(value)
 
 
 def _resolve_base_url(
   uri: Optional[str],
   *,
   base_url: Optional[str],
-) -> tuple[str, Optional[Path]]:
+) -> tuple[str, Optional[Path], Optional[Path], Optional[Path]]:
     """
-    Return ``(http_base_url, profile_path_or_none)``.
+    Return ``(http_base_url, user_profile_path, profile_json_path, data_dir)``.
 
-    * Positional / ``uri`` ending in ``.db`` or ``.json`` → load or create a local profile file.
-    * HTTP(S) string → remote gateway.
-    * Empty → env ``PLASMOD_BASE_URL`` / ``ANDB_BASE_URL``, then :data:`DEFAULT_API_URI`.
+    * ``*.db`` / ``*.json`` path → local profile (see :mod:`pyplasmod.profile_store`).
+    * HTTP(S) → remote gateway only.
     """
     if base_url is not None:
-        return str(base_url).rstrip("/"), None
+        return str(base_url).rstrip("/"), None, None, None
 
     raw = (uri or "").strip()
     if not raw:
         env = os.environ.get("PLASMOD_BASE_URL") or os.environ.get("ANDB_BASE_URL")
-        return (env or DEFAULT_API_URI).rstrip("/"), None
+        return (env or DEFAULT_API_URI).rstrip("/"), None, None, None
 
     if _looks_like_url(raw):
-        return raw.rstrip("/"), None
+        return raw.rstrip("/"), None, None, None
 
     if _looks_like_profile_path(raw):
-        return _load_profile_uri(Path(raw)), Path(raw)
+        user_path = Path(raw)
+        profile_json, data_dir = ensure_profile_layout(user_path)
+        resolved = profile_uri(read_profile(profile_json))
+        return resolved, user_path, profile_json, data_dir
 
-    # Bare hostname:port → treat as URI without scheme.
     if "://" not in raw and (":" in raw or raw.startswith("127.0.0.1")):
-        return f"http://{raw}".rstrip("/"), None
+        return f"http://{raw}".rstrip("/"), None, None, None
 
-    return raw.rstrip("/"), None
-
-
-def _load_profile_uri(path: Path) -> str:
-    profile = _read_profile(path)
-    uri = str(profile.get("uri") or "").strip()
-    if not uri:
-        uri = DEFAULT_API_URI
-        profile["uri"] = uri
-        _write_profile(path, profile)
-    return uri.rstrip("/")
+    return raw.rstrip("/"), None, None, None
 
 
-def _read_profile(path: Path) -> dict[str, Any]:
-    if path.is_file():
-        with path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-        if isinstance(data, dict):
-            data.setdefault("collections", {})
-            return data
-    profile: dict[str, Any] = {
-        "uri": DEFAULT_API_URI,
-        "token": "",
-        "collections": {},
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    _write_profile(path, profile)
-    return profile
+def _embedded_store_root(user_path: Optional[Path], data_dir: Optional[Path]) -> Optional[Path]:
+    if user_path is None:
+        return None
+    if user_path.is_dir():
+        return user_path
+    if data_dir is not None:
+        return data_dir.parent
+    return user_path.parent / user_path.stem
 
 
-def _write_profile(path: Path, profile: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        json.dump(profile, f, indent=2)
-        f.write("\n")
+def _coerce_query_vectors(
+    data: Sequence[Any],
+) -> list[list[float]]:
+    if not data:
+        raise ValueError("search data must be non-empty")
+    if isinstance(data[0], (int, float)):
+        return [list(map(float, data))]
+    return [list(map(float, row)) for row in data]
+
+
+def _profile_auto_start_default(
+    profile_json: Optional[Path],
+    embedded: Optional[bool],
+    auto_start: Optional[bool],
+) -> Optional[bool]:
+    """Local ``*.db`` profiles default to pip-only embedded mode (no Docker)."""
+    if auto_start is not None:
+        return auto_start
+    if profile_json is not None and embedded_enabled(embedded):
+        return False
+    return None
+
+
+def _bootstrap_local_gateway(
+    resolved: str,
+    *,
+    profile_json: Optional[Path],
+    user_path: Optional[Path],
+    data_dir: Optional[Path],
+    embedded: Optional[bool],
+    auto_start: Optional[bool],
+    docker_image: Optional[str],
+    docker_container_name: Optional[str],
+) -> tuple[str, Optional[str], Optional[WarmVectorStore], bool]:
+    """
+    Return ``(base_url, embedded_mode, warm_store, owns_embedded_server)``.
+
+    * ``embedded_mode="embedded"`` — bundled ``faiss-cpu`` (default after ``pip install pyplasmod``).
+    * ``embedded_mode="native"`` — optional ``libplasmod_retrieval`` (Plasmod C++ stack).
+    * ``embedded_mode="server"`` — optional child ``plasmod-server`` (not required for local ``*.db``).
+    """
+    warm_store: Optional[WarmVectorStore] = None
+    owns_server = False
+    mode: Optional[str] = None
+    store_root = _embedded_store_root(user_path, data_dir)
+
+    if profile_json is None or not embedded_enabled(embedded):
+        if auto_start_enabled(auto_start) and is_local_gateway_url(resolved):
+            if not gateway_is_healthy(resolved):
+                ensure_docker_gateway(
+                    resolved,
+                    image=docker_image,
+                    container_name=docker_container_name,
+                    data_dir=data_dir,
+                )
+        return resolved, mode, warm_store, owns_server
+
+    persist_dir = data_dir or (store_root / "data" if store_root else None)
+
+    # Milvus Lite–like: local profile prefers in-process vectors before HTTP/Docker.
+    if store_root is not None:
+        warm_store, store_mode = create_warm_store(store_root)
+        if warm_store is not None and store_mode is not None:
+            return resolved, store_mode, warm_store, owns_server
+
+    if find_plasmod_server_binary() and persist_dir is not None:
+        try:
+            candidate = ensure_embedded_server(persist_dir)
+            if gateway_has_vector_retrieval(candidate):
+                return candidate, "server", None, True
+            release_embedded_server()
+        except ConnectError:
+            pass
+
+    if gateway_is_healthy(resolved) and gateway_has_vector_retrieval(resolved):
+        return resolved, mode, warm_store, owns_server
+
+    if auto_start_enabled(auto_start):
+        ensure_docker_gateway(
+            resolved,
+            image=docker_image,
+            container_name=docker_container_name,
+            data_dir=data_dir,
+        )
+
+    return resolved, mode, warm_store, owns_server
 
 
 class PlasmodClient:
@@ -121,15 +200,33 @@ class PlasmodClient:
 
     Remote gateways are never auto-started; pass an explicit URL or set ``PLASMOD_BASE_URL``.
 
-    Persist connection defaults in a local profile file (JSON, ``.db`` suffix like Milvus Lite)::
+    Persist connection defaults in a local profile path (MilvusClient-style ``*.db``)::
 
         client = PlasmodClient("plasmod_demo.db")
 
+    **Embedded mode (Milvus Lite–like)** — default for ``*.db`` profiles; ``pip install pyplasmod`` only:
+
+    * **Embedded vectors** — bundled ``faiss-cpu`` HNSW; data under ``foo.db/collections/``.
+    * **Native vectors** — optional ``libplasmod_retrieval`` when built from Plasmod source.
+    * **Remote gateway** — pass ``uri="http://..."`` or disable ``embedded=False`` for full Plasmod HTTP APIs.
+    * Docker auto-start is **off** for local ``*.db`` profiles (enable with ``auto_start=True``).
+
+    Legacy single-file ``plasmod_demo.db`` (JSON) is still supported.
     **Collections** map to Plasmod ``workspace_id`` + warm segment ``warm.<name>``.
-  Low-level HTTP/RPC remains on :attr:`http` (:class:`~pyplasmod.http.client.PlasmodHttpClient`).
+    Low-level HTTP/RPC remains on :attr:`http` (:class:`~pyplasmod.http.client.PlasmodHttpClient`).
     """
 
-    __slots__ = ("http", "_profile_path", "_collections", "_mgmt_base_url")
+    __slots__ = (
+        "http",
+        "_profile_user_path",
+        "_profile_json_path",
+        "_profile_data_dir",
+        "_collections",
+        "_mgmt_base_url",
+        "_embedded_mode",
+        "_embedded_store",
+        "_owns_embedded_server",
+    )
 
     def __init__(
         self,
@@ -141,6 +238,7 @@ class PlasmodClient:
         admin_key: Optional[str] = None,
         session: Optional[Any] = None,
         auto_start: Optional[bool] = None,
+        embedded: Optional[bool] = None,
         docker_image: Optional[str] = None,
         docker_container_name: Optional[str] = None,
     ) -> None:
@@ -148,40 +246,54 @@ class PlasmodClient:
         :param uri: Gateway URL, or path to a local profile (``*.db`` / ``*.json``).
         :param token: Optional credential; stored in profile files and passed as ``admin_key`` when set.
         :param base_url: Alias for ``uri`` when connecting over HTTP (backward compatible).
-        :param auto_start: When True (default for local ``:19530``), start ``oneflybird/plasmod`` via Docker if needed.
-        :param docker_image: Image for auto-start (env ``PLASMOD_DOCKER_IMAGE`` overrides default).
-        :param docker_container_name: Container name (env ``PLASMOD_DOCKER_CONTAINER``, default ``plasmod``).
+        :param auto_start: Docker fallback when embedded/local gateway is down (``PLASMOD_AUTO_START``).
+        :param embedded: In-process / subprocess embedded Plasmod (default on for ``*.db`` profiles).
+        :param docker_image: Image for Docker fallback (env ``PLASMOD_DOCKER_IMAGE``).
+        :param docker_container_name: Container name (env ``PLASMOD_DOCKER_CONTAINER``).
         """
-        resolved, profile_path = _resolve_base_url(uri or None, base_url=base_url)
+        resolved, user_path, profile_json, data_dir = _resolve_base_url(uri or None, base_url=base_url)
         key = admin_key
         if key is None and token:
             key = token
 
-        if profile_path is not None:
-            profile = _read_profile(profile_path)
+        if profile_json is not None:
+            profile = read_profile(profile_json)
             if token:
                 profile["token"] = token
-                _write_profile(profile_path, profile)
+                write_profile(profile_json, profile)
             elif not key and profile.get("token"):
                 key = str(profile["token"])
-            stored_uri = str(profile.get("uri") or "").strip()
+            stored_uri = profile_uri(profile)
             if stored_uri:
-                resolved = stored_uri.rstrip("/")
+                resolved = stored_uri
 
-        if auto_start_enabled(auto_start) and is_local_gateway_url(resolved):
-            ensure_docker_gateway(
-                resolved,
-                image=docker_image,
-                container_name=docker_container_name,
-            )
+        resolved, embedded_mode, warm_store, owns_server = _bootstrap_local_gateway(
+            resolved,
+            profile_json=profile_json,
+            user_path=user_path,
+            data_dir=data_dir,
+            embedded=embedded,
+            auto_start=_profile_auto_start_default(profile_json, embedded, auto_start),
+            docker_image=docker_image,
+            docker_container_name=docker_container_name,
+        )
 
-        self._profile_path = profile_path
+        self._profile_user_path = user_path
+        self._profile_json_path = profile_json
+        self._profile_data_dir = data_dir
+        self._embedded_mode = embedded_mode
+        self._embedded_store = warm_store
+        self._owns_embedded_server = owns_server
         self._collections: dict[str, dict[str, Any]] = {}
-        if profile_path is not None:
-            prof = _read_profile(profile_path)
+        if profile_json is not None:
+            prof = read_profile(profile_json)
             cols = prof.get("collections")
             if isinstance(cols, dict):
                 self._collections = {str(k): dict(v) for k, v in cols.items() if isinstance(v, dict)}
+            prof["uri"] = resolved
+            if embedded_mode:
+                prof["embedded_mode"] = embedded_mode
+            write_profile(profile_json, prof)
 
         self.http = PlasmodHttpClient(
             base_url=resolved,
@@ -196,6 +308,8 @@ class PlasmodClient:
         return getattr(self.http, name)
 
     def close(self) -> None:
+        if self._owns_embedded_server:
+            release_embedded_server()
         self.http.close()
 
     def __enter__(self) -> PlasmodClient:
@@ -205,12 +319,27 @@ class PlasmodClient:
         self.close()
 
     def _persist_collections(self) -> None:
-        if self._profile_path is None:
+        if self._profile_json_path is None:
             return
-        profile = _read_profile(self._profile_path)
+        profile = read_profile(self._profile_json_path)
         profile["uri"] = self.http.base_url
         profile["collections"] = self._collections
-        _write_profile(self._profile_path, profile)
+        write_profile(self._profile_json_path, profile)
+
+    @property
+    def profile_path(self) -> Optional[Path]:
+        """User-facing profile path (``*.db`` directory or legacy JSON file)."""
+        return self._profile_user_path
+
+    @property
+    def profile_data_dir(self) -> Optional[Path]:
+        """Host ``data/`` directory mounted into Docker when auto-start uses a profile folder."""
+        return self._profile_data_dir
+
+    @property
+    def embedded_mode(self) -> Optional[str]:
+        """``"vectors"`` (in-process C++), ``"server"`` (child plasmod-server), or ``None``."""
+        return self._embedded_mode
 
     def _warm_segment_id(self, collection_name: str) -> str:
         meta = self._collections.get(collection_name) or {}
@@ -226,6 +355,9 @@ class PlasmodClient:
 
     def list_collections(self) -> list[str]:
         return sorted(self._collections.keys())
+
+    def has_collection(self, collection_name: str) -> bool:
+        return collection_name in self._collections
 
     def create_collection(
         self,
@@ -262,6 +394,12 @@ class PlasmodClient:
 
     def drop_collection(self, collection_name: str) -> None:
         self._collections.pop(collection_name, None)
+        if self._embedded_store is not None:
+            self._embedded_store.drop_collection(collection_name)
+        elif self._profile_user_path is not None:
+            root = _embedded_store_root(self._profile_user_path, self._profile_data_dir)
+            if root is not None:
+                drop_collection_data(root, collection_name)
         self._persist_collections()
 
     def describe_collection(self, collection_name: str) -> dict[str, Any]:
@@ -296,6 +434,20 @@ class PlasmodClient:
         ivf_keys = ("ivf_nlist", "ivf_nprobe", "ivf_m", "ivf_nbits", "ivf_sq_type")
         ivf = {k: meta[k] for k in ivf_keys if k in meta}
         ivf.update({k: kwargs[k] for k in ivf_keys if k in kwargs})
+        segment_id = str(kwargs.get("segment_id", meta["warm_segment_id"]))
+        if self._embedded_store is not None:
+            if ids is None:
+                ids = [f"{collection_name}_{i}" for i in range(len(vectors))]
+            raw = self._embedded_store.insert(
+                collection_name,
+                segment_id=segment_id,
+                object_ids=ids,
+                vectors=vectors,
+                index_type=str(meta.get("index_type") or WARM_INDEX_HNSW),
+                metric_type=str(meta.get("metric_type") or "COSINE"),
+                ivf=ivf,
+            )
+            return format_insert_result(object_ids=ids, insert_count=len(vectors), extra={"embedded_mode": self._embedded_mode})
         return self.http.ingest_vectors(
             vectors,
             segment_id=kwargs.get("segment_id", meta["warm_segment_id"]),
@@ -315,25 +467,49 @@ class PlasmodClient:
         workspace_id = str(kwargs.get("workspace_id", meta.get("workspace_id", collection_name)))
         vectors: list[list[float]] = []
         ids: list[str] = []
+        entities: list[dict[str, Any]] = []
         text_rows: list[Mapping[str, Any]] = []
         for i, row in enumerate(data):
             item = dict(row)
             vec = item.pop("vector", None)
             if vec is not None:
                 vectors.append(list(map(float, vec)))
-                ids.append(str(item.pop("id", item.pop("object_id", f"{collection_name}_{i}"))))
+                oid = str(item.pop("id", item.pop("object_id", f"{collection_name}_{i}")))
+                ids.append(oid)
+                entity = dict(item)
+                entity.setdefault("id", oid)
+                entities.append(entity)
             elif item.get("text"):
                 text_rows.append(item)
         results: list[Any] = []
         if vectors:
-            results.append(
-                self.http.ingest_vectors(
-                    vectors,
-                    segment_id=str(kwargs.get("segment_id", meta["warm_segment_id"])),
+            segment_id = str(kwargs.get("segment_id", meta["warm_segment_id"]))
+            if self._embedded_store is not None:
+                self._embedded_store.insert(
+                    collection_name,
+                    segment_id=segment_id,
                     object_ids=ids,
-                    index_type=meta.get("index_type"),
+                    vectors=vectors,
+                    entities=entities,
+                    index_type=str(meta.get("index_type") or WARM_INDEX_HNSW),
+                    metric_type=str(meta.get("metric_type") or "COSINE"),
                 )
-            )
+                results.append(
+                    format_insert_result(
+                        object_ids=ids,
+                        insert_count=len(vectors),
+                        extra={"embedded_mode": self._embedded_mode},
+                    )
+                )
+            else:
+                results.append(
+                    self.http.ingest_vectors(
+                        vectors,
+                        segment_id=segment_id,
+                        object_ids=ids,
+                        index_type=meta.get("index_type"),
+                    )
+                )
         for row in text_rows:
             body = {
                 "workspace_id": workspace_id,
@@ -356,9 +532,12 @@ class PlasmodClient:
         """
         Vector or text search.
 
-        * ``data`` str → natural-language ``POST /v1/query``.
-        * one vector (``list[float]``) → ``embedding_vector`` query.
-        * matrix (``list[list[float]]``) → ``POST /v1/query/batch`` on the warm segment.
+        Embedded ``*.db`` profiles return pymilvus-shaped results::
+
+            [[{"id": 1, "distance": 0.01, "entity": {...}}, ...], ...]
+
+        * ``data`` str → natural-language ``POST /v1/query`` (remote gateway).
+        * ``list[float]`` or ``list[list[float]]`` → vector search (Milvus-compatible).
         """
         meta = self._collections.get(collection_name)
         workspace_id = str(
@@ -378,8 +557,18 @@ class PlasmodClient:
             )
             return self.http.query(body)
 
-        if data and isinstance(data[0], (int, float)):
-            vec = list(map(float, data))  # type: ignore[arg-type]
+        queries = _coerce_query_vectors(data)
+        if self._embedded_store is not None:
+            batch = self._embedded_store.search(
+                collection_name,
+                segment_id=warm_segment_id,
+                query_vectors=queries,
+                top_k=limit,
+                output_fields=output_fields,
+            )
+            return format_search_results(batch)
+
+        if len(queries) == 1:
             extra: dict[str, Any] = {"warm_segment_id": warm_segment_id}
             if filter:
                 extra["filter_expr"] = filter
@@ -387,16 +576,15 @@ class PlasmodClient:
                 "vector_query",
                 workspace_id,
                 top_k=limit,
-                embedding_vector=vec,
+                embedding_vector=queries[0],
                 extra=extra,
                 **kwargs,
             )
             return self.http.query(body)
 
-        vectors = [list(map(float, row)) for row in data]  # type: ignore[arg-type]
         batch_body: dict[str, Any] = {
             "warm_segment_id": warm_segment_id,
-            "vectors": vectors,
+            "vectors": queries,
             "top_k": limit,
             "agent_mode": kwargs.pop("agent_mode", "single_agent"),
         }

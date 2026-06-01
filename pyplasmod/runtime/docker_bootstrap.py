@@ -9,6 +9,7 @@ import os
 import socket
 import subprocess
 import time
+from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -145,8 +146,13 @@ def _docker_start_container(name: str) -> None:
         raise ConnectError(f"docker start {name} failed: {err}")
 
 
-def _docker_run_container(image: str, *, container_name: str) -> None:
-    proc = _docker_cmd(
+def _docker_run_container(
+    image: str,
+    *,
+    container_name: str,
+    data_dir: Optional[Path] = None,
+) -> None:
+    args = [
         "run",
         "-d",
         "--name",
@@ -155,9 +161,13 @@ def _docker_run_container(image: str, *, container_name: str) -> None:
         f"{DEFAULT_MGMT_PORT}:{DEFAULT_MGMT_PORT}",
         "-p",
         f"{DEFAULT_API_PORT}:{DEFAULT_API_PORT}",
-        image,
-        timeout=60.0,
-    )
+    ]
+    if data_dir is not None:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        mount = f"{data_dir.resolve()}:/data"
+        args.extend(["-v", mount, "-e", "PLASMOD_STORAGE=disk", "-e", "PLASMOD_DATA_DIR=/data"])
+    args.append(image)
+    proc = _docker_cmd(*args, timeout=60.0)
     if proc.returncode != 0:
         err = (proc.stderr or proc.stdout or "").strip()
         raise ConnectError(
@@ -184,6 +194,7 @@ def ensure_docker_gateway(
     container_name: Optional[str] = None,
     startup_timeout: float = DEFAULT_STARTUP_TIMEOUT,
     pull_timeout: float = DEFAULT_PULL_TIMEOUT,
+    data_dir: Optional[Path] = None,
 ) -> None:
     """
     Ensure a local split-deploy Plasmod gateway is reachable at ``api_url``.
@@ -224,7 +235,7 @@ def ensure_docker_gateway(
     if not _docker_image_present(image):
         _docker_pull(image, timeout=pull_timeout)
 
-    _docker_run_container(image, container_name=container_name)
+    _docker_run_container(image, container_name=container_name, data_dir=data_dir)
     _wait_for_gateway(api_url, timeout=startup_timeout)
 
 
