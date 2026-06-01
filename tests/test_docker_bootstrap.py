@@ -8,11 +8,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pyplasmod.exceptions import ConnectError
+from pyplasmod.http.deploy import gateway_is_healthy
 from pyplasmod.runtime.docker_bootstrap import (
     DEFAULT_DOCKER_IMAGE,
     auto_start_enabled,
     ensure_docker_gateway,
-    gateway_is_healthy,
     is_local_gateway_url,
     port_is_open,
 )
@@ -121,11 +121,26 @@ def test_plasmod_client_auto_start_disabled():
         c.close()
 
 
-def test_gateway_is_healthy_uses_mgmt_port():
+def test_gateway_is_healthy_split_mgmt_port():
     mock_resp = MagicMock(ok=True)
-    with patch("pyplasmod.runtime.docker_bootstrap.requests.get", return_value=mock_resp) as get:
+    with patch("pyplasmod.http.deploy.requests.get", return_value=mock_resp) as get:
         assert gateway_is_healthy("http://127.0.0.1:19530") is True
     assert get.call_args[0][0] == "http://127.0.0.1:9091/healthz"
+
+
+def test_gateway_is_healthy_unified_on_19530():
+    mock_fail = MagicMock(ok=False)
+    mock_ok = MagicMock(ok=True)
+
+    import requests as req_lib
+
+    def fake_get(url, **kwargs):
+        if ":9091" in url:
+            raise req_lib.RequestException("connection refused")
+        return mock_ok
+
+    with patch("pyplasmod.http.deploy.requests.get", side_effect=fake_get):
+        assert gateway_is_healthy("http://127.0.0.1:19530") is True
 
 
 def test_port_is_open_localhost():

@@ -19,10 +19,23 @@ def test_plasmod_client_is_high_level_entry():
 
 
 def test_plasmod_client_default_uri():
-    with patch("pyplasmod.client.ensure_docker_gateway"):
+    with patch("pyplasmod.client.ensure_docker_gateway"), patch(
+        "pyplasmod.client.resolve_mgmt_base_url",
+        return_value="http://127.0.0.1:9091",
+    ):
         c = PlasmodClient(auto_start=False)
     assert c.http.base_url == DEFAULT_API_URI.rstrip("/")
     assert c._mgmt_base_url == "http://127.0.0.1:9091"
+    c.close()
+
+
+def test_plasmod_client_unified_on_19530_mgmt_is_none():
+    with patch("pyplasmod.client.ensure_docker_gateway"), patch(
+        "pyplasmod.http.client.resolve_mgmt_base_url",
+        return_value=None,
+    ):
+        c = PlasmodClient(uri="http://127.0.0.1:19530", auto_start=False)
+    assert c._mgmt_base_url is None
     c.close()
 
 

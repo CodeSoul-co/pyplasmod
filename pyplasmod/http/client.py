@@ -28,6 +28,7 @@ from pyplasmod.http.binary import (
     encode_query_warm_batch,
 )
 from pyplasmod.http.errors import PlasmodHttpError
+from pyplasmod.http.deploy import resolve_mgmt_base_url
 from pyplasmod.http.warm_index import warm_index_ingest_fields
 
 
@@ -68,16 +69,6 @@ def _merge_headers(
     if extra:
         out.update(extra)
     return out
-
-
-def _mgmt_url_from_api(api_url: str) -> Optional[str]:
-    """Split deploy: API on :19530, admin/health on :9091. Unified mode returns None."""
-    parsed = urlparse(api_url)
-    if parsed.port == 19530:
-        host = parsed.hostname or "127.0.0.1"
-        scheme = parsed.scheme or "http"
-        return f"{scheme}://{host}:9091"
-    return None
 
 
 class PlasmodHttpClient:
@@ -143,7 +134,7 @@ class PlasmodHttpClient:
         )
         self._session = session or requests.Session()
         self._owns_session = session is None
-        self._mgmt_base_url = _mgmt_url_from_api(self.base_url)
+        self._mgmt_base_url = resolve_mgmt_base_url(self.base_url)
 
     def close(self) -> None:
         if self._owns_session:

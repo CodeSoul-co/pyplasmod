@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 from pyplasmod.data import build_query_body
 from pyplasmod.exceptions import ConnectError
 from pyplasmod.http.client import PlasmodHttpClient
+from pyplasmod.http.deploy import resolve_mgmt_base_url
 from pyplasmod.http.warm_index import WARM_INDEX_HNSW, normalize_warm_index_type
 from pyplasmod.embedded import WarmVectorStore, create_warm_store
 from pyplasmod.embedded.milvus_compat import format_insert_result, format_search_results
@@ -301,7 +302,7 @@ class PlasmodClient:
             admin_key=key,
             session=session,
         )
-        self._mgmt_base_url = _mgmt_url_from_api(self.http.base_url)
+        self._mgmt_base_url = resolve_mgmt_base_url(self.http.base_url)
 
     def __getattr__(self, name: str) -> Any:
         """Delegate unknown attributes to :attr:`http` (``PlasmodHttpClient`` compatibility)."""
@@ -605,15 +606,6 @@ class PlasmodClient:
                 f"docker run -d --name plasmod -p 9091:9091 -p 19530:19530 {image}"
             )
         return f"docker run -d --name plasmod -p 8080:8080 {image}"
-
-
-def _mgmt_url_from_api(api_url: str) -> Optional[str]:
-    parsed = urlparse(api_url)
-    if parsed.port == 19530:
-        host = parsed.hostname or "127.0.0.1"
-        scheme = parsed.scheme or "http"
-        return f"{scheme}://{host}:9091"
-    return None
 
 
 __all__ = [
