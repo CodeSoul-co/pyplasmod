@@ -114,6 +114,18 @@ def test_docker_run_hint():
     assert DEFAULT_DOCKER_IMAGE in hint
     assert "9091:9091" in hint
     assert "19530:19530" in hint
+    assert "19531:19531" in hint
+
+
+def test_plasmod_client_grpc_transport():
+    with patch("pyplasmod.grpc.client.PlasmodGrpcClient") as grpc_cls:
+        grpc_inst = MagicMock()
+        grpc_cls.return_value = grpc_inst
+        c = PlasmodClient(uri="http://127.0.0.1:19530", auto_start=False, transport="grpc")
+        assert c.transport == "grpc"
+        assert c.grpc is grpc_inst
+        grpc_cls.assert_called_once()
+        c.close()
 
 
 def _json_resp(data):

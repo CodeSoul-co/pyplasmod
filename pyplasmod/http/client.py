@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Iterator, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Iterator, List, Literal, Mapping, MutableMapping, Optional, Sequence
 from urllib.parse import quote, urlparse
 
 import requests
@@ -110,6 +110,8 @@ class PlasmodHttpClient:
         timeout: Optional[float] = None,
         admin_key: Optional[str] = None,
         session: Optional[requests.Session] = None,
+        transport: Literal["http", "grpc"] = "http",
+        grpc_target: Optional[str] = None,
     ) -> None:
         if base_url is None:
             base_url = (
@@ -135,8 +137,24 @@ class PlasmodHttpClient:
         self._session = session or requests.Session()
         self._owns_session = session is None
         self._mgmt_base_url = resolve_mgmt_base_url(self.base_url)
+        mode = str(transport or "http").strip().lower()
+        if mode not in ("http", "grpc"):
+            raise ValueError("transport must be 'http' or 'grpc'")
+        self.transport = mode  # type: ignore[assignment]
+        self.grpc = None
+        if mode == "grpc":
+            from pyplasmod.grpc.client import PlasmodGrpcClient
+
+            self.grpc = PlasmodGrpcClient(
+                target=grpc_target,
+                http_base_url=self.base_url,
+                timeout=self.timeout,
+            )
 
     def close(self) -> None:
+        if self.grpc is not None:
+            self.grpc.close()
+            self.grpc = None
         if self._owns_session:
             self._session.close()
 
@@ -254,6 +272,8 @@ class PlasmodHttpClient:
     # --- Tier A shortcuts -------------------------------------------------
 
     def health(self) -> Any:
+        if self.transport == "grpc" and self.grpc is not None:
+            return self.grpc.health()
         return self.request_json("GET", "/healthz")
 
     def system_mode(self) -> Any:
@@ -261,6 +281,8 @@ class PlasmodHttpClient:
         return self.request_json("GET", "/v1/system/mode")
 
     def ingest_event(self, event: Mapping[str, Any]) -> Any:
+        if self.transport == "grpc" and self.grpc is not None:
+            return self.grpc.ingest_event(event)
         return self.request_json("POST", "/v1/ingest/events", json_body=dict(event))
 
     def ingest_vectors(
@@ -301,6 +323,18 @@ class PlasmodHttpClient:
                 ivf_sq_type=ivf_sq_type,
             )
         )
+        if self.transport == "grpc" and self.grpc is not None:
+            return self.grpc.ingest_vectors(
+                vectors,
+                segment_id=segment_id,
+                object_ids=object_ids,
+                index_type=index_type,
+                ivf_nlist=ivf_nlist,
+                ivf_nprobe=ivf_nprobe,
+                ivf_m=ivf_m,
+                ivf_nbits=ivf_nbits,
+                ivf_sq_type=ivf_sq_type,
+            )
         return self.request_json("POST", "/v1/ingest/vectors", json_body=body)
 
     def ingest_document(self, body: Mapping[str, Any]) -> Any:
@@ -314,6 +348,8 @@ class PlasmodHttpClient:
         return self.request_json("POST", "/v1/ingest/document", json_body=dict(body))
 
     def query(self, body: Mapping[str, Any]) -> Any:
+        if self.transport == "grpc" and self.grpc is not None:
+            return self.grpc.query(body)
         return self.request_json("POST", "/v1/query", json_body=dict(body))
 
     def fetch_embedding_runtime(self, **kwargs: Any) -> Any:
@@ -345,6 +381,8 @@ class PlasmodHttpClient:
         payload = dict(body)
         if "vectors" in payload:
             payload["vectors"] = [list(map(float, row)) for row in payload["vectors"]]
+        if self.transport == "grpc" and self.grpc is not None:
+            return self.grpc.query_batch(payload)
         return self.request_json("POST", "/v1/query/batch", json_body=payload)
 
     def admin_memory_delete_by_source(self, body: Mapping[str, Any]) -> Any:

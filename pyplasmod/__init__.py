@@ -31,6 +31,13 @@ from pyplasmod.client import (
     PlasmodClient,
 )
 from pyplasmod.easy import EasyPlasmod
+from pyplasmod.grpc import (
+    DEFAULT_GRPC_PORT,
+    DEFAULT_GRPC_TARGET,
+    PlasmodGrpcClient,
+    PlasmodGrpcError,
+    resolve_grpc_target,
+)
 from pyplasmod.embedding import (
     EmbedderConfig,
     EmbeddingRuntimeInfo,
@@ -66,6 +73,8 @@ except PackageNotFoundError:
 __all__ = [
     "DEFAULT_API_URI",
     "DEFAULT_DOCKER_IMAGE",
+    "DEFAULT_GRPC_PORT",
+    "DEFAULT_GRPC_TARGET",
     "DEFAULT_UNIFIED_URI",
     "BatchResult",
     "ConnectError",
@@ -82,6 +91,8 @@ __all__ = [
     "plasmod_topics",
     "PlasmodClient",
     "PlasmodException",
+    "PlasmodGrpcClient",
+    "PlasmodGrpcError",
     "PlasmodHttpClient",
     "PlasmodHttpError",
     "PlasmodUnavailableException",
@@ -100,6 +111,7 @@ __all__ = [
     "encode_query_warm",
     "encode_query_warm_batch",
     "format_capability_table",
+    "resolve_grpc_target",
     "iter_batches",
     "validate_batch_size",
 ]

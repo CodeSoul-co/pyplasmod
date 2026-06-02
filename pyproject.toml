@@ -51,6 +51,10 @@ Documentation = "https://github.com/CodeSoul-co/pyplasmod/blob/main/docs/SDK.md"
 "Plasmod (server)" = "https://github.com/CodeSoul-co/Plasmod"
 
 [project.optional-dependencies]
+grpc = [
+    "grpcio>=1.60.0",
+    "protobuf>=5.27.0",
+]
 dev = [
     "pytest>=5.3.4",
     "pytest-cov>=5.0.0",
@@ -64,6 +68,8 @@ langchain = [
     "langchain-core>=0.1.0",
 ]
 all = [
+    "grpcio>=1.60.0",
+    "protobuf>=5.27.0",
     "hnswlib>=0.8.0",
     "langchain-core>=0.1.0",
 ]

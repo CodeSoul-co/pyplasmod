@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Any, Literal, Mapping, Optional, Sequence, Union
 from urllib.parse import urlparse
 
 from pyplasmod.data import build_query_body
@@ -44,6 +44,7 @@ from pyplasmod.runtime.retrieval_probe import gateway_has_vector_retrieval
 # Published Docker image (split: mgmt 9091, API 19530); re-exported from runtime.docker_bootstrap.
 DEFAULT_API_URI = "http://127.0.0.1:19530"
 DEFAULT_UNIFIED_URI = "http://127.0.0.1:8080"
+TransportMode = Literal["http", "grpc"]
 
 
 def _looks_like_url(value: str) -> bool:
@@ -219,6 +220,8 @@ class PlasmodClient:
 
     __slots__ = (
         "http",
+        "grpc",
+        "_transport",
         "_profile_user_path",
         "_profile_json_path",
         "_profile_data_dir",
@@ -242,6 +245,8 @@ class PlasmodClient:
         embedded: Optional[bool] = None,
         docker_image: Optional[str] = None,
         docker_container_name: Optional[str] = None,
+        transport: TransportMode = "http",
+        grpc_target: Optional[str] = None,
     ) -> None:
         """
         :param uri: Gateway URL, or path to a local profile (``*.db`` / ``*.json``).
@@ -251,7 +256,13 @@ class PlasmodClient:
         :param embedded: In-process / subprocess embedded Plasmod (default on for ``*.db`` profiles).
         :param docker_image: Image for Docker fallback (env ``PLASMOD_DOCKER_IMAGE``).
         :param docker_container_name: Container name (env ``PLASMOD_DOCKER_CONTAINER``).
+        :param transport: ``\"http\"`` (default) or ``\"grpc\"`` for ingest/query RPCs on remote gateway.
+        :param grpc_target: Optional ``host:port`` for gRPC (default ``PLASMOD_GRPC_ADDR`` or :19531).
         """
+        mode = str(transport or "http").strip().lower()
+        if mode not in ("http", "grpc"):
+            raise ValueError("transport must be 'http' or 'grpc'")
+        self._transport = mode  # type: ignore[assignment]
         resolved, user_path, profile_json, data_dir = _resolve_base_url(uri or None, base_url=base_url)
         key = admin_key
         if key is None and token:
@@ -301,8 +312,22 @@ class PlasmodClient:
             timeout=timeout,
             admin_key=key,
             session=session,
+            transport=mode,
+            grpc_target=grpc_target,
         )
+        self.grpc = self.http.grpc
         self._mgmt_base_url = resolve_mgmt_base_url(self.http.base_url)
+
+    @property
+    def transport(self) -> TransportMode:
+        """Active transport for core ingest/query RPCs (``http`` or ``grpc``)."""
+        return self._transport  # type: ignore[return-value]
+
+    def _remote_api(self) -> Any:
+        """HTTP or gRPC client for warm ingest / query on a remote gateway."""
+        if self._transport == "grpc" and self.grpc is not None:
+            return self.grpc
+        return self.http
 
     def __getattr__(self, name: str) -> Any:
         """Delegate unknown attributes to :attr:`http` (``PlasmodHttpClient`` compatibility)."""
@@ -312,6 +337,8 @@ class PlasmodClient:
         if self._owns_embedded_server:
             release_embedded_server()
         self.http.close()
+        if self.grpc is not None and self.grpc is not getattr(self.http, "grpc", None):
+            self.grpc.close()
 
     def __enter__(self) -> PlasmodClient:
         return self
@@ -348,7 +375,9 @@ class PlasmodClient:
         return seg
 
     def health(self) -> Any:
-        """``GET /healthz`` — split deploy uses mgmt :9091 via :attr:`http`."""
+        """Health check — gRPC ``Health`` when ``transport='grpc'``, else HTTP ``/healthz``."""
+        if self._transport == "grpc" and self.grpc is not None:
+            return self.grpc.health()
         return self.http.health()
 
     def has_collection(self, collection_name: str) -> bool:
@@ -449,7 +478,7 @@ class PlasmodClient:
                 ivf=ivf,
             )
             return format_insert_result(object_ids=ids, insert_count=len(vectors), extra={"embedded_mode": self._embedded_mode})
-        return self.http.ingest_vectors(
+        return self._remote_api().ingest_vectors(
             vectors,
             segment_id=kwargs.get("segment_id", meta["warm_segment_id"]),
             object_ids=ids,
@@ -504,7 +533,7 @@ class PlasmodClient:
                 )
             else:
                 results.append(
-                    self.http.ingest_vectors(
+                    self._remote_api().ingest_vectors(
                         vectors,
                         segment_id=segment_id,
                         object_ids=ids,
@@ -556,7 +585,7 @@ class PlasmodClient:
                 extra={"filter_expr": filter} if filter else None,
                 **kwargs,
             )
-            return self.http.query(body)
+            return self._remote_api().query(body)
 
         queries = _coerce_query_vectors(data)
         if self._embedded_store is not None:
@@ -581,7 +610,7 @@ class PlasmodClient:
                 extra=extra,
                 **kwargs,
             )
-            return self.http.query(body)
+            return self._remote_api().query(body)
 
         batch_body: dict[str, Any] = {
             "warm_segment_id": warm_segment_id,
@@ -592,7 +621,7 @@ class PlasmodClient:
         if filter:
             batch_body["filter_expr"] = filter
         batch_body.update(kwargs)
-        return self.http.query_batch(batch_body)
+        return self._remote_api().query_batch(batch_body)
 
     @staticmethod
     def docker_run_hint(
@@ -603,9 +632,9 @@ class PlasmodClient:
         """Shell one-liner to start the published image (split ports by default)."""
         if split:
             return (
-                f"docker run -d --name plasmod -p 9091:9091 -p 19530:19530 {image}"
+                f"docker run -d --name plasmod -p 9091:9091 -p 19530:19530 -p 19531:19531 {image}"
             )
-        return f"docker run -d --name plasmod -p 8080:8080 {image}"
+        return f"docker run -d --name plasmod -p 8080:8080 -p 19531:19531 {image}"
 
 
 __all__ = [
@@ -614,4 +643,5 @@ __all__ = [
     "DEFAULT_DOCKER_IMAGE",
     "DEFAULT_UNIFIED_URI",
     "PlasmodClient",
+    "TransportMode",
 ]
