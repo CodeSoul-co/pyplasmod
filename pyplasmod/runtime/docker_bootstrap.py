@@ -20,6 +20,7 @@ DEFAULT_DOCKER_IMAGE = "oneflybird/plasmod"
 DEFAULT_CONTAINER_NAME = "plasmod"
 DEFAULT_API_PORT = SPLIT_API_PORT
 DEFAULT_MGMT_PORT = 9091
+DEFAULT_GRPC_PORT = 19531
 DEFAULT_STARTUP_TIMEOUT = 120.0
 DEFAULT_PULL_TIMEOUT = 600.0
 _HEALTH_POLL_INTERVAL = 0.5
@@ -83,7 +84,9 @@ def _docker_run_line(image: str, *, container_name: str = DEFAULT_CONTAINER_NAME
     return (
         f"docker run -d --name {container_name} "
         f"-p {DEFAULT_MGMT_PORT}:{DEFAULT_MGMT_PORT} "
-        f"-p {DEFAULT_API_PORT}:{DEFAULT_API_PORT} {image}"
+        f"-p {DEFAULT_API_PORT}:{DEFAULT_API_PORT} "
+        f"-p {DEFAULT_GRPC_PORT}:{DEFAULT_GRPC_PORT} "
+        f"-e PLASMOD_GRPC_ADDR=0.0.0.0:{DEFAULT_GRPC_PORT} {image}"
     )
 
 
@@ -141,6 +144,10 @@ def _docker_run_container(
         f"{DEFAULT_MGMT_PORT}:{DEFAULT_MGMT_PORT}",
         "-p",
         f"{DEFAULT_API_PORT}:{DEFAULT_API_PORT}",
+        "-p",
+        f"{DEFAULT_GRPC_PORT}:{DEFAULT_GRPC_PORT}",
+        "-e",
+        f"PLASMOD_GRPC_ADDR=0.0.0.0:{DEFAULT_GRPC_PORT}",
     ]
     if data_dir is not None:
         data_dir.mkdir(parents=True, exist_ok=True)
@@ -224,6 +231,7 @@ __all__ = [
     "DEFAULT_CONTAINER_NAME",
     "DEFAULT_API_PORT",
     "DEFAULT_MGMT_PORT",
+    "DEFAULT_GRPC_PORT",
     "DEFAULT_PULL_TIMEOUT",
     "DEFAULT_STARTUP_TIMEOUT",
     "auto_start_enabled",

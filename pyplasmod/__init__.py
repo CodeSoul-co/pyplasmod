@@ -31,13 +31,6 @@ from pyplasmod.client import (
     PlasmodClient,
 )
 from pyplasmod.easy import EasyPlasmod
-from pyplasmod.grpc import (
-    DEFAULT_GRPC_PORT,
-    DEFAULT_GRPC_TARGET,
-    PlasmodGrpcClient,
-    PlasmodGrpcError,
-    resolve_grpc_target,
-)
 from pyplasmod.embedding import (
     EmbedderConfig,
     EmbeddingRuntimeInfo,
@@ -118,9 +111,19 @@ __all__ = [
 
 
 def __getattr__(name: str):
-    """Lazy import for optional LangChain integration."""
+    """Lazy import for optional integrations (LangChain, gRPC)."""
     if name == "PlasmodVectorStore":
         from pyplasmod.langchain import PlasmodVectorStore
 
         return PlasmodVectorStore
+    if name in (
+        "DEFAULT_GRPC_PORT",
+        "DEFAULT_GRPC_TARGET",
+        "PlasmodGrpcClient",
+        "PlasmodGrpcError",
+        "resolve_grpc_target",
+    ):
+        from pyplasmod import grpc as grpc_mod
+
+        return getattr(grpc_mod, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
