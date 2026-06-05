@@ -71,6 +71,21 @@ def test_plasmod_client_profile_file(tmp_path: Path):
     assert "demo_collection" in profile2["collections"]
 
 
+def test_plasmod_client_profile_directory_auto_starts_docker(tmp_path: Path):
+    db_root = tmp_path / "plasmod_demo.db"
+    with patch("pyplasmod.client.ensure_docker_gateway") as ensure, patch(
+        "pyplasmod.client.gateway_is_healthy",
+        return_value=False,
+    ), patch("pyplasmod.client.create_warm_store", return_value=(None, None)), patch(
+        "pyplasmod.client.find_plasmod_server_binary",
+        return_value=None,
+    ):
+        c = PlasmodClient(str(db_root))
+    ensure.assert_called_once()
+    assert c._embedded_store is None
+    c.close()
+
+
 def test_plasmod_client_profile_directory(tmp_path: Path):
     db_root = tmp_path / "plasmod_demo.db"
     with patch("pyplasmod.client.ensure_docker_gateway"), patch(

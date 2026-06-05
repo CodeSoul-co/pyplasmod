@@ -115,7 +115,7 @@ def _profile_auto_start_default(
     embedded: Optional[bool],
     auto_start: Optional[bool],
 ) -> Optional[bool]:
-    """Local ``*.db`` profiles default to pip-only embedded mode (no Docker)."""
+    """``*.db`` profiles default to remote gateway + Docker auto-start (``PLASMOD_AUTO_START``)."""
     if auto_start is not None:
         return auto_start
     if profile_json is not None and embedded_enabled(embedded):
@@ -206,12 +206,10 @@ class PlasmodClient:
 
         client = PlasmodClient("plasmod_demo.db")
 
-    **Embedded mode (Milvus Lite–like)** — default for ``*.db`` profiles; ``pip install pyplasmod`` only:
-
-    * **Embedded vectors** — bundled ``faiss-cpu`` HNSW; data under ``foo.db/collections/``.
-    * **Native vectors** — optional ``libplasmod_retrieval`` when built from Plasmod source.
-    * **Remote gateway** — pass ``uri="http://..."`` or disable ``embedded=False`` for full Plasmod HTTP APIs.
-    * Docker auto-start is **off** for local ``*.db`` profiles (enable with ``auto_start=True``).
+    **Default for ``*.db`` profiles** — remote gateway; auto-start Docker when
+    ``http://127.0.0.1:19530`` is down (``PLASMOD_AUTO_START`` on by default).
+    Profile stores URI + collection metadata under the path. For offline local vectors
+    without Docker, pass ``embedded=True``.
 
     Legacy single-file ``plasmod_demo.db`` (JSON) is still supported.
     **Collections** map to Plasmod ``workspace_id`` + warm segment ``warm.<name>``.
@@ -252,8 +250,8 @@ class PlasmodClient:
         :param uri: Gateway URL, or path to a local profile (``*.db`` / ``*.json``).
         :param token: Optional credential; stored in profile files and passed as ``admin_key`` when set.
         :param base_url: Alias for ``uri`` when connecting over HTTP (backward compatible).
-        :param auto_start: Docker fallback when embedded/local gateway is down (``PLASMOD_AUTO_START``).
-        :param embedded: In-process / subprocess embedded Plasmod (default on for ``*.db`` profiles).
+        :param auto_start: Docker bootstrap when local gateway is down (``PLASMOD_AUTO_START``).
+        :param embedded: Local FAISS vectors under ``*.db`` (pass ``embedded=True``); default ``False`` for profiles → remote gateway.
         :param docker_image: Image for Docker fallback (env ``PLASMOD_DOCKER_IMAGE``).
         :param docker_container_name: Container name (env ``PLASMOD_DOCKER_CONTAINER``).
         :param transport: ``\"http\"`` (default) or ``\"grpc\"`` for ingest/query RPCs on remote gateway.
@@ -279,16 +277,31 @@ class PlasmodClient:
             if stored_uri:
                 resolved = stored_uri
 
-        resolved, embedded_mode, warm_store, owns_server = _bootstrap_local_gateway(
-            resolved,
-            profile_json=profile_json,
-            user_path=user_path,
-            data_dir=data_dir,
-            embedded=embedded,
-            auto_start=_profile_auto_start_default(profile_json, embedded, auto_start),
-            docker_image=docker_image,
-            docker_container_name=docker_container_name,
-        )
+        effective_embedded = embedded
+        if profile_json is not None and embedded is None:
+            effective_embedded = False
+
+        try:
+            resolved, embedded_mode, warm_store, owns_server = _bootstrap_local_gateway(
+                resolved,
+                profile_json=profile_json,
+                user_path=user_path,
+                data_dir=data_dir,
+                embedded=effective_embedded,
+                auto_start=_profile_auto_start_default(
+                    profile_json, effective_embedded, auto_start
+                ),
+                docker_image=docker_image,
+                docker_container_name=docker_container_name,
+            )
+        except ConnectError as exc:
+            if profile_json is not None and not embedded_enabled(effective_embedded):
+                raise ConnectError(
+                    f"Plasmod gateway for profile {user_path!s} is unavailable and Docker "
+                    f"auto-start failed. Start the server manually (see PlasmodClient.docker_run_hint()) "
+                    f"or use embedded=True for offline local vectors. Original error: {exc}"
+                ) from exc
+            raise
 
         self._profile_user_path = user_path
         self._profile_json_path = profile_json
