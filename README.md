@@ -631,3 +631,6 @@ print(p.http.dataset_purge_task("<task_id>"))
 ## License
 
 MIT (see `LICENSE` at the repository root).
+
+---
+For more information, please contact us.
