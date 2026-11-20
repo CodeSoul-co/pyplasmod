@@ -26,7 +26,7 @@ from pyplasmod import PlasmodClient
 # Local profile file (JSON) — stores default gateway URI + collection metadata
 client = PlasmodClient("plasmod_demo.db")
 
-# Or connect to a running server (Docker: oneflybird/plasmod on port 19530)
+# Or connect to a running server (Docker: adamwerw/plasmod:v1.0 on port 19530)
 # client = PlasmodClient(uri="http://127.0.0.1:19530")
 
 client.create_collection(collection_name="demo_collection", dimension=768)
@@ -34,10 +34,10 @@ client.insert("demo_collection", data=[{"id": "1", "vector": [0.0] * 768}])
 res = client.search(collection_name="demo_collection", data="hello", limit=10)
 ```
 
-Start the published image:
+The default Docker image runs on `linux/arm64` (including Apple Silicon). To use an image built for another architecture, set `PLASMOD_DOCKER_IMAGE`. You can start the default image manually with the following command.
 
 ```bash
-docker run -d --name plasmod -p 9091:9091 -p 19530:19530 oneflybird/plasmod
+docker run -d --name plasmod -p 9091:9091 -p 19530:19530 -p 19531:19531 adamwerw/plasmod:v1.0
 ```
 
 Full HTTP/RPC surface: `client.http` (`PlasmodHttpClient`). Day-to-day helpers: `EasyPlasmod`.
@@ -47,7 +47,7 @@ The steps below assume Plasmod is running. For `docker compose up -d` (split), t
 | Step | What to do | Command / code |
 |------|------------|----------------|
 | 0 | Confirm the gateway is up | split: `curl -sS http://127.0.0.1:9091/healthz`; unified: `curl -sS http://127.0.0.1:8080/healthz` |
-| 1 | Install this client | `pip install pyplasmod==0.1.0` |
+| 1 | Install this client | `pip install -U pyplasmod` |
 | 2 | Configure gateway URL (optional) | split: `export PLASMOD_BASE_URL=http://127.0.0.1:19530`; unified: `http://127.0.0.1:8080` (see [`.env.example`](.env.example)) |
 | 3 | Health check | See Python snippet below |
 | 4 | (Optional) Upload data | Text/docs **§2.1**; `.fbin` **§2.3**; JSON matrix + ANN index **§2.4**; skip if no data yet |

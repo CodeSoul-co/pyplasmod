@@ -10,7 +10,6 @@ import pytest
 from pyplasmod.exceptions import ConnectError
 from pyplasmod.http.deploy import gateway_is_healthy
 from pyplasmod.runtime.docker_bootstrap import (
-    DEFAULT_DOCKER_IMAGE,
     auto_start_enabled,
     ensure_docker_gateway,
     is_local_gateway_url,
@@ -42,7 +41,19 @@ def test_ensure_docker_gateway_already_healthy():
     health.assert_called()
 
 
-def test_ensure_docker_gateway_pull_and_run():
+@pytest.mark.parametrize(
+    ("env_image", "image", "expected"),
+    [
+        (None, None, "adamwerw/plasmod:v1.0"),
+        ("example/env:1", None, "example/env:1"),
+        ("example/env:1", "example/custom:2", "example/custom:2"),
+    ],
+)
+def test_ensure_docker_gateway_pull_and_run(monkeypatch, env_image, image, expected):
+    if env_image is None:
+        monkeypatch.delenv("PLASMOD_DOCKER_IMAGE", raising=False)
+    else:
+        monkeypatch.setenv("PLASMOD_DOCKER_IMAGE", env_image)
     with patch(
         "pyplasmod.runtime.docker_bootstrap.gateway_is_healthy",
         side_effect=[False, False, True],
@@ -60,9 +71,10 @@ def test_ensure_docker_gateway_pull_and_run():
     ) as pull, patch(
         "pyplasmod.runtime.docker_bootstrap._docker_run_container",
     ) as run:
-        ensure_docker_gateway("http://127.0.0.1:19530", image=DEFAULT_DOCKER_IMAGE)
+        ensure_docker_gateway("http://127.0.0.1:19530", image=image)
     pull.assert_called_once()
     run.assert_called_once()
+    assert pull.call_args.args == run.call_args.args == (expected,)
 
 
 def test_ensure_docker_gateway_starts_existing_container():
@@ -98,9 +110,9 @@ def test_ensure_docker_gateway_port_conflict():
 
 
 def test_plasmod_client_auto_start_invokes_ensure():
-    with patch("pyplasmod.client.ensure_docker_gateway") as ensure, patch(
-        "pyplasmod.client.PlasmodHttpClient",
-    ) as http_cls:
+    with patch("pyplasmod.client.gateway_is_healthy", return_value=False), patch(
+        "pyplasmod.client.ensure_docker_gateway"
+    ) as ensure, patch("pyplasmod.client.PlasmodHttpClient") as http_cls:
         http_cls.return_value = MagicMock(base_url="http://127.0.0.1:19530")
         from pyplasmod import PlasmodClient
 

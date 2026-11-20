@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 from pyplasmod.exceptions import ConnectError
 from pyplasmod.http.deploy import SPLIT_API_PORT, gateway_is_healthy
 
-DEFAULT_DOCKER_IMAGE = "oneflybird/plasmod"
+DEFAULT_DOCKER_IMAGE = "adamwerw/plasmod:v1.0"
 DEFAULT_CONTAINER_NAME = "plasmod"
 DEFAULT_API_PORT = SPLIT_API_PORT
 DEFAULT_MGMT_PORT = 9091

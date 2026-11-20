@@ -31,8 +31,10 @@ client.insert("demo_collection", data=[{"id": "1", "vector": [0.0] * 768}])
 res = client.search(collection_name="demo_collection", data="hello", limit=10)
 ```
 
+默认镜像适用于 `linux/arm64`（包括 Apple Silicon）。其他架构可通过 `PLASMOD_DOCKER_IMAGE` 指定兼容镜像。手动启动默认镜像可运行以下命令。
+
 ```bash
-docker run -d --name plasmod -p 9091:9091 -p 19530:19530 oneflybird/plasmod
+docker run -d --name plasmod -p 9091:9091 -p 19530:19530 -p 19531:19531 adamwerw/plasmod:v1.0
 ```
 
 完整 HTTP/RPC：`client.http`。日常封装：`EasyPlasmod`。
